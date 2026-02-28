@@ -11,6 +11,10 @@
       <section class="card wide">
         <h1>Last 30 Days Game Stats</h1>
         <p id="summary" class="hint">Loading data...</p>
+        <div id="loading" class="loading" role="status" aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Loading data...</span>
+        </div>
 
         <div class="table-wrap">
           <table>
@@ -20,7 +24,6 @@
                 <th>Games</th>
                 <th>Win Rate</th>
                 <th>Avg Game Duration</th>
-                <th>Game Durations (Last 30 Days)</th>
               </tr>
             </thead>
             <tbody id="stats-body"></tbody>
