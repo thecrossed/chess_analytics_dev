@@ -26,6 +26,18 @@ function formatDuration(ms) {
   return `${seconds}s`;
 }
 
+function formatDate(timestampMs) {
+  if (!timestampMs) {
+    return "-";
+  }
+
+  return new Date(timestampMs).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit"
+  });
+}
+
 function getResultFromGame(game, username) {
   const lower = username.toLowerCase();
   const whiteUser = game.players?.white?.user?.name?.toLowerCase();
@@ -77,6 +89,7 @@ function buildStats(games, username) {
 
       return {
         id: game.id,
+        playedAt: lastMoveAt || createdAt,
         durationMs,
         result: getResultFromGame(game, username)
       };
@@ -89,11 +102,14 @@ function buildStats(games, username) {
 
   const totalDuration = withDuration.reduce((acc, g) => acc + g.durationMs, 0);
   const avgDurationMs = totalGames === 0 ? 0 : Math.round(totalDuration / totalGames);
+  const lastPlayedAt =
+    totalGames === 0 ? 0 : withDuration.reduce((latest, g) => Math.max(latest, g.playedAt), 0);
 
   return {
     totalGames,
     winRate,
-    avgDurationMs
+    avgDurationMs,
+    lastPlayedAt
   };
 }
 
@@ -105,7 +121,7 @@ function renderRow(username, stats, error = null) {
 
   if (error) {
     const errorTd = document.createElement("td");
-    errorTd.colSpan = 3;
+    errorTd.colSpan = 4;
     const small = document.createElement("small");
     small.textContent = `Load failed: ${error}`;
     errorTd.appendChild(small);
@@ -125,6 +141,10 @@ function renderRow(username, stats, error = null) {
   const avgTd = document.createElement("td");
   avgTd.textContent = formatDuration(stats.avgDurationMs);
   tr.appendChild(avgTd);
+
+  const lastPlayedTd = document.createElement("td");
+  lastPlayedTd.textContent = formatDate(stats.lastPlayedAt);
+  tr.appendChild(lastPlayedTd);
 
   body.appendChild(tr);
 }
