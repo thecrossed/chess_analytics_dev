@@ -74,6 +74,16 @@ h1 {
   gap: 10px;
 }
 
+.import-row {
+  align-items: center;
+  margin-top: 10px;
+}
+
+.hint-inline {
+  color: var(--subtle);
+  font-size: 14px;
+}
+
 input {
   flex: 1;
   border: 1px solid var(--line);

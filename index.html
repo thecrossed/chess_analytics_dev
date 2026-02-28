@@ -17,6 +17,11 @@
           <input id="username" name="username" type="text" placeholder="e.g. DrNykterstein" autocomplete="off" required />
           <button type="submit">Add</button>
         </form>
+        <div class="row import-row">
+          <button id="upload-csv" type="button">Upload CSV</button>
+          <input id="csv-file" type="file" accept=".csv,text/csv" class="sr-only" />
+          <span class="hint-inline">CSV: one username per line or comma-separated.</span>
+        </div>
 
         <ul id="user-list" class="user-list" aria-live="polite"></ul>
 
