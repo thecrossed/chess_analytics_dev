@@ -1,5 +1,6 @@
 const summary = document.getElementById("summary");
 const body = document.getElementById("stats-body");
+const loading = document.getElementById("loading");
 
 const params = new URLSearchParams(window.location.search);
 const usersParam = params.get("users") || "";
@@ -128,12 +129,21 @@ function renderRow(username, stats, error = null) {
   body.appendChild(tr);
 }
 
+function setLoading(visible) {
+  if (!loading) {
+    return;
+  }
+  loading.classList.toggle("hidden", !visible);
+}
+
 async function run() {
   if (usernames.length === 0) {
+    setLoading(false);
     summary.textContent = "No usernames received. Please go back to the home page and add accounts.";
     return;
   }
 
+  setLoading(true);
   summary.textContent = `${usernames.length} users total, loading...`;
 
   let finished = 0;
@@ -150,6 +160,7 @@ async function run() {
     }
   }
 
+  setLoading(false);
   summary.textContent = `Completed ${finished}/${usernames.length}. Range: last 30 days (up to 200 games per user).`;
 }
 
