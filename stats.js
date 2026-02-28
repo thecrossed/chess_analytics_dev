@@ -89,15 +89,10 @@ function buildStats(games, username) {
   const totalDuration = withDuration.reduce((acc, g) => acc + g.durationMs, 0);
   const avgDurationMs = totalGames === 0 ? 0 : Math.round(totalDuration / totalGames);
 
-  const gameDurations = withDuration.map((g, index) => {
-    return `${index + 1}. ${formatDuration(g.durationMs)}（${g.result}）`;
-  });
-
   return {
     totalGames,
     winRate,
-    avgDurationMs,
-    gameDurations
+    avgDurationMs
   };
 }
 
@@ -109,7 +104,7 @@ function renderRow(username, stats, error = null) {
 
   if (error) {
     const errorTd = document.createElement("td");
-    errorTd.colSpan = 4;
+    errorTd.colSpan = 3;
     const small = document.createElement("small");
     small.textContent = `Load failed: ${error}`;
     errorTd.appendChild(small);
@@ -129,24 +124,6 @@ function renderRow(username, stats, error = null) {
   const avgTd = document.createElement("td");
   avgTd.textContent = formatDuration(stats.avgDurationMs);
   tr.appendChild(avgTd);
-
-  const durationsTd = document.createElement("td");
-  if (stats.gameDurations.length === 0) {
-    const small = document.createElement("small");
-    small.textContent = "No games";
-    durationsTd.appendChild(small);
-  } else {
-    const details = document.createElement("details");
-    const detailsSummary = document.createElement("summary");
-    detailsSummary.textContent = `Expand to view ${stats.gameDurations.length} games`;
-
-    const pre = document.createElement("pre");
-    pre.textContent = stats.gameDurations.join("\n");
-
-    details.append(detailsSummary, pre);
-    durationsTd.appendChild(details);
-  }
-  tr.appendChild(durationsTd);
 
   body.appendChild(tr);
 }
