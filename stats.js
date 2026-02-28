@@ -54,6 +54,30 @@ function getResultFromGame(game, username) {
   return "Draw";
 }
 
+function getUserPlayer(game, username) {
+  const lower = username.toLowerCase();
+  const whiteUser = game.players?.white?.user?.name?.toLowerCase();
+  const blackUser = game.players?.black?.user?.name?.toLowerCase();
+
+  if (whiteUser === lower) {
+    return game.players?.white || null;
+  }
+  if (blackUser === lower) {
+    return game.players?.black || null;
+  }
+  return null;
+}
+
+function formatRatingChange(value) {
+  if (value === null) {
+    return "-";
+  }
+  if (value > 0) {
+    return `+${value}`;
+  }
+  return String(value);
+}
+
 async function fetchGamesForUser(username) {
   const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const maxGames = 200;
@@ -91,6 +115,7 @@ function buildStats(games, username) {
         id: game.id,
         playedAt: lastMoveAt || createdAt,
         durationMs,
+        ratingDiff: getUserPlayer(game, username)?.ratingDiff,
         result: getResultFromGame(game, username)
       };
     })
@@ -104,11 +129,17 @@ function buildStats(games, username) {
   const avgDurationMs = totalGames === 0 ? 0 : Math.round(totalDuration / totalGames);
   const lastPlayedAt =
     totalGames === 0 ? 0 : withDuration.reduce((latest, g) => Math.max(latest, g.playedAt), 0);
+  const ratingDiffs = withDuration
+    .map((g) => g.ratingDiff)
+    .filter((value) => typeof value === "number");
+  const ratingChange30d =
+    ratingDiffs.length === 0 ? null : ratingDiffs.reduce((sum, value) => sum + value, 0);
 
   return {
     totalGames,
     winRate,
     avgDurationMs,
+    ratingChange30d,
     lastPlayedAt
   };
 }
@@ -121,7 +152,7 @@ function renderRow(username, stats, error = null) {
 
   if (error) {
     const errorTd = document.createElement("td");
-    errorTd.colSpan = 4;
+    errorTd.colSpan = 5;
     const small = document.createElement("small");
     small.textContent = `Load failed: ${error}`;
     errorTd.appendChild(small);
@@ -141,6 +172,10 @@ function renderRow(username, stats, error = null) {
   const avgTd = document.createElement("td");
   avgTd.textContent = formatDuration(stats.avgDurationMs);
   tr.appendChild(avgTd);
+
+  const ratingChangeTd = document.createElement("td");
+  ratingChangeTd.textContent = formatRatingChange(stats.ratingChange30d);
+  tr.appendChild(ratingChangeTd);
 
   const lastPlayedTd = document.createElement("td");
   lastPlayedTd.textContent = formatDate(stats.lastPlayedAt);
