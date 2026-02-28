@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Last 30 Days Game Stats</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card wide">
+        <h1>Last 30 Days Game Stats</h1>
+        <p id="summary" class="hint">Loading data...</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Games</th>
+                <th>Win Rate</th>
+                <th>Avg Game Duration</th>
+                <th>Game Durations (Last 30 Days)</th>
+              </tr>
+            </thead>
+            <tbody id="stats-body"></tbody>
+          </table>
+        </div>
+
+        <div class="actions">
+          <a class="button-link" href="index.html">Back to Home</a>
+        </div>
+      </section>
+    </main>
+
+    <script src="stats.js" type="module"></script>
+  </body>
+</html>

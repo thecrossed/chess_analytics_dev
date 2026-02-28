@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lichess Multi-User Stats</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card">
+        <h1>Lichess Account Stats</h1>
+        <p class="hint">Add one or more usernames to generate a 30-day stats page.</p>
+
+        <form id="add-user-form" class="row">
+          <label for="username" class="sr-only">Lichess Username</label>
+          <input id="username" name="username" type="text" placeholder="e.g. DrNykterstein" autocomplete="off" required />
+          <button type="submit">Add</button>
+        </form>
+
+        <ul id="user-list" class="user-list" aria-live="polite"></ul>
+
+        <div class="actions">
+          <button id="build-page" type="button">Generate Stats Page</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,169 @@
+:root {
+  --bg: #f6f8fb;
+  --card: #ffffff;
+  --text: #101828;
+  --subtle: #475467;
+  --line: #d0d5dd;
+  --accent: #0066cc;
+  --accent-dark: #0055aa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "PingFang SC", "Helvetica Neue", sans-serif;
+  background: radial-gradient(circle at top, #eaf2ff 0, var(--bg) 45%);
+  color: var(--text);
+}
+
+.shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.card {
+  width: min(720px, 100%);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.06);
+}
+
+.card.wide {
+  width: min(1080px, 100%);
+}
+
+h1 {
+  margin: 0 0 10px;
+}
+
+.hint {
+  margin: 0 0 16px;
+  color: var(--subtle);
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+input {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 16px;
+  padding: 10px 12px;
+}
+
+button,
+.button-link {
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 10px 14px;
+  text-decoration: none;
+}
+
+button:hover,
+.button-link:hover {
+  background: var(--accent-dark);
+}
+
+.user-list {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #f8fafc;
+}
+
+.user-chip button {
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  padding: 10px;
+  vertical-align: top;
+}
+
+td small {
+  color: var(--subtle);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+@media (max-width: 720px) {
+  .row {
+    flex-direction: column;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  button,
+  .button-link {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+details summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+pre {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--subtle);
+}
