@@ -84,6 +84,19 @@ h1 {
   font-size: 14px;
 }
 
+.type-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.type-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--subtle);
+}
+
 input {
   flex: 1;
   border: 1px solid var(--line);

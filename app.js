@@ -6,6 +6,7 @@ const platformSelect = document.getElementById("platform");
 const rangeDaysInput = document.getElementById("range-days");
 const uploadCsvButton = document.getElementById("upload-csv");
 const csvFileInput = document.getElementById("csv-file");
+const gameTypeInputs = Array.from(document.querySelectorAll('input[name="game-type"]'));
 
 const users = new Set();
 const USERNAME_RE = /^[A-Za-z0-9_-]{2,30}$/;
@@ -62,6 +63,10 @@ function normalizeRangeDays(raw) {
     return 30;
   }
   return Math.min(90, Math.max(1, value));
+}
+
+function getSelectedGameTypes() {
+  return gameTypeInputs.filter((inputEl) => inputEl.checked).map((inputEl) => inputEl.value);
 }
 
 form.addEventListener("submit", (event) => {
@@ -128,10 +133,17 @@ buildPageButton.addEventListener("click", () => {
     return;
   }
 
+  const selectedTypes = getSelectedGameTypes();
+  if (selectedTypes.length === 0) {
+    alert("Please select at least one game type (Bullet/Blitz/Rapid).");
+    return;
+  }
+
   const params = new URLSearchParams({
     users: Array.from(users).join(","),
     platform: platformSelect.value,
-    days: String(normalizeRangeDays(rangeDaysInput.value))
+    days: String(normalizeRangeDays(rangeDaysInput.value)),
+    types: selectedTypes.join(",")
   });
 
   window.location.href = `stats.html?${params.toString()}`;
