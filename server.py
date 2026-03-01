@@ -25,6 +25,7 @@ AUTH_REGISTER_RE = re.compile(r"^/api/auth/register/?$")
 AUTH_LOGIN_RE = re.compile(r"^/api/auth/login/?$")
 AUTH_LOGOUT_RE = re.compile(r"^/api/auth/logout/?$")
 AUTH_ME_RE = re.compile(r"^/api/auth/me/?$")
+AUTH_GUEST_RE = re.compile(r"^/api/auth/guest/?$")
 
 
 def init_db():
@@ -144,6 +145,9 @@ class AppHandler(SimpleHTTPRequestHandler):
         if AUTH_LOGIN_RE.match(self.path):
             self._handle_login()
             return
+        if AUTH_GUEST_RE.match(self.path):
+            self._handle_guest_login()
+            return
         if AUTH_LOGOUT_RE.match(self.path):
             self._handle_logout()
             return
@@ -204,14 +208,31 @@ class AppHandler(SimpleHTTPRequestHandler):
                 self._send_json(401, {"error": "invalid_credentials"})
                 return
 
-            token = secrets.token_urlsafe(32)
-            expires_at = int(time.time()) + SESSION_TTL_SECONDS
-            conn.execute("INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)", (token, user_id, expires_at))
-            conn.execute("DELETE FROM sessions WHERE expires_at <= ?", (int(time.time()),))
-            conn.commit()
+            token = self._create_session(conn, user_id)
 
         extra_headers = [("Set-Cookie", f"{SESSION_COOKIE}={token}; HttpOnly; Path=/; Max-Age={SESSION_TTL_SECONDS}; SameSite=Lax")]
         self._send_json(200, {"ok": True, "username": db_username}, extra_headers=extra_headers)
+
+    def _handle_guest_login(self):
+        guest_username = "guest"
+        with sqlite3.connect(DB_PATH) as conn:
+            row = conn.execute("SELECT id FROM users WHERE username = ?", (guest_username,)).fetchone()
+            if row:
+                guest_user_id = row[0]
+            else:
+                random_password = secrets.token_urlsafe(32)
+                password_hash, salt = make_password_hash(random_password)
+                conn.execute(
+                    "INSERT INTO users (username, password_hash, salt, created_at) VALUES (?, ?, ?, ?)",
+                    (guest_username, password_hash, salt, int(time.time())),
+                )
+                guest_user_id = conn.execute("SELECT id FROM users WHERE username = ?", (guest_username,)).fetchone()[0]
+                conn.commit()
+
+            token = self._create_session(conn, guest_user_id)
+
+        extra_headers = [("Set-Cookie", f"{SESSION_COOKIE}={token}; HttpOnly; Path=/; Max-Age={SESSION_TTL_SECONDS}; SameSite=Lax")]
+        self._send_json(200, {"ok": True, "username": guest_username}, extra_headers=extra_headers)
 
     def _handle_logout(self):
         token = parse_session_token_from_headers(self.headers)
@@ -222,6 +243,14 @@ class AppHandler(SimpleHTTPRequestHandler):
 
         extra_headers = [("Set-Cookie", f"{SESSION_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax")]
         self._send_json(200, {"ok": True}, extra_headers=extra_headers)
+
+    def _create_session(self, conn: sqlite3.Connection, user_id: int) -> str:
+        token = secrets.token_urlsafe(32)
+        expires_at = int(time.time()) + SESSION_TTL_SECONDS
+        conn.execute("INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)", (token, user_id, expires_at))
+        conn.execute("DELETE FROM sessions WHERE expires_at <= ?", (int(time.time()),))
+        conn.commit()
+        return token
 
     def _require_user(self, optional=False):
         token = parse_session_token_from_headers(self.headers)

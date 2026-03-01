@@ -1,6 +1,7 @@
 const loginForm = document.getElementById("login-form");
 const registerForm = document.getElementById("register-form");
 const message = document.getElementById("auth-message");
+const guestLoginButton = document.getElementById("guest-login-btn");
 
 function setMessage(text, isError = false) {
   message.textContent = text;
@@ -67,5 +68,22 @@ registerForm.addEventListener("submit", async (event) => {
 
   setMessage("Account created. You can now log in.");
 });
+
+if (guestLoginButton) {
+  guestLoginButton.addEventListener("click", async () => {
+    setMessage("Logging in as guest...");
+    const res = await fetch("/api/auth/guest", {
+      method: "POST",
+      credentials: "same-origin"
+    });
+
+    if (!res.ok) {
+      setMessage("Guest login failed.", true);
+      return;
+    }
+
+    window.location.href = "index.html";
+  });
+}
 
 checkLoggedIn();
