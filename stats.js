@@ -203,13 +203,9 @@ async function fetchChessComGamesForUser(username) {
   const archivesData = await archivesRes.json();
   const archives = Array.isArray(archivesData.archives) ? archivesData.archives : [];
 
-  const selectedArchives = archives.filter((url) => {
-    const parsed = parseChessComArchiveMonth(url);
-    if (!parsed) {
-      return false;
-    }
-    return parsed.monthEnd >= sinceMs;
-  });
+  const selectedArchives = archives
+    .map((url) => parseChessComArchiveMonth(url))
+    .filter((archive) => archive && archive.monthEnd >= sinceMs);
 
   const archiveResponses = await Promise.all(
     selectedArchives.map(async (archive) => {
