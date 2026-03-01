@@ -78,7 +78,9 @@ if (guestLoginButton) {
     });
 
     if (!res.ok) {
-      setMessage("Guest login failed.", true);
+      const data = await res.json().catch(() => ({}));
+      const detail = data.error ? ` (${data.error})` : "";
+      setMessage(`Guest login failed: ${res.status}${detail}`, true);
       return;
     }
 
