@@ -22,6 +22,14 @@
           <label for="range-days">Range (days)</label>
           <input id="range-days" name="range-days" type="number" min="1" max="90" step="1" value="30" />
         </div>
+        <div class="row import-row">
+          <span>Game Types</span>
+          <div class="type-options">
+            <label><input type="checkbox" name="game-type" value="bullet" checked /> Bullet</label>
+            <label><input type="checkbox" name="game-type" value="blitz" checked /> Blitz</label>
+            <label><input type="checkbox" name="game-type" value="rapid" checked /> Rapid</label>
+          </div>
+        </div>
 
         <form id="add-user-form" class="row">
           <label for="username" class="sr-only">Lichess Username</label>

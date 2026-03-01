@@ -6,6 +6,7 @@ const params = new URLSearchParams(window.location.search);
 const usersParam = params.get("users") || "";
 const platformParam = params.get("platform") || "lichess";
 const daysParam = params.get("days") || "30";
+const typesParam = params.get("types") || "bullet,blitz,rapid";
 const usernames = usersParam
   .split(",")
   .map((name) => name.trim())
@@ -25,6 +26,19 @@ function normalizeDays(raw) {
 
 const platform = normalizePlatform(platformParam);
 const rangeDays = normalizeDays(daysParam);
+const allowedTypes = new Set(["bullet", "blitz", "rapid"]);
+const selectedTypes = Array.from(
+  new Set(
+    typesParam
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter((value) => allowedTypes.has(value))
+  )
+);
+
+if (selectedTypes.length === 0) {
+  selectedTypes.push("bullet", "blitz", "rapid");
+}
 
 function formatDuration(ms) {
   if (typeof ms !== "number") {
@@ -149,9 +163,12 @@ async function fetchLichessGamesForUser(username) {
   const sinceMs = Date.now() - rangeDays * 24 * 60 * 60 * 1000;
   const maxGames = 200;
   const normalizedUsername = username.toLowerCase();
+  const perfTypeParam = selectedTypes.join(",");
   const url = `https://lichess.org/api/games/user/${encodeURIComponent(
     normalizedUsername
-  )}?since=${sinceMs}&max=${maxGames}&clocks=true&moves=false&opening=false&pgnInJson=false`;
+  )}?since=${sinceMs}&max=${maxGames}&clocks=true&moves=false&opening=false&pgnInJson=false&perfType=${encodeURIComponent(
+    perfTypeParam
+  )}`;
 
   const response = await fetch(url, {
     headers: {
@@ -236,6 +253,7 @@ async function fetchChessComGamesForUser(username) {
 
   return allGames
     .filter((game) => (game.end_time || 0) >= sinceSec)
+    .filter((game) => selectedTypes.includes((game.time_class || "").toLowerCase()))
     .map((game) => {
       const whiteUser = game.white?.username?.toLowerCase();
       const blackUser = game.black?.username?.toLowerCase();
@@ -365,9 +383,10 @@ async function run() {
   }
 
   const platformLabel = platform === "chesscom" ? "Chess.com" : "Lichess";
+  const typeLabel = selectedTypes.map((value) => value[0].toUpperCase() + value.slice(1)).join(", ");
 
   setLoading(true);
-  summary.textContent = `${usernames.length} users total on ${platformLabel}, loading...`;
+  summary.textContent = `${usernames.length} users total on ${platformLabel} (${typeLabel}), loading...`;
 
   let finished = 0;
   for (const username of usernames) {
@@ -379,12 +398,12 @@ async function run() {
       renderRow(username, null, error.message || "Unknown error");
     } finally {
       finished += 1;
-      summary.textContent = `Completed ${finished}/${usernames.length} (${platformLabel})`;
+      summary.textContent = `Completed ${finished}/${usernames.length} (${platformLabel}, ${typeLabel})`;
     }
   }
 
   setLoading(false);
-  summary.textContent = `Completed ${finished}/${usernames.length}. Range: last ${rangeDays} days (${platformLabel}).`;
+  summary.textContent = `Completed ${finished}/${usernames.length}. Range: last ${rangeDays} days (${platformLabel}, ${typeLabel}).`;
 }
 
 run();
