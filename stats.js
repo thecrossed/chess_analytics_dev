@@ -320,9 +320,36 @@ function buildStats(games) {
   selectedTypes.forEach((type) => {
     const typeGames = games.filter((g) => g.gameType === type);
     const typeWins = typeGames.filter((g) => g.result === "Win").length;
+    const typeDurationValues = typeGames.map((g) => g.durationMs).filter((ms) => typeof ms === "number");
+    const typeAvgDurationMs =
+      typeDurationValues.length === 0
+        ? null
+        : Math.round(typeDurationValues.reduce((sum, ms) => sum + ms, 0) / typeDurationValues.length);
+    const typeLastPlayedAt =
+      typeGames.length === 0 ? 0 : typeGames.reduce((latest, g) => Math.max(latest, g.playedAt || 0), 0);
+
+    let typeRatingChange = null;
+    if (platform === "lichess") {
+      const typeDiffs = typeGames.map((g) => g.ratingDiff).filter((value) => typeof value === "number");
+      typeRatingChange = typeDiffs.length === 0 ? null : typeDiffs.reduce((sum, value) => sum + value, 0);
+    } else {
+      const typeRatingsByTime = typeGames
+        .filter((g) => typeof g.rating === "number" && g.playedAt)
+        .sort((a, b) => a.playedAt - b.playedAt);
+
+      if (typeRatingsByTime.length >= 2) {
+        const first = typeRatingsByTime[0].rating;
+        const last = typeRatingsByTime[typeRatingsByTime.length - 1].rating;
+        typeRatingChange = last - first;
+      }
+    }
+
     typeBreakdown[type] = {
       games: typeGames.length,
-      winRate: typeGames.length === 0 ? 0 : (typeWins / typeGames.length) * 100
+      winRate: typeGames.length === 0 ? 0 : (typeWins / typeGames.length) * 100,
+      avgDurationMs: typeAvgDurationMs,
+      ratingChange: typeRatingChange,
+      lastPlayedAt: typeLastPlayedAt
     };
   });
 
@@ -374,10 +401,10 @@ function renderRow(username, stats, error = null) {
   tr.appendChild(totalTd);
 
   const breakdownTd = document.createElement("td");
-  const breakdownLines = selectedTypes.map((type) => {
+  const breakdownLines = ["Overall: " + stats.totalGames].concat(selectedTypes.map((type) => {
     const item = stats.typeBreakdown[type];
-    return `${formatTypeLabel(type)}: ${item.games} (${item.winRate.toFixed(1)}%)`;
-  });
+    return `${formatTypeLabel(type)}: ${item.games}`;
+  }));
   const breakdownSmall = document.createElement("small");
   breakdownLines.forEach((line, index) => {
     if (index > 0) {
@@ -389,19 +416,59 @@ function renderRow(username, stats, error = null) {
   tr.appendChild(breakdownTd);
 
   const winRateTd = document.createElement("td");
-  winRateTd.textContent = `${stats.winRate.toFixed(1)}%`;
+  const winRateLines = ["Overall: " + `${stats.winRate.toFixed(1)}%`].concat(
+    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${stats.typeBreakdown[type].winRate.toFixed(1)}%`)
+  );
+  const winRateSmall = document.createElement("small");
+  winRateLines.forEach((line, index) => {
+    if (index > 0) {
+      winRateSmall.appendChild(document.createElement("br"));
+    }
+    winRateSmall.appendChild(document.createTextNode(line));
+  });
+  winRateTd.appendChild(winRateSmall);
   tr.appendChild(winRateTd);
 
   const avgTd = document.createElement("td");
-  avgTd.textContent = formatDuration(stats.avgDurationMs);
+  const avgLines = ["Overall: " + formatDuration(stats.avgDurationMs)].concat(
+    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatDuration(stats.typeBreakdown[type].avgDurationMs)}`)
+  );
+  const avgSmall = document.createElement("small");
+  avgLines.forEach((line, index) => {
+    if (index > 0) {
+      avgSmall.appendChild(document.createElement("br"));
+    }
+    avgSmall.appendChild(document.createTextNode(line));
+  });
+  avgTd.appendChild(avgSmall);
   tr.appendChild(avgTd);
 
   const ratingChangeTd = document.createElement("td");
-  ratingChangeTd.textContent = formatRatingChange(stats.ratingChangeInRange);
+  const ratingLines = ["Overall: " + formatRatingChange(stats.ratingChangeInRange)].concat(
+    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatRatingChange(stats.typeBreakdown[type].ratingChange)}`)
+  );
+  const ratingSmall = document.createElement("small");
+  ratingLines.forEach((line, index) => {
+    if (index > 0) {
+      ratingSmall.appendChild(document.createElement("br"));
+    }
+    ratingSmall.appendChild(document.createTextNode(line));
+  });
+  ratingChangeTd.appendChild(ratingSmall);
   tr.appendChild(ratingChangeTd);
 
   const lastPlayedTd = document.createElement("td");
-  lastPlayedTd.textContent = formatDate(stats.lastPlayedAt);
+  const lastPlayedLines = ["Overall: " + formatDate(stats.lastPlayedAt)].concat(
+    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatDate(stats.typeBreakdown[type].lastPlayedAt)}`)
+  );
+  const lastPlayedSmall = document.createElement("small");
+  lastPlayedLines.forEach((line, index) => {
+    if (index > 0) {
+      lastPlayedSmall.appendChild(document.createElement("br"));
+    }
+    lastPlayedSmall.appendChild(document.createTextNode(line));
+  });
+  lastPlayedTd.appendChild(lastPlayedSmall);
   tr.appendChild(lastPlayedTd);
 
   body.appendChild(tr);
