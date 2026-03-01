@@ -128,6 +128,8 @@ function parseChessComArchiveMonth(url) {
   const monthEnd = Date.UTC(year, month, 0, 23, 59, 59, 999);
 
   return {
+    year,
+    month,
     monthStart,
     monthEnd
   };
@@ -189,7 +191,7 @@ async function fetchChessComGamesForUser(username) {
   const normalizedUsername = username.toLowerCase();
 
   const archivesRes = await fetch(
-    `https://api.chess.com/pub/player/${encodeURIComponent(normalizedUsername)}/games/archives`
+    `/api/chesscom/player/${encodeURIComponent(normalizedUsername)}/games/archives`
   );
   if (archivesRes.status === 404) {
     throw new Error("User not found on Chess.com.");
@@ -210,8 +212,12 @@ async function fetchChessComGamesForUser(username) {
   });
 
   const archiveResponses = await Promise.all(
-    selectedArchives.map(async (url) => {
-      const res = await fetch(url);
+    selectedArchives.map(async (archive) => {
+      const res = await fetch(
+        `/api/chesscom/player/${encodeURIComponent(normalizedUsername)}/games/archive/${archive.year}/${String(
+          archive.month
+        ).padStart(2, "0")}`
+      );
       if (!res.ok) {
         return [];
       }
