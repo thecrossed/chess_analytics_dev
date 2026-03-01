@@ -1,6 +1,7 @@
 const summary = document.getElementById("summary");
 const body = document.getElementById("stats-body");
 const loading = document.getElementById("loading");
+const downloadCsvButton = document.getElementById("download-csv");
 
 const params = new URLSearchParams(window.location.search);
 const usersParam = params.get("users") || "";
@@ -39,6 +40,8 @@ const selectedTypes = Array.from(
 if (selectedTypes.length === 0) {
   selectedTypes.push("bullet", "blitz", "rapid");
 }
+
+const exportRows = [];
 
 function formatDuration(ms) {
   if (typeof ms !== "number") {
@@ -93,6 +96,89 @@ function normalizeGameType(value) {
 
 function formatTypeLabel(value) {
   return value[0].toUpperCase() + value.slice(1);
+}
+
+function buildTypeCountLines(stats) {
+  return ["Overall: " + stats.totalGames].concat(
+    selectedTypes.map((type) => {
+      const item = stats.typeBreakdown[type];
+      return `${formatTypeLabel(type)}: ${item.games}`;
+    })
+  );
+}
+
+function buildWinRateLines(stats) {
+  return ["Overall: " + `${stats.winRate.toFixed(1)}%`].concat(
+    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${stats.typeBreakdown[type].winRate.toFixed(1)}%`)
+  );
+}
+
+function buildAvgDurationLines(stats) {
+  return ["Overall: " + formatDuration(stats.avgDurationMs)].concat(
+    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatDuration(stats.typeBreakdown[type].avgDurationMs)}`)
+  );
+}
+
+function buildRatingChangeLines(stats) {
+  return ["Overall: " + formatRatingChange(stats.ratingChangeInRange)].concat(
+    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatRatingChange(stats.typeBreakdown[type].ratingChange)}`)
+  );
+}
+
+function buildLastPlayedLines(stats) {
+  return ["Overall: " + formatDate(stats.lastPlayedAt)].concat(
+    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatDate(stats.typeBreakdown[type].lastPlayedAt)}`)
+  );
+}
+
+function csvEscape(value) {
+  const raw = value == null ? "" : String(value);
+  return `"${raw.replace(/"/g, '""')}"`;
+}
+
+function downloadCsv() {
+  const header = [
+    "Username",
+    "Games",
+    "Type Breakdown",
+    "Win Rate",
+    "Avg Game Duration",
+    "Rating Change (Range)",
+    "Last Played",
+    "Move Clocks (Latest Game)",
+    "Error"
+  ];
+
+  const lines = [header.map(csvEscape).join(",")];
+  exportRows.forEach((row) => {
+    lines.push(
+      [
+        row.username,
+        row.games,
+        row.typeBreakdown,
+        row.winRate,
+        row.avgGameDuration,
+        row.ratingChange,
+        row.lastPlayed,
+        row.moveClocks,
+        row.error
+      ]
+        .map(csvEscape)
+        .join(",")
+    );
+  });
+
+  const csvContent = lines.join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const safePlatform = platform === "chesscom" ? "chesscom" : "lichess";
+  a.href = url;
+  a.download = `game-stats-${safePlatform}-${rangeDays}d.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function formatClockMs(ms) {
@@ -497,6 +583,17 @@ function renderRow(username, stats, error = null) {
     errorTd.appendChild(small);
     tr.appendChild(errorTd);
     body.appendChild(tr);
+    exportRows.push({
+      username,
+      games: "",
+      typeBreakdown: "",
+      winRate: "",
+      avgGameDuration: "",
+      ratingChange: "",
+      lastPlayed: "",
+      moveClocks: "",
+      error: `Load failed: ${error}`
+    });
     return;
   }
 
@@ -505,10 +602,7 @@ function renderRow(username, stats, error = null) {
   tr.appendChild(totalTd);
 
   const breakdownTd = document.createElement("td");
-  const breakdownLines = ["Overall: " + stats.totalGames].concat(selectedTypes.map((type) => {
-    const item = stats.typeBreakdown[type];
-    return `${formatTypeLabel(type)}: ${item.games}`;
-  }));
+  const breakdownLines = buildTypeCountLines(stats);
   const breakdownSmall = document.createElement("small");
   breakdownLines.forEach((line, index) => {
     if (index > 0) {
@@ -520,9 +614,7 @@ function renderRow(username, stats, error = null) {
   tr.appendChild(breakdownTd);
 
   const winRateTd = document.createElement("td");
-  const winRateLines = ["Overall: " + `${stats.winRate.toFixed(1)}%`].concat(
-    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${stats.typeBreakdown[type].winRate.toFixed(1)}%`)
-  );
+  const winRateLines = buildWinRateLines(stats);
   const winRateSmall = document.createElement("small");
   winRateLines.forEach((line, index) => {
     if (index > 0) {
@@ -534,9 +626,7 @@ function renderRow(username, stats, error = null) {
   tr.appendChild(winRateTd);
 
   const avgTd = document.createElement("td");
-  const avgLines = ["Overall: " + formatDuration(stats.avgDurationMs)].concat(
-    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatDuration(stats.typeBreakdown[type].avgDurationMs)}`)
-  );
+  const avgLines = buildAvgDurationLines(stats);
   const avgSmall = document.createElement("small");
   avgLines.forEach((line, index) => {
     if (index > 0) {
@@ -548,9 +638,7 @@ function renderRow(username, stats, error = null) {
   tr.appendChild(avgTd);
 
   const ratingChangeTd = document.createElement("td");
-  const ratingLines = ["Overall: " + formatRatingChange(stats.ratingChangeInRange)].concat(
-    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatRatingChange(stats.typeBreakdown[type].ratingChange)}`)
-  );
+  const ratingLines = buildRatingChangeLines(stats);
   const ratingSmall = document.createElement("small");
   ratingLines.forEach((line, index) => {
     if (index > 0) {
@@ -562,9 +650,7 @@ function renderRow(username, stats, error = null) {
   tr.appendChild(ratingChangeTd);
 
   const lastPlayedTd = document.createElement("td");
-  const lastPlayedLines = ["Overall: " + formatDate(stats.lastPlayedAt)].concat(
-    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatDate(stats.typeBreakdown[type].lastPlayedAt)}`)
-  );
+  const lastPlayedLines = buildLastPlayedLines(stats);
   const lastPlayedSmall = document.createElement("small");
   lastPlayedLines.forEach((line, index) => {
     if (index > 0) {
@@ -596,6 +682,17 @@ function renderRow(username, stats, error = null) {
   tr.appendChild(clocksTd);
 
   body.appendChild(tr);
+  exportRows.push({
+    username,
+    games: String(stats.totalGames),
+    typeBreakdown: breakdownLines.join(" | "),
+    winRate: winRateLines.join(" | "),
+    avgGameDuration: avgLines.join(" | "),
+    ratingChange: ratingLines.join(" | "),
+    lastPlayed: lastPlayedLines.join(" | "),
+    moveClocks: stats.latestGameClockTimeline.join(" | "),
+    error: ""
+  });
 }
 
 function setLoading(visible) {
@@ -603,6 +700,15 @@ function setLoading(visible) {
     return;
   }
   loading.classList.toggle("hidden", !visible);
+}
+
+if (downloadCsvButton) {
+  downloadCsvButton.addEventListener("click", () => {
+    if (exportRows.length === 0) {
+      return;
+    }
+    downloadCsv();
+  });
 }
 
 async function run() {
@@ -633,6 +739,9 @@ async function run() {
   }
 
   setLoading(false);
+  if (downloadCsvButton) {
+    downloadCsvButton.disabled = exportRows.length === 0;
+  }
   summary.textContent = `Completed ${finished}/${usernames.length}. Range: last ${rangeDays} days (${platformLabel}, ${typeLabel}).`;
 }
 
