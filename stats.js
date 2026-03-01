@@ -98,39 +98,6 @@ function formatTypeLabel(value) {
   return value[0].toUpperCase() + value.slice(1);
 }
 
-function buildTypeCountLines(stats) {
-  return ["Overall: " + stats.totalGames].concat(
-    selectedTypes.map((type) => {
-      const item = stats.typeBreakdown[type];
-      return `${formatTypeLabel(type)}: ${item.games}`;
-    })
-  );
-}
-
-function buildWinRateLines(stats) {
-  return ["Overall: " + `${stats.winRate.toFixed(1)}%`].concat(
-    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${stats.typeBreakdown[type].winRate.toFixed(1)}%`)
-  );
-}
-
-function buildAvgDurationLines(stats) {
-  return ["Overall: " + formatDuration(stats.avgDurationMs)].concat(
-    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatDuration(stats.typeBreakdown[type].avgDurationMs)}`)
-  );
-}
-
-function buildRatingChangeLines(stats) {
-  return ["Overall: " + formatRatingChange(stats.ratingChangeInRange)].concat(
-    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatRatingChange(stats.typeBreakdown[type].ratingChange)}`)
-  );
-}
-
-function buildLastPlayedLines(stats) {
-  return ["Overall: " + formatDate(stats.lastPlayedAt)].concat(
-    selectedTypes.map((type) => `${formatTypeLabel(type)}: ${formatDate(stats.typeBreakdown[type].lastPlayedAt)}`)
-  );
-}
-
 function csvEscape(value) {
   const raw = value == null ? "" : String(value);
   return `"${raw.replace(/"/g, '""')}"`;
@@ -140,7 +107,7 @@ function downloadCsv() {
   const header = [
     "Username",
     "Games",
-    "Type Breakdown",
+    "Breakdown",
     "Win Rate",
     "Avg Game Duration",
     "Rating Change (Range)",
@@ -155,7 +122,7 @@ function downloadCsv() {
       [
         row.username,
         row.games,
-        row.typeBreakdown,
+        row.breakdown,
         row.winRate,
         row.avgGameDuration,
         row.ratingChange,
@@ -527,7 +494,16 @@ function buildStats(games) {
       winRate: typeGames.length === 0 ? 0 : (typeWins / typeGames.length) * 100,
       avgDurationMs: typeAvgDurationMs,
       ratingChange: typeRatingChange,
-      lastPlayedAt: typeLastPlayedAt
+      lastPlayedAt: typeLastPlayedAt,
+      latestGameClockTimeline:
+        typeGames.length === 0
+          ? []
+          : (typeGames.reduce((latest, current) => {
+              if (!latest) {
+                return current;
+              }
+              return (current.playedAt || 0) > (latest.playedAt || 0) ? current : latest;
+            }, null)?.clockTimeline || [])
     };
   });
 
@@ -570,12 +546,12 @@ function buildStats(games) {
 }
 
 function renderRow(username, stats, error = null) {
-  const tr = document.createElement("tr");
-  const usernameTd = document.createElement("td");
-  usernameTd.textContent = username;
-  tr.appendChild(usernameTd);
-
   if (error) {
+    const tr = document.createElement("tr");
+    const usernameTd = document.createElement("td");
+    usernameTd.textContent = username;
+    tr.appendChild(usernameTd);
+
     const errorTd = document.createElement("td");
     errorTd.colSpan = 7;
     const small = document.createElement("small");
@@ -586,7 +562,7 @@ function renderRow(username, stats, error = null) {
     exportRows.push({
       username,
       games: "",
-      typeBreakdown: "",
+      breakdown: "",
       winRate: "",
       avgGameDuration: "",
       ratingChange: "",
@@ -597,101 +573,91 @@ function renderRow(username, stats, error = null) {
     return;
   }
 
-  const totalTd = document.createElement("td");
-  totalTd.textContent = String(stats.totalGames);
-  tr.appendChild(totalTd);
-
-  const breakdownTd = document.createElement("td");
-  const breakdownLines = buildTypeCountLines(stats);
-  const breakdownSmall = document.createElement("small");
-  breakdownLines.forEach((line, index) => {
-    if (index > 0) {
-      breakdownSmall.appendChild(document.createElement("br"));
+  const rows = [
+    {
+      breakdown: "Overall",
+      games: stats.totalGames,
+      winRate: stats.winRate,
+      avgDurationMs: stats.avgDurationMs,
+      ratingChange: stats.ratingChangeInRange,
+      lastPlayedAt: stats.lastPlayedAt,
+      latestGameClockTimeline: stats.latestGameClockTimeline
     }
-    breakdownSmall.appendChild(document.createTextNode(line));
-  });
-  breakdownTd.appendChild(breakdownSmall);
-  tr.appendChild(breakdownTd);
+  ].concat(
+    selectedTypes.map((type) => ({
+      breakdown: formatTypeLabel(type),
+      games: stats.typeBreakdown[type].games,
+      winRate: stats.typeBreakdown[type].winRate,
+      avgDurationMs: stats.typeBreakdown[type].avgDurationMs,
+      ratingChange: stats.typeBreakdown[type].ratingChange,
+      lastPlayedAt: stats.typeBreakdown[type].lastPlayedAt,
+      latestGameClockTimeline: stats.typeBreakdown[type].latestGameClockTimeline
+    }))
+  );
 
-  const winRateTd = document.createElement("td");
-  const winRateLines = buildWinRateLines(stats);
-  const winRateSmall = document.createElement("small");
-  winRateLines.forEach((line, index) => {
-    if (index > 0) {
-      winRateSmall.appendChild(document.createElement("br"));
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    const usernameTd = document.createElement("td");
+    usernameTd.textContent = username;
+    tr.appendChild(usernameTd);
+
+    const totalTd = document.createElement("td");
+    totalTd.textContent = String(row.games);
+    tr.appendChild(totalTd);
+
+    const breakdownTd = document.createElement("td");
+    breakdownTd.textContent = row.breakdown;
+    tr.appendChild(breakdownTd);
+
+    const winRateTd = document.createElement("td");
+    winRateTd.textContent = `${row.winRate.toFixed(1)}%`;
+    tr.appendChild(winRateTd);
+
+    const avgTd = document.createElement("td");
+    avgTd.textContent = formatDuration(row.avgDurationMs);
+    tr.appendChild(avgTd);
+
+    const ratingChangeTd = document.createElement("td");
+    ratingChangeTd.textContent = formatRatingChange(row.ratingChange);
+    tr.appendChild(ratingChangeTd);
+
+    const lastPlayedTd = document.createElement("td");
+    lastPlayedTd.textContent = formatDate(row.lastPlayedAt);
+    tr.appendChild(lastPlayedTd);
+
+    const clocksTd = document.createElement("td");
+    if (row.latestGameClockTimeline.length === 0) {
+      clocksTd.textContent = "-";
+    } else {
+      const details = document.createElement("details");
+      const detailsSummary = document.createElement("summary");
+      detailsSummary.textContent = `Show ${row.latestGameClockTimeline.length} plies`;
+      const small = document.createElement("small");
+      row.latestGameClockTimeline.forEach((line, lineIndex) => {
+        if (lineIndex > 0) {
+          small.appendChild(document.createElement("br"));
+        }
+        small.appendChild(document.createTextNode(line));
+      });
+      details.appendChild(detailsSummary);
+      details.appendChild(small);
+      clocksTd.appendChild(details);
     }
-    winRateSmall.appendChild(document.createTextNode(line));
-  });
-  winRateTd.appendChild(winRateSmall);
-  tr.appendChild(winRateTd);
+    tr.appendChild(clocksTd);
 
-  const avgTd = document.createElement("td");
-  const avgLines = buildAvgDurationLines(stats);
-  const avgSmall = document.createElement("small");
-  avgLines.forEach((line, index) => {
-    if (index > 0) {
-      avgSmall.appendChild(document.createElement("br"));
-    }
-    avgSmall.appendChild(document.createTextNode(line));
-  });
-  avgTd.appendChild(avgSmall);
-  tr.appendChild(avgTd);
-
-  const ratingChangeTd = document.createElement("td");
-  const ratingLines = buildRatingChangeLines(stats);
-  const ratingSmall = document.createElement("small");
-  ratingLines.forEach((line, index) => {
-    if (index > 0) {
-      ratingSmall.appendChild(document.createElement("br"));
-    }
-    ratingSmall.appendChild(document.createTextNode(line));
-  });
-  ratingChangeTd.appendChild(ratingSmall);
-  tr.appendChild(ratingChangeTd);
-
-  const lastPlayedTd = document.createElement("td");
-  const lastPlayedLines = buildLastPlayedLines(stats);
-  const lastPlayedSmall = document.createElement("small");
-  lastPlayedLines.forEach((line, index) => {
-    if (index > 0) {
-      lastPlayedSmall.appendChild(document.createElement("br"));
-    }
-    lastPlayedSmall.appendChild(document.createTextNode(line));
-  });
-  lastPlayedTd.appendChild(lastPlayedSmall);
-  tr.appendChild(lastPlayedTd);
-
-  const clocksTd = document.createElement("td");
-  if (stats.latestGameClockTimeline.length === 0) {
-    clocksTd.textContent = "-";
-  } else {
-    const details = document.createElement("details");
-    const detailsSummary = document.createElement("summary");
-    detailsSummary.textContent = `Show ${stats.latestGameClockTimeline.length} plies`;
-    const small = document.createElement("small");
-    stats.latestGameClockTimeline.forEach((line, index) => {
-      if (index > 0) {
-        small.appendChild(document.createElement("br"));
-      }
-      small.appendChild(document.createTextNode(line));
+    body.appendChild(tr);
+    exportRows.push({
+      username,
+      games: String(row.games),
+      breakdown: row.breakdown,
+      winRate: `${row.winRate.toFixed(1)}%`,
+      avgGameDuration: formatDuration(row.avgDurationMs),
+      ratingChange: formatRatingChange(row.ratingChange),
+      lastPlayed: formatDate(row.lastPlayedAt),
+      moveClocks: row.latestGameClockTimeline.join(" | "),
+      error: ""
     });
-    details.appendChild(detailsSummary);
-    details.appendChild(small);
-    clocksTd.appendChild(details);
-  }
-  tr.appendChild(clocksTd);
-
-  body.appendChild(tr);
-  exportRows.push({
-    username,
-    games: String(stats.totalGames),
-    typeBreakdown: breakdownLines.join(" | "),
-    winRate: winRateLines.join(" | "),
-    avgGameDuration: avgLines.join(" | "),
-    ratingChange: ratingLines.join(" | "),
-    lastPlayed: lastPlayedLines.join(" | "),
-    moveClocks: stats.latestGameClockTimeline.join(" | "),
-    error: ""
   });
 }
 
