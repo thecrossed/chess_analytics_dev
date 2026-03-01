@@ -10,6 +10,7 @@ const gameTypeInputs = Array.from(document.querySelectorAll('input[name="game-ty
 
 const users = new Set();
 const USERNAME_RE = /^[A-Za-z0-9_-]{2,30}$/;
+const DEFAULT_USERNAME = "MagnusCarlsen";
 
 function renderUsers() {
   userList.innerHTML = "";
@@ -68,6 +69,15 @@ function normalizeRangeDays(raw) {
 function getSelectedGameTypes() {
   return gameTypeInputs.filter((inputEl) => inputEl.checked).map((inputEl) => inputEl.value);
 }
+
+function autofillDefaultUsername() {
+  if (!input.value.trim()) {
+    input.value = DEFAULT_USERNAME;
+  }
+}
+
+input.addEventListener("focus", autofillDefaultUsername);
+input.addEventListener("click", autofillDefaultUsername);
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
