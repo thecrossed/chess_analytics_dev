@@ -5,6 +5,7 @@ const loading = document.getElementById("loading");
 const params = new URLSearchParams(window.location.search);
 const usersParam = params.get("users") || "";
 const platformParam = params.get("platform") || "lichess";
+const daysParam = params.get("days") || "30";
 const usernames = usersParam
   .split(",")
   .map((name) => name.trim())
@@ -14,7 +15,16 @@ function normalizePlatform(raw) {
   return raw === "chesscom" ? "chesscom" : "lichess";
 }
 
+function normalizeDays(raw) {
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isFinite(value)) {
+    return 30;
+  }
+  return Math.min(90, Math.max(1, value));
+}
+
 const platform = normalizePlatform(platformParam);
+const rangeDays = normalizeDays(daysParam);
 
 function formatDuration(ms) {
   if (typeof ms !== "number") {
@@ -136,7 +146,7 @@ function parseChessComArchiveMonth(url) {
 }
 
 async function fetchLichessGamesForUser(username) {
-  const sinceMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const sinceMs = Date.now() - rangeDays * 24 * 60 * 60 * 1000;
   const maxGames = 200;
   const normalizedUsername = username.toLowerCase();
   const url = `https://lichess.org/api/games/user/${encodeURIComponent(
@@ -186,7 +196,7 @@ function buildFromLichessGames(games, username) {
 }
 
 async function fetchChessComGamesForUser(username) {
-  const sinceMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const sinceMs = Date.now() - rangeDays * 24 * 60 * 60 * 1000;
   const sinceSec = Math.floor(sinceMs / 1000);
   const normalizedUsername = username.toLowerCase();
 
@@ -275,10 +285,10 @@ function buildStats(games) {
 
   const lastPlayedAt = totalGames === 0 ? 0 : games.reduce((latest, g) => Math.max(latest, g.playedAt || 0), 0);
 
-  let ratingChange30d = null;
+  let ratingChangeInRange = null;
   if (platform === "lichess") {
     const diffs = games.map((g) => g.ratingDiff).filter((value) => typeof value === "number");
-    ratingChange30d = diffs.length === 0 ? null : diffs.reduce((sum, value) => sum + value, 0);
+    ratingChangeInRange = diffs.length === 0 ? null : diffs.reduce((sum, value) => sum + value, 0);
   } else {
     const ratingsByTime = games
       .filter((g) => typeof g.rating === "number" && g.playedAt)
@@ -287,7 +297,7 @@ function buildStats(games) {
     if (ratingsByTime.length >= 2) {
       const first = ratingsByTime[0].rating;
       const last = ratingsByTime[ratingsByTime.length - 1].rating;
-      ratingChange30d = last - first;
+      ratingChangeInRange = last - first;
     }
   }
 
@@ -295,7 +305,7 @@ function buildStats(games) {
     totalGames,
     winRate,
     avgDurationMs,
-    ratingChange30d,
+    ratingChangeInRange,
     lastPlayedAt
   };
 }
@@ -330,7 +340,7 @@ function renderRow(username, stats, error = null) {
   tr.appendChild(avgTd);
 
   const ratingChangeTd = document.createElement("td");
-  ratingChangeTd.textContent = formatRatingChange(stats.ratingChange30d);
+  ratingChangeTd.textContent = formatRatingChange(stats.ratingChangeInRange);
   tr.appendChild(ratingChangeTd);
 
   const lastPlayedTd = document.createElement("td");
@@ -374,7 +384,7 @@ async function run() {
   }
 
   setLoading(false);
-  summary.textContent = `Completed ${finished}/${usernames.length}. Range: last 30 days (${platformLabel}).`;
+  summary.textContent = `Completed ${finished}/${usernames.length}. Range: last ${rangeDays} days (${platformLabel}).`;
 }
 
 run();
