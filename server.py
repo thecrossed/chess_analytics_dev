@@ -8,6 +8,7 @@ import sqlite3
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
+from typing import Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -59,7 +60,7 @@ def hash_password(password: str, salt_hex: str) -> str:
     return password_hash.hex()
 
 
-def make_password_hash(password: str) -> tuple[str, str]:
+def make_password_hash(password: str) -> Tuple[str, str]:
     salt = secrets.token_bytes(16).hex()
     return hash_password(password, salt), salt
 
@@ -72,7 +73,7 @@ def parse_json_body(handler: SimpleHTTPRequestHandler):
     return json.loads(body.decode("utf-8"))
 
 
-def parse_session_token_from_headers(headers) -> str | None:
+def parse_session_token_from_headers(headers) -> Optional[str]:
     cookie_header = headers.get("Cookie")
     if not cookie_header:
         return None
