@@ -95,6 +95,96 @@ function formatTypeLabel(value) {
   return value[0].toUpperCase() + value.slice(1);
 }
 
+function formatClockMs(ms) {
+  if (typeof ms !== "number") {
+    return "-";
+  }
+
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function parseClockTextToMs(clockText) {
+  const parts = (clockText || "").split(":").map((part) => Number.parseInt(part, 10));
+  if (parts.some((part) => !Number.isFinite(part))) {
+    return null;
+  }
+
+  if (parts.length === 2) {
+    const [minutes, seconds] = parts;
+    return (minutes * 60 + seconds) * 1000;
+  }
+
+  if (parts.length === 3) {
+    const [hours, minutes, seconds] = parts;
+    return (hours * 3600 + minutes * 60 + seconds) * 1000;
+  }
+
+  return null;
+}
+
+function buildClockTimeline(clocksMs, moveLabels) {
+  if (!Array.isArray(clocksMs) || clocksMs.length === 0) {
+    return [];
+  }
+
+  const lines = [];
+  let whiteClock = null;
+  let blackClock = null;
+
+  clocksMs.forEach((clockMs, index) => {
+    const isWhiteMove = index % 2 === 0;
+    if (isWhiteMove) {
+      whiteClock = clockMs;
+    } else {
+      blackClock = clockMs;
+    }
+
+    const ply = index + 1;
+    const moveLabel = moveLabels[index] || `Ply ${ply}`;
+    lines.push(`${ply}. ${moveLabel} | W ${formatClockMs(whiteClock)} | B ${formatClockMs(blackClock)}`);
+  });
+
+  return lines;
+}
+
+function buildLichessClockTimeline(game) {
+  const rawClocks = Array.isArray(game.clocks) ? game.clocks : [];
+  if (rawClocks.length === 0) {
+    return [];
+  }
+
+  const clocksMs = rawClocks
+    .map((value) => (typeof value === "number" ? value * 10 : null))
+    .filter((value) => typeof value === "number");
+  const moveLabels = typeof game.moves === "string" ? game.moves.split(" ").filter(Boolean) : [];
+
+  return buildClockTimeline(clocksMs, moveLabels);
+}
+
+function buildChessComClockTimeline(game) {
+  const pgn = typeof game.pgn === "string" ? game.pgn : "";
+  const clkMatches = [...pgn.matchAll(/\[%clk\s+([0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?)\]/g)];
+  if (clkMatches.length === 0) {
+    return [];
+  }
+
+  const clocksMs = clkMatches
+    .map((match) => parseClockTextToMs(match[1]))
+    .filter((value) => typeof value === "number");
+  const moveLabels = clocksMs.map((_, index) => `Ply ${index + 1}`);
+
+  return buildClockTimeline(clocksMs, moveLabels);
+}
+
 function getLichessUserPlayer(game, username) {
   const lower = username.toLowerCase();
   const whiteUser = game.players?.white?.user?.name?.toLowerCase();
@@ -178,7 +268,7 @@ async function fetchLichessGamesForUser(username) {
   const perfTypeParam = selectedTypes.join(",");
   const url = `https://lichess.org/api/games/user/${encodeURIComponent(
     normalizedUsername
-  )}?since=${sinceMs}&max=${maxGames}&clocks=true&moves=false&opening=false&pgnInJson=false&perfType=${encodeURIComponent(
+  )}?since=${sinceMs}&max=${maxGames}&clocks=true&moves=true&opening=false&pgnInJson=false&perfType=${encodeURIComponent(
     perfTypeParam
   )}`;
 
@@ -218,6 +308,7 @@ function buildFromLichessGames(games, username) {
         gameType: normalizeGameType(game.speed || game.perf),
         durationMs,
         result: getResultFromLichessGame(game, username),
+        clockTimeline: buildLichessClockTimeline(game),
         ratingDiff: typeof player?.ratingDiff === "number" ? player.ratingDiff : null,
         rating: null
       };
@@ -290,6 +381,7 @@ async function fetchChessComGamesForUser(username) {
         gameType: normalizeGameType(game.time_class),
         durationMs,
         result: normalizeChessComResult(player.result),
+        clockTimeline: buildChessComClockTimeline(game),
         ratingDiff: null,
         rating: typeof player.rating === "number" ? player.rating : null
       };
@@ -369,13 +461,25 @@ function buildStats(games) {
     }
   }
 
+  const latestGame =
+    totalGames === 0
+      ? null
+      : games.reduce((latest, current) => {
+          if (!latest) {
+            return current;
+          }
+          return (current.playedAt || 0) > (latest.playedAt || 0) ? current : latest;
+        }, null);
+  const latestGameClockTimeline = latestGame?.clockTimeline || [];
+
   return {
     totalGames,
     winRate,
     avgDurationMs,
     typeBreakdown,
     ratingChangeInRange,
-    lastPlayedAt
+    lastPlayedAt,
+    latestGameClockTimeline
   };
 }
 
@@ -387,7 +491,7 @@ function renderRow(username, stats, error = null) {
 
   if (error) {
     const errorTd = document.createElement("td");
-    errorTd.colSpan = 6;
+    errorTd.colSpan = 7;
     const small = document.createElement("small");
     small.textContent = `Load failed: ${error}`;
     errorTd.appendChild(small);
@@ -470,6 +574,26 @@ function renderRow(username, stats, error = null) {
   });
   lastPlayedTd.appendChild(lastPlayedSmall);
   tr.appendChild(lastPlayedTd);
+
+  const clocksTd = document.createElement("td");
+  if (stats.latestGameClockTimeline.length === 0) {
+    clocksTd.textContent = "-";
+  } else {
+    const details = document.createElement("details");
+    const detailsSummary = document.createElement("summary");
+    detailsSummary.textContent = `Show ${stats.latestGameClockTimeline.length} plies`;
+    const small = document.createElement("small");
+    stats.latestGameClockTimeline.forEach((line, index) => {
+      if (index > 0) {
+        small.appendChild(document.createElement("br"));
+      }
+      small.appendChild(document.createTextNode(line));
+    });
+    details.appendChild(detailsSummary);
+    details.appendChild(small);
+    clocksTd.appendChild(details);
+  }
+  tr.appendChild(clocksTd);
 
   body.appendChild(tr);
 }
