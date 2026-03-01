@@ -2,6 +2,8 @@ const form = document.getElementById("add-user-form");
 const input = document.getElementById("username");
 const userList = document.getElementById("user-list");
 const buildPageButton = document.getElementById("build-page");
+const platformSelect = document.getElementById("platform");
+const rangeDaysInput = document.getElementById("range-days");
 const uploadCsvButton = document.getElementById("upload-csv");
 const csvFileInput = document.getElementById("csv-file");
 
@@ -52,6 +54,14 @@ function parseCsvUsernames(csvText) {
     .filter((token) => token.toLowerCase() !== "username");
 
   return tokens;
+}
+
+function normalizeRangeDays(raw) {
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isFinite(value)) {
+    return 30;
+  }
+  return Math.min(90, Math.max(1, value));
 }
 
 form.addEventListener("submit", (event) => {
@@ -119,7 +129,9 @@ buildPageButton.addEventListener("click", () => {
   }
 
   const params = new URLSearchParams({
-    users: Array.from(users).join(",")
+    users: Array.from(users).join(","),
+    platform: platformSelect.value,
+    days: String(normalizeRangeDays(rangeDaysInput.value))
   });
 
   window.location.href = `stats.html?${params.toString()}`;
