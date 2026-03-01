@@ -11,6 +11,13 @@
       <section class="card">
         <h1>Lichess Account Stats</h1>
         <p class="hint">Add one or more usernames to generate a 30-day stats page.</p>
+        <div class="row import-row">
+          <label for="platform">Platform</label>
+          <select id="platform" name="platform">
+            <option value="lichess" selected>Lichess</option>
+            <option value="chesscom">Chess.com</option>
+          </select>
+        </div>
 
         <form id="add-user-form" class="row">
           <label for="username" class="sr-only">Lichess Username</label>

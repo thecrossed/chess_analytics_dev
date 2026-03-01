@@ -4,12 +4,23 @@ const loading = document.getElementById("loading");
 
 const params = new URLSearchParams(window.location.search);
 const usersParam = params.get("users") || "";
+const platformParam = params.get("platform") || "lichess";
 const usernames = usersParam
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
 
+function normalizePlatform(raw) {
+  return raw === "chesscom" ? "chesscom" : "lichess";
+}
+
+const platform = normalizePlatform(platformParam);
+
 function formatDuration(ms) {
+  if (typeof ms !== "number") {
+    return "-";
+  }
+
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -38,7 +49,32 @@ function formatDate(timestampMs) {
   });
 }
 
-function getResultFromGame(game, username) {
+function formatRatingChange(value) {
+  if (value === null) {
+    return "-";
+  }
+  if (value > 0) {
+    return `+${value}`;
+  }
+  return String(value);
+}
+
+function getLichessUserPlayer(game, username) {
+  const lower = username.toLowerCase();
+  const whiteUser = game.players?.white?.user?.name?.toLowerCase();
+  const blackUser = game.players?.black?.user?.name?.toLowerCase();
+
+  if (whiteUser === lower) {
+    return game.players?.white || null;
+  }
+  if (blackUser === lower) {
+    return game.players?.black || null;
+  }
+
+  return null;
+}
+
+function getResultFromLichessGame(game, username) {
   const lower = username.toLowerCase();
   const whiteUser = game.players?.white?.user?.name?.toLowerCase();
   const blackUser = game.players?.black?.user?.name?.toLowerCase();
@@ -54,36 +90,55 @@ function getResultFromGame(game, username) {
   return "Draw";
 }
 
-function getUserPlayer(game, username) {
-  const lower = username.toLowerCase();
-  const whiteUser = game.players?.white?.user?.name?.toLowerCase();
-  const blackUser = game.players?.black?.user?.name?.toLowerCase();
+function normalizeChessComResult(result) {
+  if (result === "win") {
+    return "Win";
+  }
 
-  if (whiteUser === lower) {
-    return game.players?.white || null;
+  const drawResults = new Set([
+    "agreed",
+    "repetition",
+    "stalemate",
+    "insufficient",
+    "50move",
+    "timevsinsufficient"
+  ]);
+
+  if (drawResults.has(result)) {
+    return "Draw";
   }
-  if (blackUser === lower) {
-    return game.players?.black || null;
-  }
-  return null;
+
+  return "Loss";
 }
 
-function formatRatingChange(value) {
-  if (value === null) {
-    return "-";
+function parseChessComArchiveMonth(url) {
+  const match = url.match(/\/(\d{4})\/(\d{2})$/);
+  if (!match) {
+    return null;
   }
-  if (value > 0) {
-    return `+${value}`;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+
+  if (!year || !month || month < 1 || month > 12) {
+    return null;
   }
-  return String(value);
+
+  const monthStart = Date.UTC(year, month - 1, 1);
+  const monthEnd = Date.UTC(year, month, 0, 23, 59, 59, 999);
+
+  return {
+    monthStart,
+    monthEnd
+  };
 }
 
-async function fetchGamesForUser(username) {
-  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+async function fetchLichessGamesForUser(username) {
+  const sinceMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const maxGames = 200;
   const url = `https://lichess.org/api/games/user/${encodeURIComponent(
     username
-  )}?since=${thirtyDaysAgo}&max=${maxGames}&clocks=true&moves=false&opening=false&pgnInJson=false`;
+  )}?since=${sinceMs}&max=${maxGames}&clocks=true&moves=false&opening=false&pgnInJson=false`;
 
   const response = await fetch(url, {
     headers: {
@@ -104,36 +159,124 @@ async function fetchGamesForUser(username) {
   return lines.map((line) => JSON.parse(line));
 }
 
-function buildStats(games, username) {
-  const withDuration = games
+function buildFromLichessGames(games, username) {
+  return games
     .map((game) => {
       const createdAt = game.createdAt || 0;
       const lastMoveAt = game.lastMoveAt || createdAt;
       const durationMs = Math.max(0, lastMoveAt - createdAt);
+      const player = getLichessUserPlayer(game, username);
 
       return {
-        id: game.id,
         playedAt: lastMoveAt || createdAt,
         durationMs,
-        ratingDiff: getUserPlayer(game, username)?.ratingDiff,
-        result: getResultFromGame(game, username)
+        result: getResultFromLichessGame(game, username),
+        ratingDiff: typeof player?.ratingDiff === "number" ? player.ratingDiff : null,
+        rating: null
       };
     })
-    .filter((g) => g.durationMs >= 0);
+    .filter((g) => g.playedAt > 0);
+}
 
-  const totalGames = withDuration.length;
-  const wins = withDuration.filter((g) => g.result === "Win").length;
+async function fetchChessComGamesForUser(username) {
+  const sinceMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const sinceSec = Math.floor(sinceMs / 1000);
+
+  const archivesRes = await fetch(`https://api.chess.com/pub/player/${encodeURIComponent(username)}/games/archives`);
+  if (!archivesRes.ok) {
+    throw new Error(`Request failed (${archivesRes.status})`);
+  }
+
+  const archivesData = await archivesRes.json();
+  const archives = Array.isArray(archivesData.archives) ? archivesData.archives : [];
+
+  const selectedArchives = archives.filter((url) => {
+    const parsed = parseChessComArchiveMonth(url);
+    if (!parsed) {
+      return false;
+    }
+    return parsed.monthEnd >= sinceMs;
+  });
+
+  const archiveResponses = await Promise.all(
+    selectedArchives.map(async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) {
+        return [];
+      }
+      const data = await res.json();
+      return Array.isArray(data.games) ? data.games : [];
+    })
+  );
+
+  const allGames = archiveResponses.flat();
+
+  return allGames
+    .filter((game) => (game.end_time || 0) >= sinceSec)
+    .map((game) => {
+      const whiteUser = game.white?.username?.toLowerCase();
+      const blackUser = game.black?.username?.toLowerCase();
+      const lower = username.toLowerCase();
+      const isWhite = whiteUser === lower;
+      const isBlack = blackUser === lower;
+      const player = isWhite ? game.white : isBlack ? game.black : null;
+
+      if (!player) {
+        return null;
+      }
+
+      const playedAt = (game.end_time || game.start_time || 0) * 1000;
+      const durationMs =
+        typeof game.start_time === "number" && typeof game.end_time === "number" && game.end_time >= game.start_time
+          ? (game.end_time - game.start_time) * 1000
+          : null;
+
+      return {
+        playedAt,
+        durationMs,
+        result: normalizeChessComResult(player.result),
+        ratingDiff: null,
+        rating: typeof player.rating === "number" ? player.rating : null
+      };
+    })
+    .filter(Boolean);
+}
+
+async function fetchAndBuildGames(username) {
+  if (platform === "chesscom") {
+    return fetchChessComGamesForUser(username);
+  }
+
+  const lichessGames = await fetchLichessGamesForUser(username);
+  return buildFromLichessGames(lichessGames, username);
+}
+
+function buildStats(games) {
+  const totalGames = games.length;
+  const wins = games.filter((g) => g.result === "Win").length;
   const winRate = totalGames === 0 ? 0 : (wins / totalGames) * 100;
 
-  const totalDuration = withDuration.reduce((acc, g) => acc + g.durationMs, 0);
-  const avgDurationMs = totalGames === 0 ? 0 : Math.round(totalDuration / totalGames);
-  const lastPlayedAt =
-    totalGames === 0 ? 0 : withDuration.reduce((latest, g) => Math.max(latest, g.playedAt), 0);
-  const ratingDiffs = withDuration
-    .map((g) => g.ratingDiff)
-    .filter((value) => typeof value === "number");
-  const ratingChange30d =
-    ratingDiffs.length === 0 ? null : ratingDiffs.reduce((sum, value) => sum + value, 0);
+  const durationValues = games.map((g) => g.durationMs).filter((ms) => typeof ms === "number");
+  const avgDurationMs =
+    durationValues.length === 0 ? null : Math.round(durationValues.reduce((sum, ms) => sum + ms, 0) / durationValues.length);
+
+  const lastPlayedAt = totalGames === 0 ? 0 : games.reduce((latest, g) => Math.max(latest, g.playedAt || 0), 0);
+
+  let ratingChange30d = null;
+  if (platform === "lichess") {
+    const diffs = games.map((g) => g.ratingDiff).filter((value) => typeof value === "number");
+    ratingChange30d = diffs.length === 0 ? null : diffs.reduce((sum, value) => sum + value, 0);
+  } else {
+    const ratingsByTime = games
+      .filter((g) => typeof g.rating === "number" && g.playedAt)
+      .sort((a, b) => a.playedAt - b.playedAt);
+
+    if (ratingsByTime.length >= 2) {
+      const first = ratingsByTime[0].rating;
+      const last = ratingsByTime[ratingsByTime.length - 1].rating;
+      ratingChange30d = last - first;
+    }
+  }
 
   return {
     totalGames,
@@ -198,25 +341,27 @@ async function run() {
     return;
   }
 
+  const platformLabel = platform === "chesscom" ? "Chess.com" : "Lichess";
+
   setLoading(true);
-  summary.textContent = `${usernames.length} users total, loading...`;
+  summary.textContent = `${usernames.length} users total on ${platformLabel}, loading...`;
 
   let finished = 0;
   for (const username of usernames) {
     try {
-      const games = await fetchGamesForUser(username);
-      const stats = buildStats(games, username);
+      const games = await fetchAndBuildGames(username);
+      const stats = buildStats(games);
       renderRow(username, stats);
     } catch (error) {
       renderRow(username, null, error.message || "Unknown error");
     } finally {
       finished += 1;
-      summary.textContent = `Completed ${finished}/${usernames.length}`;
+      summary.textContent = `Completed ${finished}/${usernames.length} (${platformLabel})`;
     }
   }
 
   setLoading(false);
-  summary.textContent = `Completed ${finished}/${usernames.length}. Range: last 30 days (up to 200 games per user).`;
+  summary.textContent = `Completed ${finished}/${usernames.length}. Range: last 30 days (${platformLabel}).`;
 }
 
 run();

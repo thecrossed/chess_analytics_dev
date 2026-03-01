@@ -2,6 +2,7 @@ const form = document.getElementById("add-user-form");
 const input = document.getElementById("username");
 const userList = document.getElementById("user-list");
 const buildPageButton = document.getElementById("build-page");
+const platformSelect = document.getElementById("platform");
 const uploadCsvButton = document.getElementById("upload-csv");
 const csvFileInput = document.getElementById("csv-file");
 
@@ -119,7 +120,8 @@ buildPageButton.addEventListener("click", () => {
   }
 
   const params = new URLSearchParams({
-    users: Array.from(users).join(",")
+    users: Array.from(users).join(","),
+    platform: platformSelect.value
   });
 
   window.location.href = `stats.html?${params.toString()}`;
