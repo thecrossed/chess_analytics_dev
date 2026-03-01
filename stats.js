@@ -146,8 +146,12 @@ async function fetchLichessGamesForUser(username) {
     }
   });
 
+  if (response.status === 404) {
+    throw new Error("User not found on Lichess.");
+  }
+
   if (!response.ok) {
-    throw new Error(`Request failed (${response.status})`);
+    throw new Error(`Lichess request failed (${response.status})`);
   }
 
   const raw = await response.text();
@@ -181,10 +185,16 @@ function buildFromLichessGames(games, username) {
 async function fetchChessComGamesForUser(username) {
   const sinceMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const sinceSec = Math.floor(sinceMs / 1000);
+  const normalizedUsername = username.toLowerCase();
 
-  const archivesRes = await fetch(`https://api.chess.com/pub/player/${encodeURIComponent(username)}/games/archives`);
+  const archivesRes = await fetch(
+    `https://api.chess.com/pub/player/${encodeURIComponent(normalizedUsername)}/games/archives`
+  );
+  if (archivesRes.status === 404) {
+    throw new Error("User not found on Chess.com.");
+  }
   if (!archivesRes.ok) {
-    throw new Error(`Request failed (${archivesRes.status})`);
+    throw new Error(`Chess.com request failed (${archivesRes.status})`);
   }
 
   const archivesData = await archivesRes.json();
