@@ -136,8 +136,9 @@ function parseChessComArchiveMonth(url) {
 async function fetchLichessGamesForUser(username) {
   const sinceMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const maxGames = 200;
+  const normalizedUsername = username.toLowerCase();
   const url = `https://lichess.org/api/games/user/${encodeURIComponent(
-    username
+    normalizedUsername
   )}?since=${sinceMs}&max=${maxGames}&clocks=true&moves=false&opening=false&pgnInJson=false`;
 
   const response = await fetch(url, {
