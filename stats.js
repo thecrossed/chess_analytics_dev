@@ -83,6 +83,18 @@ function formatRatingChange(value) {
   return String(value);
 }
 
+function normalizeGameType(value) {
+  const normalized = (value || "").toLowerCase();
+  if (allowedTypes.has(normalized)) {
+    return normalized;
+  }
+  return null;
+}
+
+function formatTypeLabel(value) {
+  return value[0].toUpperCase() + value.slice(1);
+}
+
 function getLichessUserPlayer(game, username) {
   const lower = username.toLowerCase();
   const whiteUser = game.players?.white?.user?.name?.toLowerCase();
@@ -203,6 +215,7 @@ function buildFromLichessGames(games, username) {
 
       return {
         playedAt: lastMoveAt || createdAt,
+        gameType: normalizeGameType(game.speed || game.perf),
         durationMs,
         result: getResultFromLichessGame(game, username),
         ratingDiff: typeof player?.ratingDiff === "number" ? player.ratingDiff : null,
@@ -274,6 +287,7 @@ async function fetchChessComGamesForUser(username) {
 
       return {
         playedAt,
+        gameType: normalizeGameType(game.time_class),
         durationMs,
         result: normalizeChessComResult(player.result),
         ratingDiff: null,
@@ -302,6 +316,15 @@ function buildStats(games) {
     durationValues.length === 0 ? null : Math.round(durationValues.reduce((sum, ms) => sum + ms, 0) / durationValues.length);
 
   const lastPlayedAt = totalGames === 0 ? 0 : games.reduce((latest, g) => Math.max(latest, g.playedAt || 0), 0);
+  const typeBreakdown = {};
+  selectedTypes.forEach((type) => {
+    const typeGames = games.filter((g) => g.gameType === type);
+    const typeWins = typeGames.filter((g) => g.result === "Win").length;
+    typeBreakdown[type] = {
+      games: typeGames.length,
+      winRate: typeGames.length === 0 ? 0 : (typeWins / typeGames.length) * 100
+    };
+  });
 
   let ratingChangeInRange = null;
   if (platform === "lichess") {
@@ -323,6 +346,7 @@ function buildStats(games) {
     totalGames,
     winRate,
     avgDurationMs,
+    typeBreakdown,
     ratingChangeInRange,
     lastPlayedAt
   };
@@ -336,7 +360,7 @@ function renderRow(username, stats, error = null) {
 
   if (error) {
     const errorTd = document.createElement("td");
-    errorTd.colSpan = 5;
+    errorTd.colSpan = 6;
     const small = document.createElement("small");
     small.textContent = `Load failed: ${error}`;
     errorTd.appendChild(small);
@@ -348,6 +372,21 @@ function renderRow(username, stats, error = null) {
   const totalTd = document.createElement("td");
   totalTd.textContent = String(stats.totalGames);
   tr.appendChild(totalTd);
+
+  const breakdownTd = document.createElement("td");
+  const breakdownLines = selectedTypes.map((type) => {
+    const item = stats.typeBreakdown[type];
+    return `${formatTypeLabel(type)}: ${item.games} (${item.winRate.toFixed(1)}%)`;
+  });
+  const breakdownSmall = document.createElement("small");
+  breakdownLines.forEach((line, index) => {
+    if (index > 0) {
+      breakdownSmall.appendChild(document.createElement("br"));
+    }
+    breakdownSmall.appendChild(document.createTextNode(line));
+  });
+  breakdownTd.appendChild(breakdownSmall);
+  tr.appendChild(breakdownTd);
 
   const winRateTd = document.createElement("td");
   winRateTd.textContent = `${stats.winRate.toFixed(1)}%`;
@@ -383,7 +422,7 @@ async function run() {
   }
 
   const platformLabel = platform === "chesscom" ? "Chess.com" : "Lichess";
-  const typeLabel = selectedTypes.map((value) => value[0].toUpperCase() + value.slice(1)).join(", ");
+  const typeLabel = selectedTypes.map((value) => formatTypeLabel(value)).join(", ");
 
   setLoading(true);
   summary.textContent = `${usernames.length} users total on ${platformLabel} (${typeLabel}), loading...`;
