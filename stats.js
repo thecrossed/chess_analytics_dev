@@ -2,6 +2,8 @@ const summary = document.getElementById("summary");
 const body = document.getElementById("stats-body");
 const loading = document.getElementById("loading");
 const downloadCsvButton = document.getElementById("download-csv");
+const authUser = document.getElementById("auth-user");
+const logoutButton = document.getElementById("logout-btn");
 
 const params = new URLSearchParams(window.location.search);
 const usersParam = params.get("users") || "";
@@ -42,6 +44,18 @@ if (selectedTypes.length === 0) {
 }
 
 const exportRows = [];
+
+async function ensureAuthenticated() {
+  const res = await fetch("/api/auth/me", { credentials: "same-origin" });
+  if (!res.ok) {
+    window.location.href = "login.html";
+    throw new Error("not_authenticated");
+  }
+  const data = await res.json();
+  if (authUser) {
+    authUser.textContent = `Signed in as ${data.username}`;
+  }
+}
 
 function formatDuration(ms) {
   if (typeof ms !== "number") {
@@ -527,6 +541,13 @@ if (downloadCsvButton) {
   });
 }
 
+if (logoutButton) {
+  logoutButton.addEventListener("click", async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    window.location.href = "login.html";
+  });
+}
+
 async function run() {
   if (usernames.length === 0) {
     setLoading(false);
@@ -561,4 +582,6 @@ async function run() {
   summary.textContent = `Completed ${finished}/${usernames.length}. Range: last ${rangeDays} days (${platformLabel}, ${typeLabel}).`;
 }
 
-run();
+ensureAuthenticated()
+  .then(() => run())
+  .catch(() => {});

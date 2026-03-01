@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Chess Analytics</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card" style="max-width: 520px;">
+        <h1>User Login</h1>
+        <p class="hint">Sign in or create an account to use the analytics dashboard.</p>
+
+        <div id="auth-message" class="hint" aria-live="polite"></div>
+
+        <form id="login-form" class="stack-form">
+          <label for="login-username">Username</label>
+          <input id="login-username" type="text" autocomplete="username" required />
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" autocomplete="current-password" required />
+          <button type="submit">Log In</button>
+        </form>
+
+        <hr />
+
+        <form id="register-form" class="stack-form">
+          <label for="register-username">New Username</label>
+          <input id="register-username" type="text" autocomplete="username" required />
+          <label for="register-password">New Password (min 8 chars)</label>
+          <input id="register-password" type="password" autocomplete="new-password" required />
+          <button type="submit">Create Account</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="login.js" type="module"></script>
+  </body>
+</html>
