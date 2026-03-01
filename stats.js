@@ -457,25 +457,14 @@ function renderRow(username, stats, error = null) {
     return;
   }
 
-  const rows = [
-    {
-      breakdown: "Overall",
-      games: stats.totalGames,
-      winRate: stats.winRate,
-      avgDurationMs: stats.avgDurationMs,
-      ratingChange: stats.ratingChangeInRange,
-      lastPlayedAt: stats.lastPlayedAt
-    }
-  ].concat(
-    selectedTypes.map((type) => ({
+  const rows = selectedTypes.map((type) => ({
       breakdown: formatTypeLabel(type),
       games: stats.typeBreakdown[type].games,
       winRate: stats.typeBreakdown[type].winRate,
       avgDurationMs: stats.typeBreakdown[type].avgDurationMs,
       ratingChange: stats.typeBreakdown[type].ratingChange,
       lastPlayedAt: stats.typeBreakdown[type].lastPlayedAt
-    }))
-  );
+    }));
 
   rows.forEach((row) => {
     const tr = document.createElement("tr");
