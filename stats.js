@@ -171,6 +171,8 @@ function updateTableScrollState() {
   tableWrap.classList.toggle("scrollable-rows", shouldScroll);
 }
 
+updateTableScrollState();
+
 function getLichessUserPlayer(game, username) {
   const lower = username.toLowerCase();
   const whiteUser = game.players?.white?.user?.name?.toLowerCase();
