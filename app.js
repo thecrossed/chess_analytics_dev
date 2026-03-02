@@ -13,6 +13,7 @@ const logoutButton = document.getElementById("logout-btn");
 const users = new Set();
 const USERNAME_RE = /^[A-Za-z0-9_-]{2,30}$/;
 const DEFAULT_USERNAME = "MagnusCarlsen";
+const MAX_VISIBLE_USERS = 20;
 
 async function ensureAuthenticated() {
   const res = await fetch("/api/auth/me", { credentials: "same-origin" });
@@ -36,7 +37,11 @@ if (logoutButton) {
 function renderUsers() {
   userList.innerHTML = "";
 
-  users.forEach((name) => {
+  const allUsers = Array.from(users);
+  const visibleUsers = allUsers.slice(0, MAX_VISIBLE_USERS);
+  const hiddenUsers = allUsers.slice(MAX_VISIBLE_USERS);
+
+  const createUserChip = (name) => {
     const li = document.createElement("li");
     li.className = "user-chip";
 
@@ -52,8 +57,31 @@ function renderUsers() {
     });
 
     li.append(text, remove);
-    userList.appendChild(li);
+    return li;
+  };
+
+  visibleUsers.forEach((name) => {
+    userList.appendChild(createUserChip(name));
   });
+
+  if (hiddenUsers.length > 0) {
+    const overflowLi = document.createElement("li");
+    overflowLi.className = "user-overflow";
+
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = `+${hiddenUsers.length} more usernames`;
+
+    const hiddenList = document.createElement("ul");
+    hiddenList.className = "user-list overflow-list";
+    hiddenUsers.forEach((name) => {
+      hiddenList.appendChild(createUserChip(name));
+    });
+
+    details.append(summary, hiddenList);
+    overflowLi.appendChild(details);
+    userList.appendChild(overflowLi);
+  }
 }
 
 function normalizeUsername(raw) {

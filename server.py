@@ -30,29 +30,33 @@ AUTH_GUEST_RE = re.compile(r"^/api/auth/guest/?$")
 
 def init_db():
     with sqlite3.connect(DB_PATH) as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                password_hash TEXT NOT NULL,
-                salt TEXT NOT NULL,
-                created_at INTEGER NOT NULL
-            )
-            """
+        ensure_auth_schema(conn)
+
+
+def ensure_auth_schema(conn: sqlite3.Connection):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            created_at INTEGER NOT NULL
         )
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS sessions (
-                token TEXT PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                expires_at INTEGER NOT NULL,
-                FOREIGN KEY(user_id) REFERENCES users(id)
-            )
-            """
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sessions (
+            token TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
         )
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
-        conn.commit()
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
+    conn.commit()
 
 
 def hash_password(password: str, salt_hex: str) -> str:
@@ -194,6 +198,7 @@ class AppHandler(SimpleHTTPRequestHandler):
         username = str(payload.get("username", "")).strip()
         password = str(payload.get("password", ""))
         with sqlite3.connect(DB_PATH) as conn:
+            ensure_auth_schema(conn)
             row = conn.execute(
                 "SELECT id, username, password_hash, salt FROM users WHERE username = ?",
                 (username,),
@@ -216,6 +221,7 @@ class AppHandler(SimpleHTTPRequestHandler):
     def _handle_guest_login(self):
         guest_username = "guest"
         with sqlite3.connect(DB_PATH) as conn:
+            ensure_auth_schema(conn)
             row = conn.execute("SELECT id FROM users WHERE username = ?", (guest_username,)).fetchone()
             if row:
                 guest_user_id = row[0]
@@ -238,6 +244,7 @@ class AppHandler(SimpleHTTPRequestHandler):
         token = parse_session_token_from_headers(self.headers)
         if token:
             with sqlite3.connect(DB_PATH) as conn:
+                ensure_auth_schema(conn)
                 conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
                 conn.commit()
 
@@ -258,6 +265,7 @@ class AppHandler(SimpleHTTPRequestHandler):
             return None if optional else None
 
         with sqlite3.connect(DB_PATH) as conn:
+            ensure_auth_schema(conn)
             row = conn.execute(
                 """
                 SELECT users.id, users.username, sessions.expires_at

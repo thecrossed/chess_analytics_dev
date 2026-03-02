@@ -1,6 +1,7 @@
 const summary = document.getElementById("summary");
 const body = document.getElementById("stats-body");
 const loading = document.getElementById("loading");
+const tableWrap = document.getElementById("stats-table-wrap");
 const downloadCsvButton = document.getElementById("download-csv");
 const authUser = document.getElementById("auth-user");
 const logoutButton = document.getElementById("logout-btn");
@@ -44,6 +45,8 @@ if (selectedTypes.length === 0) {
 }
 
 const exportRows = [];
+const MAX_VISIBLE_ROWS_BEFORE_SCROLL = 20;
+let renderedUsernameCount = 0;
 
 async function ensureAuthenticated() {
   const res = await fetch("/api/auth/me", { credentials: "same-origin" });
@@ -159,6 +162,16 @@ function downloadCsv() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+function updateTableScrollState() {
+  if (!tableWrap || !body) {
+    return;
+  }
+  const shouldScroll = Math.max(renderedUsernameCount, usernames.length) > MAX_VISIBLE_ROWS_BEFORE_SCROLL;
+  tableWrap.classList.toggle("scrollable-rows", shouldScroll);
+}
+
+updateTableScrollState();
 
 function getLichessUserPlayer(game, username) {
   const lower = username.toLowerCase();
@@ -458,6 +471,8 @@ function renderRow(username, stats, error = null) {
     errorTd.appendChild(small);
     tr.appendChild(errorTd);
     body.appendChild(tr);
+    renderedUsernameCount += 1;
+    updateTableScrollState();
     exportRows.push({
       username,
       games: "",
@@ -523,6 +538,8 @@ function renderRow(username, stats, error = null) {
       error: ""
     });
   });
+  renderedUsernameCount += 1;
+  updateTableScrollState();
 }
 
 function setLoading(visible) {
@@ -579,6 +596,7 @@ async function run() {
   if (downloadCsvButton) {
     downloadCsvButton.disabled = exportRows.length === 0;
   }
+  updateTableScrollState();
   summary.textContent = `Completed ${finished}/${usernames.length}. Range: last ${rangeDays} days (${platformLabel}, ${typeLabel}).`;
 }
 

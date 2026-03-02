@@ -154,6 +154,26 @@ button:hover,
   padding: 4px 8px;
 }
 
+.user-overflow {
+  width: 100%;
+}
+
+.user-overflow details {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 8px 10px;
+}
+
+.user-overflow summary {
+  cursor: pointer;
+  color: var(--subtle);
+}
+
+.overflow-list {
+  margin-top: 8px;
+}
+
 .actions {
   display: flex;
   gap: 10px;
@@ -173,6 +193,11 @@ hr {
 
 .table-wrap {
   overflow-x: auto;
+}
+
+.table-wrap.scrollable-rows {
+  max-height: 520px;
+  overflow-y: auto;
 }
 
 table {
