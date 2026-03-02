@@ -167,7 +167,7 @@ function updateTableScrollState() {
   if (!tableWrap || !body) {
     return;
   }
-  const shouldScroll = renderedUsernameCount > MAX_VISIBLE_ROWS_BEFORE_SCROLL;
+  const shouldScroll = Math.max(renderedUsernameCount, usernames.length) > MAX_VISIBLE_ROWS_BEFORE_SCROLL;
   tableWrap.classList.toggle("scrollable-rows", shouldScroll);
 }
 
