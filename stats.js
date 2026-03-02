@@ -1,6 +1,7 @@
 const summary = document.getElementById("summary");
 const body = document.getElementById("stats-body");
 const loading = document.getElementById("loading");
+const tableWrap = document.getElementById("stats-table-wrap");
 const downloadCsvButton = document.getElementById("download-csv");
 const authUser = document.getElementById("auth-user");
 const logoutButton = document.getElementById("logout-btn");
@@ -44,6 +45,7 @@ if (selectedTypes.length === 0) {
 }
 
 const exportRows = [];
+const MAX_VISIBLE_ROWS_BEFORE_SCROLL = 20;
 
 async function ensureAuthenticated() {
   const res = await fetch("/api/auth/me", { credentials: "same-origin" });
@@ -158,6 +160,14 @@ function downloadCsv() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+function updateTableScrollState() {
+  if (!tableWrap || !body) {
+    return;
+  }
+  const shouldScroll = body.children.length > MAX_VISIBLE_ROWS_BEFORE_SCROLL;
+  tableWrap.classList.toggle("scrollable-rows", shouldScroll);
 }
 
 function getLichessUserPlayer(game, username) {
@@ -522,6 +532,7 @@ function renderRow(username, stats, error = null) {
       lastPlayed: formatDate(row.lastPlayedAt),
       error: ""
     });
+    updateTableScrollState();
   });
 }
 
@@ -579,6 +590,7 @@ async function run() {
   if (downloadCsvButton) {
     downloadCsvButton.disabled = exportRows.length === 0;
   }
+  updateTableScrollState();
   summary.textContent = `Completed ${finished}/${usernames.length}. Range: last ${rangeDays} days (${platformLabel}, ${typeLabel}).`;
 }
 
