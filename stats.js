@@ -46,6 +46,7 @@ if (selectedTypes.length === 0) {
 
 const exportRows = [];
 const MAX_VISIBLE_ROWS_BEFORE_SCROLL = 20;
+let renderedUsernameCount = 0;
 
 async function ensureAuthenticated() {
   const res = await fetch("/api/auth/me", { credentials: "same-origin" });
@@ -166,7 +167,7 @@ function updateTableScrollState() {
   if (!tableWrap || !body) {
     return;
   }
-  const shouldScroll = body.children.length > MAX_VISIBLE_ROWS_BEFORE_SCROLL;
+  const shouldScroll = renderedUsernameCount > MAX_VISIBLE_ROWS_BEFORE_SCROLL;
   tableWrap.classList.toggle("scrollable-rows", shouldScroll);
 }
 
@@ -468,6 +469,8 @@ function renderRow(username, stats, error = null) {
     errorTd.appendChild(small);
     tr.appendChild(errorTd);
     body.appendChild(tr);
+    renderedUsernameCount += 1;
+    updateTableScrollState();
     exportRows.push({
       username,
       games: "",
@@ -532,8 +535,9 @@ function renderRow(username, stats, error = null) {
       lastPlayed: formatDate(row.lastPlayedAt),
       error: ""
     });
-    updateTableScrollState();
   });
+  renderedUsernameCount += 1;
+  updateTableScrollState();
 }
 
 function setLoading(visible) {
