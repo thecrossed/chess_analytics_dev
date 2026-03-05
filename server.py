@@ -4,6 +4,7 @@ import json
 import os
 import re
 import secrets
+import signal
 import sqlite3
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -27,6 +28,20 @@ AUTH_LOGOUT_RE = re.compile(r"^/api/auth/logout/?$")
 AUTH_ME_RE = re.compile(r"^/api/auth/me/?$")
 AUTH_GUEST_RE = re.compile(r"^/api/auth/guest/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
+
+
+def log_runtime(message: str):
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{timestamp}] {message}", flush=True)
+
+
+def get_instance_id() -> str:
+    return (
+        os.environ.get("RAILWAY_REPLICA_ID")
+        or os.environ.get("RAILWAY_DEPLOYMENT_ID")
+        or os.environ.get("HOSTNAME")
+        or f"pid-{os.getpid()}"
+    )
 
 
 def init_db():
@@ -334,8 +349,26 @@ def main():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     init_db()
     server = ThreadingHTTPServer((HOST, PORT), AppHandler)
-    print(f"Serving on http://{HOST}:{PORT}")
-    print(f"Chess.com proxy User-Agent: {USER_AGENT}")
+    instance_id = get_instance_id()
+
+    def handle_signal(signum, _frame):
+        signal_name = "SIGTERM" if signum == signal.SIGTERM else "SIGINT"
+        log_runtime(f"Signal received: {signal_name}; shutting down. instance_id={instance_id}")
+        server.shutdown()
+
+    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, handle_signal)
+
+    log_runtime(f"Starting server. instance_id={instance_id}")
+    log_runtime(f"Serving on http://{HOST}:{PORT}")
+    log_runtime(f"Chess.com proxy User-Agent: {USER_AGENT}")
+    log_runtime(
+        "Railway env: "
+        + f"RAILWAY_ENVIRONMENT={os.environ.get('RAILWAY_ENVIRONMENT', '-')}, "
+        + f"RAILWAY_PROJECT_ID={os.environ.get('RAILWAY_PROJECT_ID', '-')}, "
+        + f"RAILWAY_SERVICE_ID={os.environ.get('RAILWAY_SERVICE_ID', '-')}, "
+        + f"RAILWAY_DEPLOYMENT_ID={os.environ.get('RAILWAY_DEPLOYMENT_ID', '-')}"
+    )
     server.serve_forever()
 
 
