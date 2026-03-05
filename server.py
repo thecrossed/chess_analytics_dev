@@ -187,6 +187,12 @@ class AppHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         # Keep local development simple when loading from this same server.
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        if should_use_secure_cookie():
+            self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         super().end_headers()
 
     def do_GET(self):
