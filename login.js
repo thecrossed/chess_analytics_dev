@@ -1,11 +1,32 @@
 const loginForm = document.getElementById("login-form");
 const registerForm = document.getElementById("register-form");
+const resetRequestForm = document.getElementById("reset-request-form");
+const resetConfirmForm = document.getElementById("reset-confirm-form");
 const message = document.getElementById("auth-message");
 const guestLoginButton = document.getElementById("guest-login-btn");
 
 function setMessage(text, isError = false) {
   message.textContent = text;
   message.style.color = isError ? "#b42318" : "#475467";
+}
+
+function showPasswordPolicyError(errorCode) {
+  if (errorCode === "password_too_short") {
+    setMessage("Password must be at least 12 characters.", true);
+  } else if (errorCode === "password_too_weak") {
+    setMessage("Password is too common. Choose a stronger one.", true);
+  } else if (errorCode === "password_missing_uppercase") {
+    setMessage("Password must include at least one uppercase letter.", true);
+  } else if (errorCode === "password_missing_lowercase") {
+    setMessage("Password must include at least one lowercase letter.", true);
+  } else if (errorCode === "password_missing_number") {
+    setMessage("Password must include at least one number.", true);
+  } else if (errorCode === "password_missing_symbol") {
+    setMessage("Password must include at least one symbol.", true);
+  } else {
+    return false;
+  }
+  return true;
 }
 
 async function checkLoggedIn() {
@@ -88,18 +109,8 @@ registerForm.addEventListener("submit", async (event) => {
       setMessage("Request too large. Please shorten input and retry.", true);
     } else if (error === "username_exists") {
       setMessage("This username already exists.", true);
-    } else if (error === "password_too_short") {
-      setMessage("Password must be at least 12 characters.", true);
-    } else if (error === "password_too_weak") {
-      setMessage("Password is too common. Choose a stronger one.", true);
-    } else if (error === "password_missing_uppercase") {
-      setMessage("Password must include at least one uppercase letter.", true);
-    } else if (error === "password_missing_lowercase") {
-      setMessage("Password must include at least one lowercase letter.", true);
-    } else if (error === "password_missing_number") {
-      setMessage("Password must include at least one number.", true);
-    } else if (error === "password_missing_symbol") {
-      setMessage("Password must include at least one symbol.", true);
+    } else if (showPasswordPolicyError(error)) {
+      return;
     } else if (error === "invalid_username") {
       setMessage("Username must be 3-32 chars: letters, numbers, _ or -.", true);
     } else {
@@ -127,6 +138,72 @@ if (guestLoginButton) {
     }
 
     window.location.href = "index.html";
+  });
+}
+
+if (resetRequestForm) {
+  resetRequestForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setMessage("Requesting reset token...");
+
+    const username = document.getElementById("reset-request-username").value.trim();
+    const res = await fetch("/api/auth/password-reset/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ username })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (data.error === "rate_limited") {
+        const wait = Number(data.retry_after || 0);
+        setMessage(wait > 0 ? `Too many attempts. Try again in ${wait}s.` : "Too many attempts. Please try again later.", true);
+      } else {
+        setMessage("Failed to request reset token.", true);
+      }
+      return;
+    }
+
+    const token = data.reset_token || "";
+    const tokenInput = document.getElementById("reset-token");
+    if (tokenInput && token) {
+      tokenInput.value = token;
+    }
+    setMessage(`Reset token ready: ${token}. Now set a new password below.`);
+  });
+}
+
+if (resetConfirmForm) {
+  resetConfirmForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setMessage("Resetting password...");
+
+    const token = document.getElementById("reset-token").value.trim();
+    const newPassword = document.getElementById("reset-new-password").value;
+    const res = await fetch("/api/auth/password-reset/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ token, new_password: newPassword })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (data.error === "rate_limited") {
+        const wait = Number(data.retry_after || 0);
+        setMessage(wait > 0 ? `Too many attempts. Try again in ${wait}s.` : "Too many attempts. Please try again later.", true);
+      } else if (data.error === "invalid_or_expired_token") {
+        setMessage("Reset token is invalid or expired.", true);
+      } else if (showPasswordPolicyError(data.error || "")) {
+        return;
+      } else {
+        setMessage("Password reset failed.", true);
+      }
+      return;
+    }
+
+    setMessage("Password reset successful. You can now log in with your new password.");
   });
 }
 

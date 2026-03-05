@@ -41,6 +41,7 @@ ACCOUNT_LOCKOUT_PRUNE_INTERVAL_SECONDS = 5 * 60
 ACCOUNT_LOCKOUT_LAST_PRUNE_AT = 0.0
 LEGACY_PBKDF2_ITERATIONS = 120000
 PBKDF2_ITERATIONS = 240000
+PASSWORD_RESET_TOKEN_TTL_SECONDS = 15 * 60
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -49,6 +50,8 @@ AUTH_LOGIN_RE = re.compile(r"^/api/auth/login/?$")
 AUTH_LOGOUT_RE = re.compile(r"^/api/auth/logout/?$")
 AUTH_ME_RE = re.compile(r"^/api/auth/me/?$")
 AUTH_GUEST_RE = re.compile(r"^/api/auth/guest/?$")
+AUTH_PASSWORD_RESET_REQUEST_RE = re.compile(r"^/api/auth/password-reset/request/?$")
+AUTH_PASSWORD_RESET_CONFIRM_RE = re.compile(r"^/api/auth/password-reset/confirm/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
 COMMON_WEAK_PASSWORDS = {
     "12345678",
@@ -113,7 +116,21 @@ def ensure_auth_schema(conn: sqlite3.Connection):
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            token TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            used_at INTEGER,
+            created_at INTEGER NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        """
+    )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_expires ON password_reset_tokens(expires_at)")
     conn.commit()
 
 
@@ -279,6 +296,24 @@ def clear_login_failures(username: str):
         ACCOUNT_LOCKED_UNTIL.pop(normalized_username, None)
 
 
+def issue_password_reset_token(conn: sqlite3.Connection, user_id: int) -> str:
+    now = int(time.time())
+    token = secrets.token_urlsafe(32)
+    expires_at = now + PASSWORD_RESET_TOKEN_TTL_SECONDS
+    conn.execute(
+        "DELETE FROM password_reset_tokens WHERE user_id = ? OR expires_at <= ? OR used_at IS NOT NULL",
+        (user_id, now),
+    )
+    conn.execute(
+        """
+        INSERT INTO password_reset_tokens (token, user_id, expires_at, used_at, created_at)
+        VALUES (?, ?, ?, NULL, ?)
+        """,
+        (token, user_id, expires_at, now),
+    )
+    return token
+
+
 def is_same_origin_request(handler: SimpleHTTPRequestHandler) -> bool:
     host = (handler.headers.get("Host") or "").strip().lower()
     if not host:
@@ -377,6 +412,12 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
         if AUTH_LOGOUT_RE.match(self.path):
             self._handle_logout()
+            return
+        if AUTH_PASSWORD_RESET_REQUEST_RE.match(self.path):
+            self._handle_password_reset_request()
+            return
+        if AUTH_PASSWORD_RESET_CONFIRM_RE.match(self.path):
+            self._handle_password_reset_confirm()
             return
 
         self._send_json(404, {"error": "not_found"})
@@ -514,6 +555,108 @@ class AppHandler(SimpleHTTPRequestHandler):
 
         extra_headers = [("Set-Cookie", build_session_cookie("", 0))]
         self._send_json(200, {"ok": True}, extra_headers=extra_headers)
+
+    def _handle_password_reset_request(self):
+        try:
+            payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
+        except Exception:
+            self._send_json(400, {"error": "invalid_json"})
+            return
+
+        username = str(payload.get("username", "")).strip()
+        client_ip = get_client_ip(self)
+        retry_after = check_rate_limit("password_reset_request", client_ip, username)
+        if retry_after:
+            self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
+            return
+
+        response_payload = {"ok": True}
+        with sqlite3.connect(DB_PATH) as conn:
+            ensure_auth_schema(conn)
+            row = conn.execute("SELECT id, username FROM users WHERE username = ?", (username,)).fetchone()
+            if row:
+                user_id, db_username = row
+                token = issue_password_reset_token(conn, user_id)
+                conn.commit()
+                # Demo workflow without email delivery: expose token in response.
+                response_payload["reset_token"] = token
+                log_runtime(
+                    f"Password reset token issued. username={db_username}, "
+                    f"expires_in_seconds={PASSWORD_RESET_TOKEN_TTL_SECONDS}"
+                )
+            else:
+                # Keep response shape consistent to avoid easy username enumeration.
+                response_payload["reset_token"] = secrets.token_urlsafe(32)
+
+        self._send_json(200, response_payload)
+
+    def _handle_password_reset_confirm(self):
+        try:
+            payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
+        except Exception:
+            self._send_json(400, {"error": "invalid_json"})
+            return
+
+        token = str(payload.get("token", "")).strip()
+        new_password = str(payload.get("new_password", ""))
+        client_ip = get_client_ip(self)
+        retry_after = check_rate_limit("password_reset_confirm", client_ip, token[:12] or "-")
+        if retry_after:
+            self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
+            return
+
+        password_error = validate_password_policy(new_password)
+        if password_error:
+            self._send_json(400, {"error": password_error})
+            return
+
+        if not token:
+            self._send_json(400, {"error": "invalid_or_expired_token"})
+            return
+
+        now = int(time.time())
+        with sqlite3.connect(DB_PATH) as conn:
+            ensure_auth_schema(conn)
+            row = conn.execute(
+                """
+                SELECT token, user_id, expires_at, used_at
+                FROM password_reset_tokens
+                WHERE token = ?
+                """,
+                (token,),
+            ).fetchone()
+            if not row:
+                self._send_json(400, {"error": "invalid_or_expired_token"})
+                return
+
+            _, user_id, expires_at, used_at = row
+            if used_at is not None or expires_at <= now:
+                conn.execute("DELETE FROM password_reset_tokens WHERE token = ?", (token,))
+                conn.commit()
+                self._send_json(400, {"error": "invalid_or_expired_token"})
+                return
+
+            user_row = conn.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone()
+            username = user_row[0] if user_row else ""
+
+            password_hash, salt, iterations = make_password_hash(new_password)
+            conn.execute(
+                "UPDATE users SET password_hash = ?, salt = ?, iterations = ? WHERE id = ?",
+                (password_hash, salt, iterations, user_id),
+            )
+            conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+            conn.execute("UPDATE password_reset_tokens SET used_at = ? WHERE token = ?", (now, token))
+            conn.execute("DELETE FROM password_reset_tokens WHERE user_id = ? AND token != ?", (user_id, token))
+            conn.commit()
+
+        clear_login_failures(username)
+        self._send_json(200, {"ok": True})
 
     def _create_session(self, conn: sqlite3.Connection, user_id: int) -> str:
         token = secrets.token_urlsafe(32)
