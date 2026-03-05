@@ -4,6 +4,7 @@ const resetRequestForm = document.getElementById("reset-request-form");
 const resetConfirmForm = document.getElementById("reset-confirm-form");
 const message = document.getElementById("auth-message");
 const guestLoginButton = document.getElementById("guest-login-btn");
+const initialResetToken = new URLSearchParams(window.location.search).get("reset_token");
 
 function setMessage(text, isError = false) {
   message.textContent = text;
@@ -86,13 +87,14 @@ registerForm.addEventListener("submit", async (event) => {
   setMessage("Creating account...");
 
   const username = document.getElementById("register-username").value.trim();
+  const email = document.getElementById("register-email").value.trim();
   const password = document.getElementById("register-password").value;
 
   const res = await fetch("/api/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "same-origin",
-    body: JSON.stringify({ username, password })
+    body: JSON.stringify({ username, email, password })
   });
 
   if (!res.ok) {
@@ -109,6 +111,12 @@ registerForm.addEventListener("submit", async (event) => {
       setMessage("Request too large. Please shorten input and retry.", true);
     } else if (error === "username_exists") {
       setMessage("This username already exists.", true);
+    } else if (error === "email_exists") {
+      setMessage("This email is already registered.", true);
+    } else if (error === "email_required") {
+      setMessage("Email is required.", true);
+    } else if (error === "invalid_email") {
+      setMessage("Please enter a valid email address.", true);
     } else if (showPasswordPolicyError(error)) {
       return;
     } else if (error === "invalid_username") {
@@ -144,7 +152,7 @@ if (guestLoginButton) {
 if (resetRequestForm) {
   resetRequestForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    setMessage("Requesting reset token...");
+    setMessage("Requesting reset email...");
 
     const username = document.getElementById("reset-request-username").value.trim();
     const res = await fetch("/api/auth/password-reset/request", {
@@ -170,7 +178,11 @@ if (resetRequestForm) {
     if (tokenInput && token) {
       tokenInput.value = token;
     }
-    setMessage(`Reset token ready: ${token}. Now set a new password below.`);
+    if (token) {
+      setMessage(`Reset token ready: ${token}. Now set a new password below.`);
+    } else {
+      setMessage("If the account exists, reset instructions have been sent to email.");
+    }
   });
 }
 
@@ -205,6 +217,13 @@ if (resetConfirmForm) {
 
     setMessage("Password reset successful. You can now log in with your new password.");
   });
+}
+
+if (initialResetToken) {
+  const tokenInput = document.getElementById("reset-token");
+  if (tokenInput) {
+    tokenInput.value = initialResetToken;
+  }
 }
 
 checkLoggedIn();
