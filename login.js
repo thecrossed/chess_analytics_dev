@@ -31,6 +31,15 @@ loginForm.addEventListener("submit", async (event) => {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
+    if (data.error === "account_locked") {
+      const wait = Number(data.retry_after || 0);
+      if (wait > 0) {
+        setMessage(`This account is temporarily locked. Try again in ${wait}s.`, true);
+      } else {
+        setMessage("This account is temporarily locked. Please try again later.", true);
+      }
+      return;
+    }
     if (data.error === "rate_limited") {
       const wait = Number(data.retry_after || 0);
       if (wait > 0) {
