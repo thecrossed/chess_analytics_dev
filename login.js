@@ -40,6 +40,10 @@ loginForm.addEventListener("submit", async (event) => {
       }
       return;
     }
+    if (data.error === "payload_too_large") {
+      setMessage("Request too large. Please shorten input and retry.", true);
+      return;
+    }
     setMessage("Login failed. Check username/password.", true);
     return;
   }
@@ -71,6 +75,8 @@ registerForm.addEventListener("submit", async (event) => {
       } else {
         setMessage("Too many attempts. Please try again later.", true);
       }
+    } else if (error === "payload_too_large") {
+      setMessage("Request too large. Please shorten input and retry.", true);
     } else if (error === "username_exists") {
       setMessage("This username already exists.", true);
     } else if (error === "password_too_short") {
