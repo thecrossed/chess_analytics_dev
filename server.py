@@ -12,6 +12,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
 from typing import Optional, Tuple
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 HOST = "0.0.0.0"
@@ -183,6 +184,26 @@ def clear_rate_limit(action: str, client_ip: str, username: str):
         RATE_LIMIT_BUCKETS.pop(key, None)
 
 
+def is_same_origin_request(handler: SimpleHTTPRequestHandler) -> bool:
+    host = (handler.headers.get("Host") or "").strip().lower()
+    if not host:
+        return True
+
+    origin = (handler.headers.get("Origin") or "").strip()
+    referer = (handler.headers.get("Referer") or "").strip()
+
+    # Non-browser clients may not send Origin/Referer.
+    if not origin and not referer:
+        return True
+
+    if origin:
+        parsed = urlparse(origin)
+        return parsed.netloc.lower() == host
+
+    parsed = urlparse(referer)
+    return parsed.netloc.lower() == host
+
+
 class AppHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         # Keep local development simple when loading from this same server.
@@ -232,6 +253,10 @@ class AppHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
+        if self.path.startswith("/api/") and not is_same_origin_request(self):
+            self._send_json(403, {"error": "cross_origin_blocked"})
+            return
+
         if AUTH_REGISTER_RE.match(self.path):
             self._handle_register()
             return
