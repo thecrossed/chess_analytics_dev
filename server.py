@@ -26,6 +26,7 @@ RATE_LIMIT_MAX_ATTEMPTS = 8
 RATE_LIMIT_LOCK = threading.Lock()
 RATE_LIMIT_BUCKETS = {}
 MAX_JSON_BODY_BYTES = 16 * 1024
+LOGIN_FAILURE_DELAY_SECONDS = 0.35
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -365,11 +366,13 @@ class AppHandler(SimpleHTTPRequestHandler):
             ).fetchone()
 
             if not row:
+                time.sleep(LOGIN_FAILURE_DELAY_SECONDS)
                 self._send_json(401, {"error": "invalid_credentials"})
                 return
 
             user_id, db_username, db_hash, db_salt = row
             if hash_password(password, db_salt) != db_hash:
+                time.sleep(LOGIN_FAILURE_DELAY_SECONDS)
                 self._send_json(401, {"error": "invalid_credentials"})
                 return
 
