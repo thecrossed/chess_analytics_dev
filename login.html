@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,7 +10,7 @@
     <main class="shell">
       <section class="card" style="max-width: 520px;">
         <h1>User Login</h1>
-        <p class="hint">Sign in or create an account to use the analytics dashboard.</p>
+        <p class="hint">Sign in to use the analytics dashboard.</p>
 
         <div id="auth-message" class="hint" aria-live="polite"></div>
 
@@ -26,33 +26,10 @@
           <button id="guest-login-btn" type="button">Login as Guest</button>
         </div>
 
-        <hr />
-
-        <form id="register-form" class="stack-form">
-          <label for="register-username">New Username</label>
-          <input id="register-username" type="text" autocomplete="username" required />
-          <label for="register-email">Email</label>
-          <input id="register-email" type="email" autocomplete="email" required />
-          <label for="register-password">New Password (min 12, upper/lower/number/symbol)</label>
-          <input id="register-password" type="password" autocomplete="new-password" required />
-          <button type="submit">Create Account</button>
-        </form>
-
-        <hr />
-
-        <form id="reset-request-form" class="stack-form">
-          <label for="reset-request-username">Forgot password? Enter username (email will receive reset link)</label>
-          <input id="reset-request-username" type="text" autocomplete="username" required />
-          <button type="submit">Request Reset Email</button>
-        </form>
-
-        <form id="reset-confirm-form" class="stack-form">
-          <label for="reset-token">Reset Token</label>
-          <input id="reset-token" type="text" autocomplete="off" required />
-          <label for="reset-new-password">New Password (min 12, upper/lower/number/symbol)</label>
-          <input id="reset-new-password" type="password" autocomplete="new-password" required />
-          <button type="submit">Reset Password</button>
-        </form>
+        <div class="small-links">
+          <a href="register.html">Create Account</a>
+          <a href="forgot-password.html">Forgot Password?</a>
+        </div>
       </section>
     </main>
 

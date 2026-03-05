@@ -180,6 +180,22 @@ button:hover,
   justify-content: flex-end;
 }
 
+.small-links {
+  margin-top: 12px;
+  display: flex;
+  gap: 12px;
+}
+
+.small-links a {
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.small-links a:hover {
+  text-decoration: underline;
+}
+
 .stack-form {
   display: grid;
   gap: 8px;
