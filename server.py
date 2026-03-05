@@ -25,6 +25,8 @@ RATE_LIMIT_WINDOW_SECONDS = 10 * 60
 RATE_LIMIT_MAX_ATTEMPTS = 8
 RATE_LIMIT_LOCK = threading.Lock()
 RATE_LIMIT_BUCKETS = {}
+RATE_LIMIT_PRUNE_INTERVAL_SECONDS = 5 * 60
+RATE_LIMIT_LAST_PRUNE_AT = 0.0
 MAX_JSON_BODY_BYTES = 16 * 1024
 LOGIN_FAILURE_DELAY_SECONDS = 0.35
 ACCOUNT_LOCKOUT_WINDOW_SECONDS = 15 * 60
@@ -33,6 +35,8 @@ ACCOUNT_LOCKOUT_SECONDS = 15 * 60
 ACCOUNT_LOCKOUT_LOCK = threading.Lock()
 ACCOUNT_FAILURE_BUCKETS = {}
 ACCOUNT_LOCKED_UNTIL = {}
+ACCOUNT_LOCKOUT_PRUNE_INTERVAL_SECONDS = 5 * 60
+ACCOUNT_LOCKOUT_LAST_PRUNE_AT = 0.0
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -181,10 +185,21 @@ def get_client_ip(handler: SimpleHTTPRequestHandler) -> str:
 
 
 def check_rate_limit(action: str, client_ip: str, username: str) -> Optional[int]:
+    global RATE_LIMIT_LAST_PRUNE_AT
     now = time.time()
     normalized_username = username.strip().lower() or "-"
     key = f"{action}:{client_ip}:{normalized_username}"
     with RATE_LIMIT_LOCK:
+        if now - RATE_LIMIT_LAST_PRUNE_AT >= RATE_LIMIT_PRUNE_INTERVAL_SECONDS:
+            cutoff = now - RATE_LIMIT_WINDOW_SECONDS
+            for bucket_key in list(RATE_LIMIT_BUCKETS.keys()):
+                kept = [ts for ts in RATE_LIMIT_BUCKETS[bucket_key] if ts >= cutoff]
+                if kept:
+                    RATE_LIMIT_BUCKETS[bucket_key] = kept
+                else:
+                    RATE_LIMIT_BUCKETS.pop(bucket_key, None)
+            RATE_LIMIT_LAST_PRUNE_AT = now
+
         attempts = RATE_LIMIT_BUCKETS.get(key, [])
         attempts = [ts for ts in attempts if (now - ts) < RATE_LIMIT_WINDOW_SECONDS]
         if len(attempts) >= RATE_LIMIT_MAX_ATTEMPTS:
@@ -204,9 +219,26 @@ def clear_rate_limit(action: str, client_ip: str, username: str):
 
 
 def check_account_lockout(username: str) -> Optional[int]:
+    global ACCOUNT_LOCKOUT_LAST_PRUNE_AT
     normalized_username = username.strip().lower() or "-"
     now = time.time()
     with ACCOUNT_LOCKOUT_LOCK:
+        if now - ACCOUNT_LOCKOUT_LAST_PRUNE_AT >= ACCOUNT_LOCKOUT_PRUNE_INTERVAL_SECONDS:
+            active_users = set(ACCOUNT_FAILURE_BUCKETS.keys()) | set(ACCOUNT_LOCKED_UNTIL.keys())
+            failure_cutoff = now - ACCOUNT_LOCKOUT_WINDOW_SECONDS
+            for user in list(active_users):
+                attempts = ACCOUNT_FAILURE_BUCKETS.get(user, [])
+                attempts = [ts for ts in attempts if ts >= failure_cutoff]
+                if attempts:
+                    ACCOUNT_FAILURE_BUCKETS[user] = attempts
+                else:
+                    ACCOUNT_FAILURE_BUCKETS.pop(user, None)
+
+                locked_until_user = ACCOUNT_LOCKED_UNTIL.get(user, 0)
+                if locked_until_user <= now:
+                    ACCOUNT_LOCKED_UNTIL.pop(user, None)
+            ACCOUNT_LOCKOUT_LAST_PRUNE_AT = now
+
         locked_until = ACCOUNT_LOCKED_UNTIL.get(normalized_username, 0)
         if locked_until > now:
             return max(1, int(locked_until - now))
@@ -226,6 +258,10 @@ def record_login_failure(username: str):
         if len(attempts) >= ACCOUNT_LOCKOUT_MAX_FAILURES:
             ACCOUNT_LOCKED_UNTIL[normalized_username] = now + ACCOUNT_LOCKOUT_SECONDS
             ACCOUNT_FAILURE_BUCKETS[normalized_username] = []
+            log_runtime(
+                f"Account lockout triggered. username={normalized_username}, "
+                f"duration_seconds={ACCOUNT_LOCKOUT_SECONDS}"
+            )
 
 
 def clear_login_failures(username: str):
