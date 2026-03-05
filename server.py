@@ -220,9 +220,9 @@ def build_password_reset_link(token: str) -> str:
     if PASSWORD_RESET_PAGE_URL:
         base = PASSWORD_RESET_PAGE_URL
     elif os.environ.get("RAILWAY_PUBLIC_DOMAIN"):
-        base = f"https://{os.environ.get('RAILWAY_PUBLIC_DOMAIN')}/login.html"
+        base = f"https://{os.environ.get('RAILWAY_PUBLIC_DOMAIN')}/forgot-password.html"
     else:
-        base = f"http://localhost:{PORT}/login.html"
+        base = f"http://localhost:{PORT}/forgot-password.html"
     separator = "&" if "?" in base else "?"
     return f"{base}{separator}{urlencode({'reset_token': token})}"
 
@@ -303,6 +303,14 @@ def send_password_reset_email(email: str, username: str, token: str) -> bool:
             if 200 <= response.status < 300:
                 return True
             return False
+    except HTTPError as err:
+        details = ""
+        try:
+            details = err.read().decode("utf-8", errors="ignore")
+        except Exception:
+            details = ""
+        log_runtime(f"Password reset email send failed: status={err.code}, body={details}")
+        return False
     except Exception as exc:
         log_runtime(f"Password reset email send failed: {exc}")
         return False
