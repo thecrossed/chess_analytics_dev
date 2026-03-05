@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -37,6 +38,8 @@ ACCOUNT_FAILURE_BUCKETS = {}
 ACCOUNT_LOCKED_UNTIL = {}
 ACCOUNT_LOCKOUT_PRUNE_INTERVAL_SECONDS = 5 * 60
 ACCOUNT_LOCKOUT_LAST_PRUNE_AT = 0.0
+LEGACY_PBKDF2_ITERATIONS = 120000
+PBKDF2_ITERATIONS = 240000
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -91,10 +94,14 @@ def ensure_auth_schema(conn: sqlite3.Connection):
             username TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             salt TEXT NOT NULL,
+            iterations INTEGER NOT NULL DEFAULT 120000,
             created_at INTEGER NOT NULL
         )
         """
     )
+    columns = [row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()]
+    if "iterations" not in columns:
+        conn.execute("ALTER TABLE users ADD COLUMN iterations INTEGER NOT NULL DEFAULT 120000")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS sessions (
@@ -109,15 +116,15 @@ def ensure_auth_schema(conn: sqlite3.Connection):
     conn.commit()
 
 
-def hash_password(password: str, salt_hex: str) -> str:
+def hash_password(password: str, salt_hex: str, iterations: int) -> str:
     salt = bytes.fromhex(salt_hex)
-    password_hash = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 120000)
+    password_hash = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
     return password_hash.hex()
 
 
-def make_password_hash(password: str) -> Tuple[str, str]:
+def make_password_hash(password: str) -> Tuple[str, str, int]:
     salt = secrets.token_bytes(16).hex()
-    return hash_password(password, salt), salt
+    return hash_password(password, salt, PBKDF2_ITERATIONS), salt, PBKDF2_ITERATIONS
 
 
 def parse_json_body(handler: SimpleHTTPRequestHandler):
@@ -399,12 +406,12 @@ class AppHandler(SimpleHTTPRequestHandler):
             self._send_json(400, {"error": password_error})
             return
 
-        password_hash, salt = make_password_hash(password)
+        password_hash, salt, iterations = make_password_hash(password)
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.execute(
-                    "INSERT INTO users (username, password_hash, salt, created_at) VALUES (?, ?, ?, ?)",
-                    (username, password_hash, salt, int(time.time())),
+                    "INSERT INTO users (username, password_hash, salt, iterations, created_at) VALUES (?, ?, ?, ?, ?)",
+                    (username, password_hash, salt, iterations, int(time.time())),
                 )
                 conn.commit()
         except sqlite3.IntegrityError:
@@ -439,7 +446,7 @@ class AppHandler(SimpleHTTPRequestHandler):
         with sqlite3.connect(DB_PATH) as conn:
             ensure_auth_schema(conn)
             row = conn.execute(
-                "SELECT id, username, password_hash, salt FROM users WHERE username = ?",
+                "SELECT id, username, password_hash, salt, iterations FROM users WHERE username = ?",
                 (username,),
             ).fetchone()
 
@@ -449,12 +456,23 @@ class AppHandler(SimpleHTTPRequestHandler):
                 self._send_json(401, {"error": "invalid_credentials"})
                 return
 
-            user_id, db_username, db_hash, db_salt = row
-            if hash_password(password, db_salt) != db_hash:
+            user_id, db_username, db_hash, db_salt, db_iterations = row
+            if not isinstance(db_iterations, int) or db_iterations <= 0:
+                db_iterations = LEGACY_PBKDF2_ITERATIONS
+
+            candidate_hash = hash_password(password, db_salt, db_iterations)
+            if not hmac.compare_digest(candidate_hash, db_hash):
                 record_login_failure(username)
                 time.sleep(LOGIN_FAILURE_DELAY_SECONDS)
                 self._send_json(401, {"error": "invalid_credentials"})
                 return
+
+            if db_iterations < PBKDF2_ITERATIONS:
+                upgraded_hash = hash_password(password, db_salt, PBKDF2_ITERATIONS)
+                conn.execute(
+                    "UPDATE users SET password_hash = ?, iterations = ? WHERE id = ?",
+                    (upgraded_hash, PBKDF2_ITERATIONS, user_id),
+                )
 
             token = self._create_session(conn, user_id)
 
@@ -472,10 +490,10 @@ class AppHandler(SimpleHTTPRequestHandler):
                 guest_user_id = row[0]
             else:
                 random_password = secrets.token_urlsafe(32)
-                password_hash, salt = make_password_hash(random_password)
+                password_hash, salt, iterations = make_password_hash(random_password)
                 conn.execute(
-                    "INSERT INTO users (username, password_hash, salt, created_at) VALUES (?, ?, ?, ?)",
-                    (guest_username, password_hash, salt, int(time.time())),
+                    "INSERT INTO users (username, password_hash, salt, iterations, created_at) VALUES (?, ?, ?, ?, ?)",
+                    (guest_username, password_hash, salt, iterations, int(time.time())),
                 )
                 guest_user_id = conn.execute("SELECT id FROM users WHERE username = ?", (guest_username,)).fetchone()[0]
                 conn.commit()
