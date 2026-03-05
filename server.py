@@ -207,11 +207,25 @@ def is_same_origin_request(handler: SimpleHTTPRequestHandler) -> bool:
 class AppHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         # Keep local development simple when loading from this same server.
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            "font-src 'self'; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        )
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Security-Policy", csp)
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+        self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         if should_use_secure_cookie():
             self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         super().end_headers()
