@@ -13,7 +13,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
 from typing import Optional, Tuple
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 HOST = "0.0.0.0"
@@ -42,6 +42,12 @@ ACCOUNT_LOCKOUT_LAST_PRUNE_AT = 0.0
 LEGACY_PBKDF2_ITERATIONS = 120000
 PBKDF2_ITERATIONS = 240000
 PASSWORD_RESET_TOKEN_TTL_SECONDS = 15 * 60
+PASSWORD_RESET_PROVIDER = os.environ.get("PASSWORD_RESET_PROVIDER", "").strip().lower()
+PASSWORD_RESET_FROM_EMAIL = os.environ.get("PASSWORD_RESET_FROM_EMAIL", "").strip()
+PASSWORD_RESET_PAGE_URL = os.environ.get("PASSWORD_RESET_PAGE_URL", "").strip()
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "").strip()
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
+DEBUG_RESET_TOKEN_RESPONSE = os.environ.get("DEBUG_RESET_TOKEN_RESPONSE", "0") == "1"
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -65,6 +71,7 @@ COMMON_WEAK_PASSWORDS = {
     "welcome123",
     "iloveyou",
 }
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 class PayloadTooLargeError(Exception):
@@ -96,6 +103,7 @@ def ensure_auth_schema(conn: sqlite3.Connection):
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
+            email TEXT,
             password_hash TEXT NOT NULL,
             salt TEXT NOT NULL,
             iterations INTEGER NOT NULL DEFAULT 120000,
@@ -104,6 +112,8 @@ def ensure_auth_schema(conn: sqlite3.Connection):
         """
     )
     columns = [row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()]
+    if "email" not in columns:
+        conn.execute("ALTER TABLE users ADD COLUMN email TEXT")
     if "iterations" not in columns:
         conn.execute("ALTER TABLE users ADD COLUMN iterations INTEGER NOT NULL DEFAULT 120000")
     conn.execute(
@@ -129,6 +139,7 @@ def ensure_auth_schema(conn: sqlite3.Connection):
         """
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_expires ON password_reset_tokens(expires_at)")
     conn.commit()
@@ -199,6 +210,102 @@ def validate_password_policy(password: str) -> Optional[str]:
     if not re.search(r"[^A-Za-z0-9]", password):
         return "password_missing_symbol"
     return None
+
+
+def validate_email(email: str) -> bool:
+    return bool(EMAIL_RE.fullmatch(email))
+
+
+def build_password_reset_link(token: str) -> str:
+    if PASSWORD_RESET_PAGE_URL:
+        base = PASSWORD_RESET_PAGE_URL
+    elif os.environ.get("RAILWAY_PUBLIC_DOMAIN"):
+        base = f"https://{os.environ.get('RAILWAY_PUBLIC_DOMAIN')}/login.html"
+    else:
+        base = f"http://localhost:{PORT}/login.html"
+    separator = "&" if "?" in base else "?"
+    return f"{base}{separator}{urlencode({'reset_token': token})}"
+
+
+def send_password_reset_email(email: str, username: str, token: str) -> bool:
+    reset_link = build_password_reset_link(token)
+    subject = "ChessAnalytics password reset"
+    text_body = (
+        f"Hi {username},\n\n"
+        "A password reset was requested for your account.\n"
+        f"Reset link (valid {PASSWORD_RESET_TOKEN_TTL_SECONDS // 60} minutes):\n{reset_link}\n\n"
+        "If you did not request this, you can ignore this email."
+    )
+    html_body = (
+        f"<p>Hi {username},</p>"
+        "<p>A password reset was requested for your account.</p>"
+        f"<p><a href=\"{reset_link}\">Reset password</a> "
+        f"(valid {PASSWORD_RESET_TOKEN_TTL_SECONDS // 60} minutes)</p>"
+        "<p>If you did not request this, you can ignore this email.</p>"
+    )
+
+    if not PASSWORD_RESET_FROM_EMAIL:
+        log_runtime("Password reset email not sent: PASSWORD_RESET_FROM_EMAIL is missing.")
+        return False
+
+    if PASSWORD_RESET_PROVIDER == "sendgrid":
+        if not SENDGRID_API_KEY:
+            log_runtime("Password reset email not sent: SENDGRID_API_KEY is missing.")
+            return False
+        payload = {
+            "personalizations": [{"to": [{"email": email}]}],
+            "from": {"email": PASSWORD_RESET_FROM_EMAIL},
+            "subject": subject,
+            "content": [
+                {"type": "text/plain", "value": text_body},
+                {"type": "text/html", "value": html_body},
+            ],
+        }
+        req = Request(
+            "https://api.sendgrid.com/v3/mail/send",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {SENDGRID_API_KEY}",
+                "Content-Type": "application/json",
+                "User-Agent": USER_AGENT,
+            },
+            method="POST",
+        )
+    elif PASSWORD_RESET_PROVIDER == "resend":
+        if not RESEND_API_KEY:
+            log_runtime("Password reset email not sent: RESEND_API_KEY is missing.")
+            return False
+        payload = {
+            "from": PASSWORD_RESET_FROM_EMAIL,
+            "to": [email],
+            "subject": subject,
+            "text": text_body,
+            "html": html_body,
+        }
+        req = Request(
+            "https://api.resend.com/emails",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+                "User-Agent": USER_AGENT,
+            },
+            method="POST",
+        )
+    else:
+        log_runtime(
+            "Password reset email not sent: PASSWORD_RESET_PROVIDER not set to sendgrid/resend."
+        )
+        return False
+
+    try:
+        with urlopen(req, timeout=15) as response:
+            if 200 <= response.status < 300:
+                return True
+            return False
+    except Exception as exc:
+        log_runtime(f"Password reset email send failed: {exc}")
+        return False
 
 
 def get_client_ip(handler: SimpleHTTPRequestHandler) -> str:
@@ -433,6 +540,7 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
 
         username = str(payload.get("username", "")).strip()
+        email = str(payload.get("email", "")).strip().lower()
         password = str(payload.get("password", ""))
         client_ip = get_client_ip(self)
         retry_after = check_rate_limit("register", client_ip, username)
@@ -443,6 +551,12 @@ class AppHandler(SimpleHTTPRequestHandler):
         if not re.fullmatch(r"[A-Za-z0-9_-]{3,32}", username):
             self._send_json(400, {"error": "invalid_username"})
             return
+        if not email:
+            self._send_json(400, {"error": "email_required"})
+            return
+        if not validate_email(email):
+            self._send_json(400, {"error": "invalid_email"})
+            return
         password_error = validate_password_policy(password)
         if password_error:
             self._send_json(400, {"error": password_error})
@@ -452,12 +566,21 @@ class AppHandler(SimpleHTTPRequestHandler):
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.execute(
-                    "INSERT INTO users (username, password_hash, salt, iterations, created_at) VALUES (?, ?, ?, ?, ?)",
-                    (username, password_hash, salt, iterations, int(time.time())),
+                    "INSERT INTO users (username, email, password_hash, salt, iterations, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    (username, email, password_hash, salt, iterations, int(time.time())),
                 )
                 conn.commit()
         except sqlite3.IntegrityError:
-            self._send_json(409, {"error": "username_exists"})
+            with sqlite3.connect(DB_PATH) as conn:
+                row = conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone()
+                if row:
+                    self._send_json(409, {"error": "username_exists"})
+                    return
+                row = conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone()
+                if row:
+                    self._send_json(409, {"error": "email_exists"})
+                    return
+            self._send_json(409, {"error": "register_conflict"})
             return
 
         clear_rate_limit("register", client_ip, username)
@@ -573,23 +696,32 @@ class AppHandler(SimpleHTTPRequestHandler):
             self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
             return
 
-        response_payload = {"ok": True}
+        response_payload = {
+            "ok": True,
+            "message": "If the account exists, a reset email has been sent.",
+        }
         with sqlite3.connect(DB_PATH) as conn:
             ensure_auth_schema(conn)
-            row = conn.execute("SELECT id, username FROM users WHERE username = ?", (username,)).fetchone()
+            row = conn.execute("SELECT id, username, email FROM users WHERE username = ?", (username,)).fetchone()
             if row:
-                user_id, db_username = row
+                user_id, db_username, db_email = row
                 token = issue_password_reset_token(conn, user_id)
                 conn.commit()
-                # Demo workflow without email delivery: expose token in response.
-                response_payload["reset_token"] = token
-                log_runtime(
-                    f"Password reset token issued. username={db_username}, "
-                    f"expires_in_seconds={PASSWORD_RESET_TOKEN_TTL_SECONDS}"
-                )
-            else:
-                # Keep response shape consistent to avoid easy username enumeration.
-                response_payload["reset_token"] = secrets.token_urlsafe(32)
+                if db_email and validate_email(db_email):
+                    email_sent = send_password_reset_email(db_email, db_username, token)
+                    log_runtime(
+                        f"Password reset requested. username={db_username}, "
+                        f"email_sent={email_sent}, expires_in_seconds={PASSWORD_RESET_TOKEN_TTL_SECONDS}"
+                    )
+                    if DEBUG_RESET_TOKEN_RESPONSE:
+                        response_payload["reset_token"] = token
+                        response_payload["email_sent"] = email_sent
+                else:
+                    log_runtime(
+                        f"Password reset requested but no valid email found. username={db_username}"
+                    )
+                    if DEBUG_RESET_TOKEN_RESPONSE:
+                        response_payload["reset_token"] = token
 
         self._send_json(200, response_payload)
 
@@ -751,6 +883,13 @@ def main():
     log_runtime(f"Starting server. instance_id={instance_id}")
     log_runtime(f"Serving on http://{HOST}:{PORT}")
     log_runtime(f"Chess.com proxy User-Agent: {USER_AGENT}")
+    log_runtime(
+        "Password reset email config: "
+        + f"provider={PASSWORD_RESET_PROVIDER or '-'}, "
+        + f"from_set={bool(PASSWORD_RESET_FROM_EMAIL)}, "
+        + f"page_url_set={bool(PASSWORD_RESET_PAGE_URL)}, "
+        + f"debug_token_response={DEBUG_RESET_TOKEN_RESPONSE}"
+    )
     log_runtime(
         "Railway env: "
         + f"RAILWAY_ENVIRONMENT={os.environ.get('RAILWAY_ENVIRONMENT', '-')}, "
