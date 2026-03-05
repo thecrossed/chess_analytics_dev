@@ -106,18 +106,17 @@ def parse_session_token_from_headers(headers) -> Optional[str]:
     return morsel.value
 
 
-def set_session_cookie(handler: SimpleHTTPRequestHandler, token: str):
-    handler.send_header(
-        "Set-Cookie",
-        f"{SESSION_COOKIE}={token}; HttpOnly; Path=/; Max-Age={SESSION_TTL_SECONDS}; SameSite=Lax",
-    )
+def should_use_secure_cookie() -> bool:
+    if os.environ.get("FORCE_SECURE_COOKIE") == "1":
+        return True
+    return os.environ.get("RAILWAY_ENVIRONMENT") == "production"
 
 
-def clear_session_cookie(handler: SimpleHTTPRequestHandler):
-    handler.send_header(
-        "Set-Cookie",
-        f"{SESSION_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax",
-    )
+def build_session_cookie(token: str, max_age: int) -> str:
+    parts = [f"{SESSION_COOKIE}={token}", "HttpOnly", "Path=/", f"Max-Age={max_age}", "SameSite=Lax"]
+    if should_use_secure_cookie():
+        parts.append("Secure")
+    return "; ".join(parts)
 
 
 class AppHandler(SimpleHTTPRequestHandler):
@@ -235,7 +234,7 @@ class AppHandler(SimpleHTTPRequestHandler):
 
             token = self._create_session(conn, user_id)
 
-        extra_headers = [("Set-Cookie", f"{SESSION_COOKIE}={token}; HttpOnly; Path=/; Max-Age={SESSION_TTL_SECONDS}; SameSite=Lax")]
+        extra_headers = [("Set-Cookie", build_session_cookie(token, SESSION_TTL_SECONDS))]
         self._send_json(200, {"ok": True, "username": db_username}, extra_headers=extra_headers)
 
     def _handle_guest_login(self):
@@ -257,7 +256,7 @@ class AppHandler(SimpleHTTPRequestHandler):
 
             token = self._create_session(conn, guest_user_id)
 
-        extra_headers = [("Set-Cookie", f"{SESSION_COOKIE}={token}; HttpOnly; Path=/; Max-Age={SESSION_TTL_SECONDS}; SameSite=Lax")]
+        extra_headers = [("Set-Cookie", build_session_cookie(token, SESSION_TTL_SECONDS))]
         self._send_json(200, {"ok": True, "username": guest_username}, extra_headers=extra_headers)
 
     def _handle_logout(self):
@@ -268,7 +267,7 @@ class AppHandler(SimpleHTTPRequestHandler):
                 conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
                 conn.commit()
 
-        extra_headers = [("Set-Cookie", f"{SESSION_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax")]
+        extra_headers = [("Set-Cookie", build_session_cookie("", 0))]
         self._send_json(200, {"ok": True}, extra_headers=extra_headers)
 
     def _create_session(self, conn: sqlite3.Connection, user_id: int) -> str:
@@ -367,7 +366,8 @@ def main():
         + f"RAILWAY_ENVIRONMENT={os.environ.get('RAILWAY_ENVIRONMENT', '-')}, "
         + f"RAILWAY_PROJECT_ID={os.environ.get('RAILWAY_PROJECT_ID', '-')}, "
         + f"RAILWAY_SERVICE_ID={os.environ.get('RAILWAY_SERVICE_ID', '-')}, "
-        + f"RAILWAY_DEPLOYMENT_ID={os.environ.get('RAILWAY_DEPLOYMENT_ID', '-')}"
+        + f"RAILWAY_DEPLOYMENT_ID={os.environ.get('RAILWAY_DEPLOYMENT_ID', '-')}, "
+        + f"SecureCookie={should_use_secure_cookie()}"
     )
     server.serve_forever()
 
