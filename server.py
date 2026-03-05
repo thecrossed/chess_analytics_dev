@@ -28,6 +28,18 @@ AUTH_LOGOUT_RE = re.compile(r"^/api/auth/logout/?$")
 AUTH_ME_RE = re.compile(r"^/api/auth/me/?$")
 AUTH_GUEST_RE = re.compile(r"^/api/auth/guest/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
+COMMON_WEAK_PASSWORDS = {
+    "12345678",
+    "123456789",
+    "1234567890",
+    "password",
+    "password123",
+    "qwerty123",
+    "letmein",
+    "admin123",
+    "welcome123",
+    "iloveyou",
+}
 
 
 def log_runtime(message: str):
@@ -119,6 +131,22 @@ def build_session_cookie(token: str, max_age: int) -> str:
     return "; ".join(parts)
 
 
+def validate_password_policy(password: str) -> Optional[str]:
+    if len(password) < 12:
+        return "password_too_short"
+    if password.lower() in COMMON_WEAK_PASSWORDS:
+        return "password_too_weak"
+    if not re.search(r"[A-Z]", password):
+        return "password_missing_uppercase"
+    if not re.search(r"[a-z]", password):
+        return "password_missing_lowercase"
+    if not re.search(r"[0-9]", password):
+        return "password_missing_number"
+    if not re.search(r"[^A-Za-z0-9]", password):
+        return "password_missing_symbol"
+    return None
+
+
 class AppHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         # Keep local development simple when loading from this same server.
@@ -189,8 +217,9 @@ class AppHandler(SimpleHTTPRequestHandler):
         if not re.fullmatch(r"[A-Za-z0-9_-]{3,32}", username):
             self._send_json(400, {"error": "invalid_username"})
             return
-        if len(password) < 8:
-            self._send_json(400, {"error": "password_too_short"})
+        password_error = validate_password_policy(password)
+        if password_error:
+            self._send_json(400, {"error": password_error})
             return
 
         password_hash, salt = make_password_hash(password)

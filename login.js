@@ -57,7 +57,17 @@ registerForm.addEventListener("submit", async (event) => {
     if (error === "username_exists") {
       setMessage("This username already exists.", true);
     } else if (error === "password_too_short") {
-      setMessage("Password must be at least 8 characters.", true);
+      setMessage("Password must be at least 12 characters.", true);
+    } else if (error === "password_too_weak") {
+      setMessage("Password is too common. Choose a stronger one.", true);
+    } else if (error === "password_missing_uppercase") {
+      setMessage("Password must include at least one uppercase letter.", true);
+    } else if (error === "password_missing_lowercase") {
+      setMessage("Password must include at least one lowercase letter.", true);
+    } else if (error === "password_missing_number") {
+      setMessage("Password must include at least one number.", true);
+    } else if (error === "password_missing_symbol") {
+      setMessage("Password must include at least one symbol.", true);
     } else if (error === "invalid_username") {
       setMessage("Username must be 3-32 chars: letters, numbers, _ or -.", true);
     } else {
