@@ -27,6 +27,12 @@ RATE_LIMIT_LOCK = threading.Lock()
 RATE_LIMIT_BUCKETS = {}
 MAX_JSON_BODY_BYTES = 16 * 1024
 LOGIN_FAILURE_DELAY_SECONDS = 0.35
+ACCOUNT_LOCKOUT_WINDOW_SECONDS = 15 * 60
+ACCOUNT_LOCKOUT_MAX_FAILURES = 12
+ACCOUNT_LOCKOUT_SECONDS = 15 * 60
+ACCOUNT_LOCKOUT_LOCK = threading.Lock()
+ACCOUNT_FAILURE_BUCKETS = {}
+ACCOUNT_LOCKED_UNTIL = {}
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -197,6 +203,38 @@ def clear_rate_limit(action: str, client_ip: str, username: str):
         RATE_LIMIT_BUCKETS.pop(key, None)
 
 
+def check_account_lockout(username: str) -> Optional[int]:
+    normalized_username = username.strip().lower() or "-"
+    now = time.time()
+    with ACCOUNT_LOCKOUT_LOCK:
+        locked_until = ACCOUNT_LOCKED_UNTIL.get(normalized_username, 0)
+        if locked_until > now:
+            return max(1, int(locked_until - now))
+        if normalized_username in ACCOUNT_LOCKED_UNTIL:
+            ACCOUNT_LOCKED_UNTIL.pop(normalized_username, None)
+    return None
+
+
+def record_login_failure(username: str):
+    normalized_username = username.strip().lower() or "-"
+    now = time.time()
+    with ACCOUNT_LOCKOUT_LOCK:
+        attempts = ACCOUNT_FAILURE_BUCKETS.get(normalized_username, [])
+        attempts = [ts for ts in attempts if (now - ts) < ACCOUNT_LOCKOUT_WINDOW_SECONDS]
+        attempts.append(now)
+        ACCOUNT_FAILURE_BUCKETS[normalized_username] = attempts
+        if len(attempts) >= ACCOUNT_LOCKOUT_MAX_FAILURES:
+            ACCOUNT_LOCKED_UNTIL[normalized_username] = now + ACCOUNT_LOCKOUT_SECONDS
+            ACCOUNT_FAILURE_BUCKETS[normalized_username] = []
+
+
+def clear_login_failures(username: str):
+    normalized_username = username.strip().lower() or "-"
+    with ACCOUNT_LOCKOUT_LOCK:
+        ACCOUNT_FAILURE_BUCKETS.pop(normalized_username, None)
+        ACCOUNT_LOCKED_UNTIL.pop(normalized_username, None)
+
+
 def is_same_origin_request(handler: SimpleHTTPRequestHandler) -> bool:
     host = (handler.headers.get("Host") or "").strip().lower()
     if not host:
@@ -353,6 +391,10 @@ class AppHandler(SimpleHTTPRequestHandler):
         username = str(payload.get("username", "")).strip()
         password = str(payload.get("password", ""))
         client_ip = get_client_ip(self)
+        lockout_retry = check_account_lockout(username)
+        if lockout_retry:
+            self._send_json(429, {"error": "account_locked", "retry_after": lockout_retry})
+            return
         retry_after = check_rate_limit("login", client_ip, username)
         if retry_after:
             self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
@@ -366,18 +408,21 @@ class AppHandler(SimpleHTTPRequestHandler):
             ).fetchone()
 
             if not row:
+                record_login_failure(username)
                 time.sleep(LOGIN_FAILURE_DELAY_SECONDS)
                 self._send_json(401, {"error": "invalid_credentials"})
                 return
 
             user_id, db_username, db_hash, db_salt = row
             if hash_password(password, db_salt) != db_hash:
+                record_login_failure(username)
                 time.sleep(LOGIN_FAILURE_DELAY_SECONDS)
                 self._send_json(401, {"error": "invalid_credentials"})
                 return
 
             token = self._create_session(conn, user_id)
 
+        clear_login_failures(username)
         clear_rate_limit("login", client_ip, username)
         extra_headers = [("Set-Cookie", build_session_cookie(token, SESSION_TTL_SECONDS))]
         self._send_json(200, {"ok": True, "username": db_username}, extra_headers=extra_headers)
