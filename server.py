@@ -759,6 +759,13 @@ class AppHandler(SimpleHTTPRequestHandler):
         if DEBUG_RESET_TOKEN_RESPONSE:
             response_payload["delivery_status_detail"] = delivery_detail
 
+        log_runtime(
+            "Password reset request result: "
+            + f"username={username or '-'}, "
+            + f"provider_ready={provider_ready}, "
+            + f"delivery_status={response_payload.get('delivery_status', '-')}, "
+            + f"detail={delivery_detail}"
+        )
         self._send_json(200, response_payload)
 
     def _handle_update_email(self):
