@@ -56,6 +56,7 @@ AUTH_LOGIN_RE = re.compile(r"^/api/auth/login/?$")
 AUTH_LOGOUT_RE = re.compile(r"^/api/auth/logout/?$")
 AUTH_ME_RE = re.compile(r"^/api/auth/me/?$")
 AUTH_GUEST_RE = re.compile(r"^/api/auth/guest/?$")
+AUTH_UPDATE_EMAIL_RE = re.compile(r"^/api/auth/profile/email/?$")
 AUTH_PASSWORD_RESET_REQUEST_RE = re.compile(r"^/api/auth/password-reset/request/?$")
 AUTH_PASSWORD_RESET_CONFIRM_RE = re.compile(r"^/api/auth/password-reset/confirm/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
@@ -316,6 +317,16 @@ def send_password_reset_email(email: str, username: str, token: str) -> bool:
         return False
 
 
+def is_password_reset_service_configured() -> bool:
+    if not PASSWORD_RESET_FROM_EMAIL:
+        return False
+    if PASSWORD_RESET_PROVIDER == "sendgrid":
+        return bool(SENDGRID_API_KEY)
+    if PASSWORD_RESET_PROVIDER == "resend":
+        return bool(RESEND_API_KEY)
+    return False
+
+
 def get_client_ip(handler: SimpleHTTPRequestHandler) -> str:
     # Railway/Proxy usually forwards real client IP via X-Forwarded-For.
     forwarded_for = handler.headers.get("X-Forwarded-For", "").strip()
@@ -528,6 +539,9 @@ class AppHandler(SimpleHTTPRequestHandler):
         if AUTH_LOGOUT_RE.match(self.path):
             self._handle_logout()
             return
+        if AUTH_UPDATE_EMAIL_RE.match(self.path):
+            self._handle_update_email()
+            return
         if AUTH_PASSWORD_RESET_REQUEST_RE.match(self.path):
             self._handle_password_reset_request()
             return
@@ -704,10 +718,16 @@ class AppHandler(SimpleHTTPRequestHandler):
             self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
             return
 
-        response_payload = {
-            "ok": True,
-            "message": "If the account exists, a reset email has been sent.",
-        }
+        provider_ready = is_password_reset_service_configured()
+        response_payload = {"ok": True}
+        if provider_ready:
+            response_payload["delivery_status"] = "accepted"
+            response_payload["message"] = "If the account exists, a reset email has been sent."
+        else:
+            response_payload["delivery_status"] = "service_not_configured"
+            response_payload["message"] = "Password reset email service is not configured."
+
+        delivery_detail = "not_attempted"
         with sqlite3.connect(DB_PATH) as conn:
             ensure_auth_schema(conn)
             row = conn.execute("SELECT id, username, email FROM users WHERE username = ?", (username,)).fetchone()
@@ -716,22 +736,70 @@ class AppHandler(SimpleHTTPRequestHandler):
                 token = issue_password_reset_token(conn, user_id)
                 conn.commit()
                 if db_email and validate_email(db_email):
-                    email_sent = send_password_reset_email(db_email, db_username, token)
+                    email_sent = False
+                    if provider_ready:
+                        email_sent = send_password_reset_email(db_email, db_username, token)
                     log_runtime(
                         f"Password reset requested. username={db_username}, "
                         f"email_sent={email_sent}, expires_in_seconds={PASSWORD_RESET_TOKEN_TTL_SECONDS}"
                     )
+                    delivery_detail = "sent" if email_sent else "send_failed"
                     if DEBUG_RESET_TOKEN_RESPONSE:
                         response_payload["reset_token"] = token
-                        response_payload["email_sent"] = email_sent
                 else:
                     log_runtime(
                         f"Password reset requested but no valid email found. username={db_username}"
                     )
+                    delivery_detail = "missing_email"
                     if DEBUG_RESET_TOKEN_RESPONSE:
                         response_payload["reset_token"] = token
+            else:
+                delivery_detail = "no_user"
+
+        if DEBUG_RESET_TOKEN_RESPONSE:
+            response_payload["delivery_status_detail"] = delivery_detail
 
         self._send_json(200, response_payload)
+
+    def _handle_update_email(self):
+        user = self._require_user(optional=True)
+        if not user:
+            self._send_json(401, {"error": "not_authenticated"})
+            return
+
+        try:
+            payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
+        except Exception:
+            self._send_json(400, {"error": "invalid_json"})
+            return
+
+        email = str(payload.get("email", "")).strip().lower()
+        if not email:
+            self._send_json(400, {"error": "email_required"})
+            return
+        if not validate_email(email):
+            self._send_json(400, {"error": "invalid_email"})
+            return
+
+        client_ip = get_client_ip(self)
+        retry_after = check_rate_limit("update_email", client_ip, user["username"])
+        if retry_after:
+            self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
+            return
+
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                ensure_auth_schema(conn)
+                conn.execute("UPDATE users SET email = ? WHERE id = ?", (email, user["id"]))
+                conn.commit()
+        except sqlite3.IntegrityError:
+            self._send_json(409, {"error": "email_exists"})
+            return
+
+        self._send_json(200, {"ok": True, "email": email})
 
     def _handle_password_reset_confirm(self):
         try:

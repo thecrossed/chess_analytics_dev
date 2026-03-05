@@ -86,7 +86,9 @@ resetRequestForm.addEventListener("submit", async (event) => {
   if (tokenInput && token) {
     tokenInput.value = token;
   }
-  if (token) {
+  if (data.delivery_status === "service_not_configured") {
+    setMessage("Reset email service is not configured yet. Please contact support.", true);
+  } else if (token) {
     setMessage(`Reset token ready: ${token}. Now set a new password below.`);
   } else {
     setMessage("If the account exists, reset instructions have been sent to email.");
