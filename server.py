@@ -6,6 +6,7 @@ import re
 import secrets
 import signal
 import sqlite3
+import threading
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
@@ -19,6 +20,10 @@ USER_AGENT = "ChessAnalytics/1.0 (contact: chessalwaysfun@gmail.com)"
 SESSION_COOKIE = "chess_analytics_session"
 SESSION_TTL_SECONDS = 7 * 24 * 60 * 60
 DB_PATH = "auth.db"
+RATE_LIMIT_WINDOW_SECONDS = 10 * 60
+RATE_LIMIT_MAX_ATTEMPTS = 8
+RATE_LIMIT_LOCK = threading.Lock()
+RATE_LIMIT_BUCKETS = {}
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -147,6 +152,37 @@ def validate_password_policy(password: str) -> Optional[str]:
     return None
 
 
+def get_client_ip(handler: SimpleHTTPRequestHandler) -> str:
+    # Railway/Proxy usually forwards real client IP via X-Forwarded-For.
+    forwarded_for = handler.headers.get("X-Forwarded-For", "").strip()
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return handler.client_address[0] if handler.client_address else "unknown"
+
+
+def check_rate_limit(action: str, client_ip: str, username: str) -> Optional[int]:
+    now = time.time()
+    normalized_username = username.strip().lower() or "-"
+    key = f"{action}:{client_ip}:{normalized_username}"
+    with RATE_LIMIT_LOCK:
+        attempts = RATE_LIMIT_BUCKETS.get(key, [])
+        attempts = [ts for ts in attempts if (now - ts) < RATE_LIMIT_WINDOW_SECONDS]
+        if len(attempts) >= RATE_LIMIT_MAX_ATTEMPTS:
+            retry_after = max(1, int(RATE_LIMIT_WINDOW_SECONDS - (now - attempts[0])))
+            RATE_LIMIT_BUCKETS[key] = attempts
+            return retry_after
+        attempts.append(now)
+        RATE_LIMIT_BUCKETS[key] = attempts
+    return None
+
+
+def clear_rate_limit(action: str, client_ip: str, username: str):
+    normalized_username = username.strip().lower() or "-"
+    key = f"{action}:{client_ip}:{normalized_username}"
+    with RATE_LIMIT_LOCK:
+        RATE_LIMIT_BUCKETS.pop(key, None)
+
+
 class AppHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         # Keep local development simple when loading from this same server.
@@ -214,6 +250,12 @@ class AppHandler(SimpleHTTPRequestHandler):
 
         username = str(payload.get("username", "")).strip()
         password = str(payload.get("password", ""))
+        client_ip = get_client_ip(self)
+        retry_after = check_rate_limit("register", client_ip, username)
+        if retry_after:
+            self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
+            return
+
         if not re.fullmatch(r"[A-Za-z0-9_-]{3,32}", username):
             self._send_json(400, {"error": "invalid_username"})
             return
@@ -234,6 +276,7 @@ class AppHandler(SimpleHTTPRequestHandler):
             self._send_json(409, {"error": "username_exists"})
             return
 
+        clear_rate_limit("register", client_ip, username)
         self._send_json(201, {"ok": True})
 
     def _handle_login(self):
@@ -245,6 +288,12 @@ class AppHandler(SimpleHTTPRequestHandler):
 
         username = str(payload.get("username", "")).strip()
         password = str(payload.get("password", ""))
+        client_ip = get_client_ip(self)
+        retry_after = check_rate_limit("login", client_ip, username)
+        if retry_after:
+            self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
+            return
+
         with sqlite3.connect(DB_PATH) as conn:
             ensure_auth_schema(conn)
             row = conn.execute(
@@ -263,6 +312,7 @@ class AppHandler(SimpleHTTPRequestHandler):
 
             token = self._create_session(conn, user_id)
 
+        clear_rate_limit("login", client_ip, username)
         extra_headers = [("Set-Cookie", build_session_cookie(token, SESSION_TTL_SECONDS))]
         self._send_json(200, {"ok": True, "username": db_username}, extra_headers=extra_headers)
 

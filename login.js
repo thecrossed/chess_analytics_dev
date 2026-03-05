@@ -30,6 +30,16 @@ loginForm.addEventListener("submit", async (event) => {
   });
 
   if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    if (data.error === "rate_limited") {
+      const wait = Number(data.retry_after || 0);
+      if (wait > 0) {
+        setMessage(`Too many attempts. Try again in ${wait}s.`, true);
+      } else {
+        setMessage("Too many attempts. Please try again later.", true);
+      }
+      return;
+    }
     setMessage("Login failed. Check username/password.", true);
     return;
   }
@@ -54,7 +64,14 @@ registerForm.addEventListener("submit", async (event) => {
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     const error = data.error || "register_failed";
-    if (error === "username_exists") {
+    if (error === "rate_limited") {
+      const wait = Number(data.retry_after || 0);
+      if (wait > 0) {
+        setMessage(`Too many attempts. Try again in ${wait}s.`, true);
+      } else {
+        setMessage("Too many attempts. Please try again later.", true);
+      }
+    } else if (error === "username_exists") {
       setMessage("This username already exists.", true);
     } else if (error === "password_too_short") {
       setMessage("Password must be at least 12 characters.", true);
