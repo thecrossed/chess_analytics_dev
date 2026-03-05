@@ -21,6 +21,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 USER_AGENT = "ChessAnalytics/1.0 (contact: chessalwaysfun@gmail.com)"
 SESSION_COOKIE = "chess_analytics_session"
 SESSION_TTL_SECONDS = 7 * 24 * 60 * 60
+ALLOW_MULTIPLE_SESSIONS_PER_USER = False
 DB_PATH = "auth.db"
 RATE_LIMIT_WINDOW_SECONDS = 10 * 60
 RATE_LIMIT_MAX_ATTEMPTS = 8
@@ -517,6 +518,8 @@ class AppHandler(SimpleHTTPRequestHandler):
     def _create_session(self, conn: sqlite3.Connection, user_id: int) -> str:
         token = secrets.token_urlsafe(32)
         expires_at = int(time.time()) + SESSION_TTL_SECONDS
+        if not ALLOW_MULTIPLE_SESSIONS_PER_USER:
+            conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
         conn.execute("INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)", (token, user_id, expires_at))
         conn.execute("DELETE FROM sessions WHERE expires_at <= ?", (int(time.time()),))
         conn.commit()
