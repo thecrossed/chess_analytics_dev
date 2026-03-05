@@ -25,6 +25,7 @@ RATE_LIMIT_WINDOW_SECONDS = 10 * 60
 RATE_LIMIT_MAX_ATTEMPTS = 8
 RATE_LIMIT_LOCK = threading.Lock()
 RATE_LIMIT_BUCKETS = {}
+MAX_JSON_BODY_BYTES = 16 * 1024
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -46,6 +47,10 @@ COMMON_WEAK_PASSWORDS = {
     "welcome123",
     "iloveyou",
 }
+
+
+class PayloadTooLargeError(Exception):
+    pass
 
 
 def log_runtime(message: str):
@@ -105,10 +110,17 @@ def make_password_hash(password: str) -> Tuple[str, str]:
 
 
 def parse_json_body(handler: SimpleHTTPRequestHandler):
-    length = int(handler.headers.get("Content-Length", "0"))
+    try:
+        length = int(handler.headers.get("Content-Length", "0"))
+    except ValueError:
+        raise ValueError("invalid_content_length")
+    if length > MAX_JSON_BODY_BYTES:
+        raise PayloadTooLargeError("payload_too_large")
     if length <= 0:
         return {}
     body = handler.rfile.read(length)
+    if len(body) > MAX_JSON_BODY_BYTES:
+        raise PayloadTooLargeError("payload_too_large")
     return json.loads(body.decode("utf-8"))
 
 
@@ -289,6 +301,9 @@ class AppHandler(SimpleHTTPRequestHandler):
     def _handle_register(self):
         try:
             payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
         except Exception:
             self._send_json(400, {"error": "invalid_json"})
             return
@@ -327,6 +342,9 @@ class AppHandler(SimpleHTTPRequestHandler):
     def _handle_login(self):
         try:
             payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
         except Exception:
             self._send_json(400, {"error": "invalid_json"})
             return
