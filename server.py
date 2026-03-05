@@ -26,6 +26,7 @@ AUTH_LOGIN_RE = re.compile(r"^/api/auth/login/?$")
 AUTH_LOGOUT_RE = re.compile(r"^/api/auth/logout/?$")
 AUTH_ME_RE = re.compile(r"^/api/auth/me/?$")
 AUTH_GUEST_RE = re.compile(r"^/api/auth/guest/?$")
+HEALTH_RE = re.compile(r"^/health/?$")
 
 
 def init_db():
@@ -111,6 +112,10 @@ class AppHandler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
+        if HEALTH_RE.match(self.path):
+            self._send_json(200, {"ok": True})
+            return
+
         if AUTH_ME_RE.match(self.path):
             user = self._require_user(optional=True)
             if not user:
