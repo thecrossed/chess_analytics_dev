@@ -12,8 +12,8 @@ from typing import Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-HOST = "127.0.0.1"
-PORT = 8000
+HOST = "0.0.0.0"
+PORT = int(os.environ.get("PORT", "8000"))
 USER_AGENT = "ChessAnalytics/1.0 (contact: chessalwaysfun@gmail.com)"
 SESSION_COOKIE = "chess_analytics_session"
 SESSION_TTL_SECONDS = 7 * 24 * 60 * 60
