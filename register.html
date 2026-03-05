@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Account - Chess Analytics</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card" style="max-width: 520px;">
+        <h1>Create Account</h1>
+        <p class="hint">Register a new account to use Chess Data Stats.</p>
+
+        <div id="auth-message" class="hint" aria-live="polite"></div>
+
+        <form id="register-form" class="stack-form">
+          <label for="register-username">Username</label>
+          <input id="register-username" type="text" autocomplete="username" required />
+          <label for="register-email">Email</label>
+          <input id="register-email" type="email" autocomplete="email" required />
+          <label for="register-password">Password (min 12, upper/lower/number/symbol)</label>
+          <input id="register-password" type="password" autocomplete="new-password" required />
+          <button type="submit">Create Account</button>
+        </form>
+
+        <div class="small-links">
+          <a href="login.html">Back to Login</a>
+        </div>
+      </section>
+    </main>
+
+    <script src="register.js" type="module"></script>
+  </body>
+</html>
