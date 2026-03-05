@@ -35,6 +35,22 @@
           <input id="register-password" type="password" autocomplete="new-password" required />
           <button type="submit">Create Account</button>
         </form>
+
+        <hr />
+
+        <form id="reset-request-form" class="stack-form">
+          <label for="reset-request-username">Forgot password? Enter username</label>
+          <input id="reset-request-username" type="text" autocomplete="username" required />
+          <button type="submit">Request Reset Token</button>
+        </form>
+
+        <form id="reset-confirm-form" class="stack-form">
+          <label for="reset-token">Reset Token</label>
+          <input id="reset-token" type="text" autocomplete="off" required />
+          <label for="reset-new-password">New Password (min 12, upper/lower/number/symbol)</label>
+          <input id="reset-new-password" type="password" autocomplete="new-password" required />
+          <button type="submit">Reset Password</button>
+        </form>
       </section>
     </main>
 
