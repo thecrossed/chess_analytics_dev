@@ -2,6 +2,9 @@ const resetRequestForm = document.getElementById("reset-request-form");
 const resetConfirmForm = document.getElementById("reset-confirm-form");
 const message = document.getElementById("auth-message");
 const initialResetToken = new URLSearchParams(window.location.search).get("reset_token");
+const requestButton = resetRequestForm.querySelector("button[type='submit']");
+const REQUEST_COOLDOWN_SECONDS = 60;
+let requestCooldownTimer = null;
 
 function setMessage(text, isError = false) {
   message.textContent = text;
@@ -27,8 +30,35 @@ function showPasswordPolicyError(errorCode) {
   return true;
 }
 
+function startRequestCooldown(seconds) {
+  if (!requestButton) {
+    return;
+  }
+  if (requestCooldownTimer) {
+    clearInterval(requestCooldownTimer);
+    requestCooldownTimer = null;
+  }
+  let remaining = seconds;
+  requestButton.disabled = true;
+  requestButton.textContent = `Request Again (${remaining}s)`;
+  requestCooldownTimer = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(requestCooldownTimer);
+      requestCooldownTimer = null;
+      requestButton.disabled = false;
+      requestButton.textContent = "Request Reset Email";
+      return;
+    }
+    requestButton.textContent = `Request Again (${remaining}s)`;
+  }, 1000);
+}
+
 resetRequestForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (requestButton && requestButton.disabled) {
+    return;
+  }
   setMessage("Requesting reset email...");
 
   const username = document.getElementById("reset-request-username").value.trim();
@@ -44,6 +74,7 @@ resetRequestForm.addEventListener("submit", async (event) => {
     if (data.error === "rate_limited") {
       const wait = Number(data.retry_after || 0);
       setMessage(wait > 0 ? `Too many attempts. Try again in ${wait}s.` : "Too many attempts. Please try again later.", true);
+      startRequestCooldown(Math.min(REQUEST_COOLDOWN_SECONDS, wait > 0 ? wait : REQUEST_COOLDOWN_SECONDS));
     } else {
       setMessage("Failed to request reset email.", true);
     }
@@ -60,6 +91,7 @@ resetRequestForm.addEventListener("submit", async (event) => {
   } else {
     setMessage("If the account exists, reset instructions have been sent to email.");
   }
+  startRequestCooldown(REQUEST_COOLDOWN_SECONDS);
 });
 
 resetConfirmForm.addEventListener("submit", async (event) => {
