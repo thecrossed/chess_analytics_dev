@@ -24,13 +24,22 @@
           </select>
         </div>
         <div class="row import-row">
-          <label for="date-from">From</label>
-          <input id="date-from" name="date-from" type="date" />
+          <label for="range-days">Range (days)</label>
+          <input id="range-days" name="range-days" type="number" min="1" max="120" step="1" value="30" />
+          <span class="hint-inline">Default mode</span>
         </div>
-        <div class="row import-row">
-          <label for="date-to">To</label>
-          <input id="date-to" name="date-to" type="date" />
-        </div>
+        <details class="date-override">
+          <summary>Optional: exact date range</summary>
+          <div class="row import-row">
+            <label for="date-from">From</label>
+            <input id="date-from" name="date-from" type="date" />
+          </div>
+          <div class="row import-row">
+            <label for="date-to">To</label>
+            <input id="date-to" name="date-to" type="date" />
+          </div>
+          <p class="hint-inline">If both dates are set, they override Range.</p>
+        </details>
         <div class="row import-row">
           <span>Game Types</span>
           <div class="type-options">

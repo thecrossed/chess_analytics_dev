@@ -3,6 +3,7 @@ const input = document.getElementById("username");
 const userList = document.getElementById("user-list");
 const buildPageButton = document.getElementById("build-page");
 const platformSelect = document.getElementById("platform");
+const rangeDaysInput = document.getElementById("range-days");
 const dateFromInput = document.getElementById("date-from");
 const dateToInput = document.getElementById("date-to");
 const uploadCsvButton = document.getElementById("upload-csv");
@@ -116,6 +117,14 @@ function toDateInputValue(date) {
   return `${year}-${month}-${day}`;
 }
 
+function normalizeRangeDays(raw) {
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isFinite(value)) {
+    return 30;
+  }
+  return Math.min(MAX_RANGE_DAYS, Math.max(1, value));
+}
+
 function parseDateInputValue(raw) {
   if (!raw) {
     return null;
@@ -128,13 +137,19 @@ function parseDateInputValue(raw) {
 }
 
 function ensureDefaultDateRange() {
+  if (rangeDaysInput && !rangeDaysInput.value) {
+    rangeDaysInput.value = "30";
+  }
+}
+
+function applyDateRangeFromDays(days) {
   const today = new Date();
   const fromDate = new Date(today);
-  fromDate.setDate(fromDate.getDate() - 29);
-  if (dateFromInput && !dateFromInput.value) {
+  fromDate.setDate(fromDate.getDate() - (days - 1));
+  if (dateFromInput) {
     dateFromInput.value = toDateInputValue(fromDate);
   }
-  if (dateToInput && !dateToInput.value) {
+  if (dateToInput) {
     dateToInput.value = toDateInputValue(today);
   }
 }
@@ -222,31 +237,45 @@ buildPageButton.addEventListener("click", () => {
     return;
   }
 
+  const rangeDays = normalizeRangeDays(rangeDaysInput?.value || "30");
   const fromRaw = dateFromInput?.value || "";
   const toRaw = dateToInput?.value || "";
-  const fromMs = parseDateInputValue(fromRaw);
-  const toMs = parseDateInputValue(toRaw);
-  if (!fromMs || !toMs) {
-    alert("Please select both From and To dates.");
-    return;
-  }
-  if (fromMs > toMs) {
-    alert("From date cannot be after To date.");
-    return;
-  }
-  const rangeDays = Math.floor((toMs - fromMs) / (24 * 60 * 60 * 1000)) + 1;
-  if (rangeDays > MAX_RANGE_DAYS) {
-    alert("Date range cannot exceed 120 days.");
-    return;
-  }
+  const hasFrom = Boolean(fromRaw);
+  const hasTo = Boolean(toRaw);
+  const usingCustomDates = hasFrom || hasTo;
 
   const params = new URLSearchParams({
     users: Array.from(users).join(","),
     platform: platformSelect.value,
-    from: fromRaw,
-    to: toRaw,
+    days: String(rangeDays),
     types: selectedTypes.join(",")
   });
+
+  if (usingCustomDates) {
+    if (!hasFrom || !hasTo) {
+      alert("Please select both From and To dates, or leave both empty.");
+      return;
+    }
+    const fromMs = parseDateInputValue(fromRaw);
+    const toMs = parseDateInputValue(toRaw);
+    if (!fromMs || !toMs) {
+      alert("Invalid date selection.");
+      return;
+    }
+    if (fromMs > toMs) {
+      alert("From date cannot be after To date.");
+      return;
+    }
+    const customRangeDays = Math.floor((toMs - fromMs) / (24 * 60 * 60 * 1000)) + 1;
+    if (customRangeDays > MAX_RANGE_DAYS) {
+      alert("Date range cannot exceed 120 days.");
+      return;
+    }
+    params.set("from", fromRaw);
+    params.set("to", toRaw);
+  } else {
+    applyDateRangeFromDays(rangeDays);
+  }
 
   window.location.href = `stats.html?${params.toString()}`;
 });
