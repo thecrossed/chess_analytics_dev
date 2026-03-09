@@ -68,6 +68,7 @@ const TRANSLATIONS = {
     stats_last_played: "Last Played",
     stats_download_csv: "Download CSV",
     stats_download_raw: "Download Raw Data",
+    stats_view_raw: "View Raw Data",
     stats_raw_preview: "Raw Data Preview",
     stats_raw_preview_hint: "Preview raw games first, then choose whether to download.",
     stats_raw_platform: "Platform",
@@ -79,6 +80,7 @@ const TRANSLATIONS = {
     stats_raw_rating: "Rating",
     raw_prev_page: "Previous",
     raw_next_page: "Next",
+    nav_back_stats: "Back to Game Stats",
     auth_signed_in_as: "Signed in as {username}",
     msg_logging_in: "Logging in...",
     msg_login_failed: "Login failed. Check username/password.",
@@ -198,6 +200,7 @@ const TRANSLATIONS = {
     stats_last_played: "Dernière partie",
     stats_download_csv: "Télécharger CSV",
     stats_download_raw: "Télécharger les données brutes",
+    stats_view_raw: "Voir les données brutes",
     stats_raw_preview: "Aperçu des données brutes",
     stats_raw_preview_hint: "Prévisualisez d'abord les parties brutes, puis choisissez de télécharger.",
     stats_raw_platform: "Plateforme",
@@ -208,7 +211,8 @@ const TRANSLATIONS = {
     stats_raw_rating_diff: "Diff. Elo",
     stats_raw_rating: "Elo",
     raw_prev_page: "Précédent",
-    raw_next_page: "Suivant"
+    raw_next_page: "Suivant",
+    nav_back_stats: "Retour aux statistiques"
   },
   zh: {
     lang_selector_label: "语言",
@@ -269,6 +273,7 @@ const TRANSLATIONS = {
     stats_last_played: "最近对局",
     stats_download_csv: "下载 CSV",
     stats_download_raw: "下载原始数据",
+    stats_view_raw: "查看原始数据",
     stats_raw_preview: "原始数据预览",
     stats_raw_preview_hint: "先查看原始对局数据，再决定是否下载。",
     stats_raw_platform: "平台",
@@ -279,7 +284,8 @@ const TRANSLATIONS = {
     stats_raw_rating_diff: "等级分变化",
     stats_raw_rating: "等级分",
     raw_prev_page: "上一页",
-    raw_next_page: "下一页"
+    raw_next_page: "下一页",
+    nav_back_stats: "返回对局统计"
   },
   es: {
     lang_selector_label: "Idioma",
@@ -340,6 +346,7 @@ const TRANSLATIONS = {
     stats_last_played: "Última partida",
     stats_download_csv: "Descargar CSV",
     stats_download_raw: "Descargar datos crudos",
+    stats_view_raw: "Ver datos crudos",
     stats_raw_preview: "Vista previa de datos crudos",
     stats_raw_preview_hint: "Primero revisa las partidas crudas y luego decide si descargar.",
     stats_raw_platform: "Plataforma",
@@ -350,7 +357,8 @@ const TRANSLATIONS = {
     stats_raw_rating_diff: "Cambio de rating",
     stats_raw_rating: "Rating",
     raw_prev_page: "Anterior",
-    raw_next_page: "Siguiente"
+    raw_next_page: "Siguiente",
+    nav_back_stats: "Volver a estadísticas"
   },
   sv: {
     lang_selector_label: "Språk",
@@ -411,6 +419,7 @@ const TRANSLATIONS = {
     stats_last_played: "Senast spelad",
     stats_download_csv: "Ladda ner CSV",
     stats_download_raw: "Ladda ner rådata",
+    stats_view_raw: "Visa rådata",
     stats_raw_preview: "Förhandsgranskning av rådata",
     stats_raw_preview_hint: "Visa först råpartier och välj sedan om du vill ladda ner.",
     stats_raw_platform: "Plattform",
@@ -421,7 +430,8 @@ const TRANSLATIONS = {
     stats_raw_rating_diff: "Ratingförändring",
     stats_raw_rating: "Rating",
     raw_prev_page: "Föregående",
-    raw_next_page: "Nästa"
+    raw_next_page: "Nästa",
+    nav_back_stats: "Tillbaka till statistik"
   }
 };
 
