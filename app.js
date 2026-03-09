@@ -112,7 +112,7 @@ function normalizeRangeDays(raw) {
   if (!Number.isFinite(value)) {
     return 30;
   }
-  return Math.min(90, Math.max(1, value));
+  return Math.min(120, Math.max(1, value));
 }
 
 function getSelectedGameTypes() {
