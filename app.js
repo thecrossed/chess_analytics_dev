@@ -253,7 +253,7 @@ buildPageButton.addEventListener("click", () => {
     return;
   }
   if (strictRangeDays > MAX_RANGE_DAYS) {
-    alert(t("alert_max_120_days"));
+    alert(t("alert_max_120_days", { days: strictRangeDays }));
     return;
   }
   const rangeDays = normalizeRangeDays(rawRangeDays);
@@ -287,7 +287,7 @@ buildPageButton.addEventListener("click", () => {
     }
     const customRangeDays = Math.floor((toMs - fromMs) / (24 * 60 * 60 * 1000)) + 1;
     if (customRangeDays > MAX_RANGE_DAYS) {
-      alert(t("alert_max_120_days"));
+      alert(t("alert_max_120_days", { days: customRangeDays }));
       return;
     }
     params.set("from", fromRaw);

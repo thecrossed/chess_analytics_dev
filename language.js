@@ -115,7 +115,7 @@ const TRANSLATIONS = {
     alert_select_both_dates_or_empty: "Please select both From and To dates, or leave both empty.",
     alert_invalid_date_selection: "Invalid date selection.",
     alert_from_after_to: "From date cannot be after To date.",
-    alert_max_120_days: "Date range cannot exceed 120 days.",
+    alert_max_120_days: "Range cannot exceed 120 days. You entered {days} days.",
     stats_no_usernames: "No usernames received. Please go back to the home page and add accounts.",
     stats_users_loading: "{count} users total on {platform} ({types}), loading...",
     stats_completed_progress: "Completed {finished}/{total} ({platform}, {types})",
