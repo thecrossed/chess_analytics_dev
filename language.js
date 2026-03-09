@@ -66,7 +66,66 @@ const TRANSLATIONS = {
     stats_avg_duration: "Avg Game Duration",
     stats_rating_change: "Rating Change (Range)",
     stats_last_played: "Last Played",
-    stats_download_csv: "Download CSV"
+    stats_download_csv: "Download CSV",
+    auth_signed_in_as: "Signed in as {username}",
+    msg_logging_in: "Logging in...",
+    msg_login_failed: "Login failed. Check username/password.",
+    msg_account_locked_wait: "This account is temporarily locked. Try again in {wait}s.",
+    msg_account_locked_later: "This account is temporarily locked. Please try again later.",
+    msg_rate_limited_wait: "Too many attempts. Try again in {wait}s.",
+    msg_rate_limited_later: "Too many attempts. Please try again later.",
+    msg_payload_too_large: "Request too large. Please shorten input and retry.",
+    msg_logging_guest: "Logging in as guest...",
+    msg_guest_login_failed: "Guest login failed: {status}{detail}",
+    msg_creating_account: "Creating account...",
+    msg_username_exists: "This username already exists.",
+    msg_email_exists: "This email is already registered.",
+    msg_email_required: "Email is required.",
+    msg_invalid_email: "Please enter a valid email address.",
+    msg_invalid_username: "Username must be 3-32 chars: letters, numbers, _ or -.",
+    msg_register_failed: "Register failed.",
+    msg_account_created_redirect: "Account created. Redirecting to login...",
+    msg_requesting_reset_email: "Requesting reset email...",
+    msg_request_reset_failed: "Failed to request reset email.",
+    msg_reset_service_not_configured: "Reset email service is not configured yet. Please contact support.",
+    msg_reset_token_ready: "Reset token ready: {token}. Now set a new password below.",
+    msg_reset_email_sent_if_exists: "If the account exists, reset instructions have been sent to email.",
+    msg_resetting_password: "Resetting password...",
+    msg_reset_token_invalid: "Reset token is invalid or expired.",
+    msg_password_reset_failed: "Password reset failed.",
+    msg_password_reset_success_redirect: "Password reset successful. Redirecting to login...",
+    msg_saving_email: "Saving email...",
+    msg_email_in_use: "This email is already used by another account.",
+    msg_save_email_failed: "Failed to save email ({error}).",
+    msg_email_saved: "Email saved: {email}",
+    msg_password_too_short: "Password must be at least 12 characters.",
+    msg_password_too_weak: "Password is too common. Choose a stronger one.",
+    msg_password_missing_uppercase: "Password must include at least one uppercase letter.",
+    msg_password_missing_lowercase: "Password must include at least one lowercase letter.",
+    msg_password_missing_number: "Password must include at least one number.",
+    msg_password_missing_symbol: "Password must include at least one symbol.",
+    app_remove: "Remove",
+    app_more_usernames: "+{count} more usernames",
+    alert_invalid_username_format: "Invalid username format: 2-30 characters, letters/numbers/_/- only.",
+    alert_no_usernames_csv: "No usernames found in CSV.",
+    alert_csv_imported: "CSV imported: {added} added, {invalid} invalid.",
+    alert_csv_read_failed: "Failed to read CSV: {error}",
+    alert_add_user_first: "Please add at least one username first.",
+    alert_select_game_type: "Please select at least one game type (Bullet/Blitz/Rapid).",
+    alert_select_both_dates_or_empty: "Please select both From and To dates, or leave both empty.",
+    alert_invalid_date_selection: "Invalid date selection.",
+    alert_from_after_to: "From date cannot be after To date.",
+    alert_max_120_days: "Date range cannot exceed 120 days.",
+    stats_no_usernames: "No usernames received. Please go back to the home page and add accounts.",
+    stats_users_loading: "{count} users total on {platform} ({types}), loading...",
+    stats_completed_progress: "Completed {finished}/{total} ({platform}, {types})",
+    stats_completed_range: "Completed {finished}/{total}. Range: {range} ({platform}, {types}).",
+    stats_load_failed: "Load failed: {error}",
+    stats_unknown_error: "Unknown error",
+    stats_result_win: "Win",
+    stats_result_loss: "Loss",
+    stats_result_draw: "Draw",
+    stats_result_unknown: "Unknown"
   },
   fr: {
     lang_selector_label: "Langue",
@@ -316,6 +375,15 @@ function translateKey(lang, key) {
   return langPack[key] || TRANSLATIONS.en[key] || key;
 }
 
+function formatTemplate(value, params) {
+  if (!params) {
+    return value;
+  }
+  return value.replace(/\{([a-zA-Z0-9_]+)\}/g, (_all, key) => {
+    return Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : "";
+  });
+}
+
 function applyTranslations(lang) {
   document.documentElement.lang = lang;
   document.querySelectorAll("[data-i18n]").forEach((el) => {
@@ -363,6 +431,7 @@ function injectLanguageSelector(lang) {
     localStorage.setItem(LANG_STORAGE_KEY, next);
     applyTranslations(next);
     label.textContent = translateKey(next, "lang_selector_label");
+    window.dispatchEvent(new CustomEvent("languagechange", { detail: { lang: next } }));
   });
 
   wrap.appendChild(label);
@@ -373,3 +442,11 @@ function injectLanguageSelector(lang) {
 const currentLanguage = getStoredLanguage();
 applyTranslations(currentLanguage);
 injectLanguageSelector(currentLanguage);
+
+window.i18n = {
+  getLanguage: getStoredLanguage,
+  t(key, params) {
+    const lang = getStoredLanguage();
+    return formatTemplate(translateKey(lang, key), params);
+  }
+};

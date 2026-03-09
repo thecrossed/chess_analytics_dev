@@ -1,6 +1,7 @@
 const emailForm = document.getElementById("email-form");
 const emailInput = document.getElementById("email");
 const message = document.getElementById("account-message");
+const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 function setMessage(text, isError = false) {
   message.textContent = text;
@@ -17,7 +18,7 @@ async function ensureAuthenticated() {
 
 emailForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  setMessage("Saving email...");
+  setMessage(t("msg_saving_email"));
 
   const email = emailInput.value.trim();
   const res = await fetch("/api/auth/profile/email", {
@@ -31,21 +32,21 @@ emailForm.addEventListener("submit", async (event) => {
   if (!res.ok) {
     const error = data.error || "unknown_error";
     if (error === "invalid_email") {
-      setMessage("Please enter a valid email address.", true);
+      setMessage(t("msg_invalid_email"), true);
     } else if (error === "email_exists") {
-      setMessage("This email is already used by another account.", true);
+      setMessage(t("msg_email_in_use"), true);
     } else if (error === "rate_limited") {
       const wait = Number(data.retry_after || 0);
-      setMessage(wait > 0 ? `Too many attempts. Try again in ${wait}s.` : "Too many attempts. Please try again later.", true);
+      setMessage(wait > 0 ? t("msg_rate_limited_wait", { wait }) : t("msg_rate_limited_later"), true);
     } else if (error === "not_authenticated") {
       window.location.href = "login.html";
     } else {
-      setMessage(`Failed to save email (${error}).`, true);
+      setMessage(t("msg_save_email_failed", { error }), true);
     }
     return;
   }
 
-  setMessage(`Email saved: ${data.email}`);
+  setMessage(t("msg_email_saved", { email: data.email }));
 });
 
 ensureAuthenticated().catch(() => {});

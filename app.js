@@ -11,6 +11,7 @@ const csvFileInput = document.getElementById("csv-file");
 const gameTypeInputs = Array.from(document.querySelectorAll('input[name="game-type"]'));
 const authUser = document.getElementById("auth-user");
 const logoutButton = document.getElementById("logout-btn");
+const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 const users = new Set();
 const USERNAME_RE = /^[A-Za-z0-9_-]{2,30}$/;
@@ -26,7 +27,7 @@ async function ensureAuthenticated() {
   }
   const data = await res.json();
   if (authUser) {
-    authUser.textContent = `Signed in as ${data.username}`;
+    authUser.textContent = t("auth_signed_in_as", { username: data.username });
   }
 }
 
@@ -53,7 +54,7 @@ function renderUsers() {
 
     const remove = document.createElement("button");
     remove.type = "button";
-    remove.textContent = "Remove";
+    remove.textContent = t("app_remove");
     remove.addEventListener("click", () => {
       users.delete(name);
       renderUsers();
@@ -73,7 +74,7 @@ function renderUsers() {
 
     const details = document.createElement("details");
     const summary = document.createElement("summary");
-    summary.textContent = `+${hiddenUsers.length} more usernames`;
+    summary.textContent = t("app_more_usernames", { count: hiddenUsers.length });
 
     const hiddenList = document.createElement("ul");
     hiddenList.className = "user-list overflow-list";
@@ -176,7 +177,7 @@ form.addEventListener("submit", (event) => {
   }
 
   if (!addUsername(username)) {
-    alert("Invalid username format: 2-30 characters, letters/numbers/_/- only.");
+    alert(t("alert_invalid_username_format"));
     return;
   }
 
@@ -214,12 +215,12 @@ csvFileInput.addEventListener("change", async (event) => {
     renderUsers();
 
     if (addedCount === 0 && invalidCount === 0) {
-      alert("No usernames found in CSV.");
+      alert(t("alert_no_usernames_csv"));
     } else {
-      alert(`CSV imported: ${addedCount} added, ${invalidCount} invalid.`);
+      alert(t("alert_csv_imported", { added: addedCount, invalid: invalidCount }));
     }
   } catch (error) {
-    alert(`Failed to read CSV: ${error.message || "unknown error"}`);
+    alert(t("alert_csv_read_failed", { error: error.message || "unknown error" }));
   } finally {
     csvFileInput.value = "";
   }
@@ -227,13 +228,13 @@ csvFileInput.addEventListener("change", async (event) => {
 
 buildPageButton.addEventListener("click", () => {
   if (users.size === 0) {
-    alert("Please add at least one username first.");
+    alert(t("alert_add_user_first"));
     return;
   }
 
   const selectedTypes = getSelectedGameTypes();
   if (selectedTypes.length === 0) {
-    alert("Please select at least one game type (Bullet/Blitz/Rapid).");
+    alert(t("alert_select_game_type"));
     return;
   }
 
@@ -253,22 +254,22 @@ buildPageButton.addEventListener("click", () => {
 
   if (usingCustomDates) {
     if (!hasFrom || !hasTo) {
-      alert("Please select both From and To dates, or leave both empty.");
+      alert(t("alert_select_both_dates_or_empty"));
       return;
     }
     const fromMs = parseDateInputValue(fromRaw);
     const toMs = parseDateInputValue(toRaw);
     if (!fromMs || !toMs) {
-      alert("Invalid date selection.");
+      alert(t("alert_invalid_date_selection"));
       return;
     }
     if (fromMs > toMs) {
-      alert("From date cannot be after To date.");
+      alert(t("alert_from_after_to"));
       return;
     }
     const customRangeDays = Math.floor((toMs - fromMs) / (24 * 60 * 60 * 1000)) + 1;
     if (customRangeDays > MAX_RANGE_DAYS) {
-      alert("Date range cannot exceed 120 days.");
+      alert(t("alert_max_120_days"));
       return;
     }
     params.set("from", fromRaw);
@@ -282,3 +283,7 @@ buildPageButton.addEventListener("click", () => {
 
 ensureDefaultDateRange();
 ensureAuthenticated().catch(() => {});
+
+window.addEventListener("languagechange", () => {
+  renderUsers();
+});

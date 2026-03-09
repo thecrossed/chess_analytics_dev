@@ -5,6 +5,7 @@ const initialResetToken = new URLSearchParams(window.location.search).get("reset
 const requestButton = resetRequestForm.querySelector("button[type='submit']");
 const REQUEST_COOLDOWN_SECONDS = 60;
 let requestCooldownTimer = null;
+const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 function setMessage(text, isError = false) {
   message.textContent = text;
@@ -13,17 +14,17 @@ function setMessage(text, isError = false) {
 
 function showPasswordPolicyError(errorCode) {
   if (errorCode === "password_too_short") {
-    setMessage("Password must be at least 12 characters.", true);
+    setMessage(t("msg_password_too_short"), true);
   } else if (errorCode === "password_too_weak") {
-    setMessage("Password is too common. Choose a stronger one.", true);
+    setMessage(t("msg_password_too_weak"), true);
   } else if (errorCode === "password_missing_uppercase") {
-    setMessage("Password must include at least one uppercase letter.", true);
+    setMessage(t("msg_password_missing_uppercase"), true);
   } else if (errorCode === "password_missing_lowercase") {
-    setMessage("Password must include at least one lowercase letter.", true);
+    setMessage(t("msg_password_missing_lowercase"), true);
   } else if (errorCode === "password_missing_number") {
-    setMessage("Password must include at least one number.", true);
+    setMessage(t("msg_password_missing_number"), true);
   } else if (errorCode === "password_missing_symbol") {
-    setMessage("Password must include at least one symbol.", true);
+    setMessage(t("msg_password_missing_symbol"), true);
   } else {
     return false;
   }
@@ -40,17 +41,17 @@ function startRequestCooldown(seconds) {
   }
   let remaining = seconds;
   requestButton.disabled = true;
-  requestButton.textContent = `Request Again (${remaining}s)`;
+  requestButton.textContent = `${t("forgot_request_button")} (${remaining}s)`;
   requestCooldownTimer = setInterval(() => {
     remaining -= 1;
     if (remaining <= 0) {
       clearInterval(requestCooldownTimer);
       requestCooldownTimer = null;
       requestButton.disabled = false;
-      requestButton.textContent = "Request Reset Email";
+      requestButton.textContent = t("forgot_request_button");
       return;
     }
-    requestButton.textContent = `Request Again (${remaining}s)`;
+    requestButton.textContent = `${t("forgot_request_button")} (${remaining}s)`;
   }, 1000);
 }
 
@@ -59,7 +60,7 @@ resetRequestForm.addEventListener("submit", async (event) => {
   if (requestButton && requestButton.disabled) {
     return;
   }
-  setMessage("Requesting reset email...");
+  setMessage(t("msg_requesting_reset_email"));
 
   const username = document.getElementById("reset-request-username").value.trim();
   const res = await fetch("/api/auth/password-reset/request", {
@@ -73,10 +74,10 @@ resetRequestForm.addEventListener("submit", async (event) => {
   if (!res.ok) {
     if (data.error === "rate_limited") {
       const wait = Number(data.retry_after || 0);
-      setMessage(wait > 0 ? `Too many attempts. Try again in ${wait}s.` : "Too many attempts. Please try again later.", true);
+      setMessage(wait > 0 ? t("msg_rate_limited_wait", { wait }) : t("msg_rate_limited_later"), true);
       startRequestCooldown(Math.min(REQUEST_COOLDOWN_SECONDS, wait > 0 ? wait : REQUEST_COOLDOWN_SECONDS));
     } else {
-      setMessage("Failed to request reset email.", true);
+      setMessage(t("msg_request_reset_failed"), true);
     }
     return;
   }
@@ -87,18 +88,18 @@ resetRequestForm.addEventListener("submit", async (event) => {
     tokenInput.value = token;
   }
   if (data.delivery_status === "service_not_configured") {
-    setMessage("Reset email service is not configured yet. Please contact support.", true);
+    setMessage(t("msg_reset_service_not_configured"), true);
   } else if (token) {
-    setMessage(`Reset token ready: ${token}. Now set a new password below.`);
+    setMessage(t("msg_reset_token_ready", { token }));
   } else {
-    setMessage("If the account exists, reset instructions have been sent to email.");
+    setMessage(t("msg_reset_email_sent_if_exists"));
   }
   startRequestCooldown(REQUEST_COOLDOWN_SECONDS);
 });
 
 resetConfirmForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  setMessage("Resetting password...");
+  setMessage(t("msg_resetting_password"));
 
   const token = document.getElementById("reset-token").value.trim();
   const newPassword = document.getElementById("reset-new-password").value;
@@ -113,18 +114,18 @@ resetConfirmForm.addEventListener("submit", async (event) => {
   if (!res.ok) {
     if (data.error === "rate_limited") {
       const wait = Number(data.retry_after || 0);
-      setMessage(wait > 0 ? `Too many attempts. Try again in ${wait}s.` : "Too many attempts. Please try again later.", true);
+      setMessage(wait > 0 ? t("msg_rate_limited_wait", { wait }) : t("msg_rate_limited_later"), true);
     } else if (data.error === "invalid_or_expired_token") {
-      setMessage("Reset token is invalid or expired.", true);
+      setMessage(t("msg_reset_token_invalid"), true);
     } else if (showPasswordPolicyError(data.error || "")) {
       return;
     } else {
-      setMessage("Password reset failed.", true);
+      setMessage(t("msg_password_reset_failed"), true);
     }
     return;
   }
 
-  setMessage("Password reset successful. Redirecting to login...");
+  setMessage(t("msg_password_reset_success_redirect"));
   setTimeout(() => {
     window.location.href = "login.html";
   }, 900);
