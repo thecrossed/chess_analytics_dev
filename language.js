@@ -2,10 +2,10 @@ const LANG_STORAGE_KEY = "chess_analytics_lang";
 const SUPPORTED_LANGS = ["en", "fr", "zh", "es", "sv"];
 const LANG_LABELS = {
   en: "English",
-  fr: "French",
-  zh: "Chinese",
-  es: "Spanish",
-  sv: "Swedish"
+  fr: "Français",
+  zh: "中文",
+  es: "Español",
+  sv: "Svenska"
 };
 
 const TRANSLATIONS = {

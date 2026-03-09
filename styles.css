@@ -198,8 +198,8 @@ button:hover,
 
 .lang-corner {
   position: fixed;
-  top: 10px;
-  right: 12px;
+  top: 6px;
+  right: 6px;
   display: flex;
   align-items: center;
   gap: 8px;
