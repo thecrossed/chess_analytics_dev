@@ -378,12 +378,12 @@ function downloadRawCsv() {
     "White Rating",
     "Black Player",
     "Black Rating",
-    "Rating Gap",
+    "Rating Gap (White-Black)",
     "Game Type",
     "Result",
     "Played At (UTC)",
     "Duration (min)",
-    "Rating Diff"
+    "Rating Diff (User Change)"
   ];
   const lines = [header.map(csvEscape).join(",")];
   rawExportRows.forEach((row) => {
