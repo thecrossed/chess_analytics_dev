@@ -2,6 +2,7 @@ const summary = document.getElementById("summary");
 const body = document.getElementById("stats-body");
 const loading = document.getElementById("loading");
 const tableWrap = document.getElementById("stats-table-wrap");
+const viewRawLink = document.getElementById("view-raw-link");
 const downloadCsvButton = document.getElementById("download-csv");
 const authUser = document.getElementById("auth-user");
 const logoutButton = document.getElementById("logout-btn");
@@ -68,6 +69,7 @@ if (rangeToMs - rangeFromMs > MAX_RANGE_MS) {
 const rangeFromSec = Math.floor(rangeFromMs / 1000);
 const rangeToSec = Math.floor(rangeToMs / 1000);
 const rangeLabel = `${formatDateKey(rangeFromMs)} to ${formatDateKey(rangeToMs)}`;
+
 const allowedTypes = new Set(["bullet", "blitz", "rapid"]);
 const selectedTypes = Array.from(
   new Set(
@@ -77,7 +79,6 @@ const selectedTypes = Array.from(
       .filter((value) => allowedTypes.has(value))
   )
 );
-
 if (selectedTypes.length === 0) {
   selectedTypes.push("bullet", "blitz", "rapid");
 }
@@ -102,20 +103,12 @@ function formatDuration(ms) {
   if (typeof ms !== "number") {
     return "-";
   }
-
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m ${seconds}s`;
-  }
-
-  if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
-  }
-
+  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
   return `${seconds}s`;
 }
 
@@ -123,7 +116,6 @@ function formatDate(timestampMs) {
   if (!timestampMs) {
     return "-";
   }
-
   return new Date(timestampMs).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -132,21 +124,14 @@ function formatDate(timestampMs) {
 }
 
 function formatRatingChange(value) {
-  if (value === null) {
-    return "-";
-  }
-  if (value > 0) {
-    return `+${value}`;
-  }
+  if (value === null) return "-";
+  if (value > 0) return `+${value}`;
   return String(value);
 }
 
 function normalizeGameType(value) {
   const normalized = (value || "").toLowerCase();
-  if (allowedTypes.has(normalized)) {
-    return normalized;
-  }
-  return null;
+  return allowedTypes.has(normalized) ? normalized : null;
 }
 
 function formatTypeLabel(value) {
@@ -205,9 +190,7 @@ function downloadCsv() {
 }
 
 function updateTableScrollState() {
-  if (!tableWrap || !body) {
-    return;
-  }
+  if (!tableWrap || !body) return;
   const shouldScroll = Math.max(renderedUsernameCount, usernames.length) > MAX_VISIBLE_ROWS_BEFORE_SCROLL;
   tableWrap.classList.toggle("scrollable-rows", shouldScroll);
 }
@@ -218,14 +201,8 @@ function getLichessUserPlayer(game, username) {
   const lower = username.toLowerCase();
   const whiteUser = game.players?.white?.user?.name?.toLowerCase();
   const blackUser = game.players?.black?.user?.name?.toLowerCase();
-
-  if (whiteUser === lower) {
-    return game.players?.white || null;
-  }
-  if (blackUser === lower) {
-    return game.players?.black || null;
-  }
-
+  if (whiteUser === lower) return game.players?.white || null;
+  if (blackUser === lower) return game.players?.black || null;
   return null;
 }
 
@@ -233,61 +210,30 @@ function getResultFromLichessGame(game, username) {
   const lower = username.toLowerCase();
   const whiteUser = game.players?.white?.user?.name?.toLowerCase();
   const blackUser = game.players?.black?.user?.name?.toLowerCase();
-
   if (game.winner) {
     const playerColor = whiteUser === lower ? "white" : blackUser === lower ? "black" : null;
-    if (!playerColor) {
-      return "Unknown";
-    }
+    if (!playerColor) return t("stats_result_unknown");
     return game.winner === playerColor ? t("stats_result_win") : t("stats_result_loss");
   }
-
   return t("stats_result_draw");
 }
 
 function normalizeChessComResult(result) {
-  if (result === "win") {
-    return t("stats_result_win");
-  }
-
-  const drawResults = new Set([
-    "agreed",
-    "repetition",
-    "stalemate",
-    "insufficient",
-    "50move",
-    "timevsinsufficient"
-  ]);
-
-  if (drawResults.has(result)) {
-    return "Draw";
-  }
-
+  if (result === "win") return t("stats_result_win");
+  const drawResults = new Set(["agreed", "repetition", "stalemate", "insufficient", "50move", "timevsinsufficient"]);
+  if (drawResults.has(result)) return t("stats_result_draw");
   return t("stats_result_loss");
 }
 
 function parseChessComArchiveMonth(url) {
   const match = url.match(/\/(\d{4})\/(\d{2})$/);
-  if (!match) {
-    return null;
-  }
-
+  if (!match) return null;
   const year = Number(match[1]);
   const month = Number(match[2]);
-
-  if (!year || !month || month < 1 || month > 12) {
-    return null;
-  }
-
+  if (!year || !month || month < 1 || month > 12) return null;
   const monthStart = Date.UTC(year, month - 1, 1);
   const monthEnd = Date.UTC(year, month, 0, 23, 59, 59, 999);
-
-  return {
-    year,
-    month,
-    monthStart,
-    monthEnd
-  };
+  return { year, month, monthStart, monthEnd };
 }
 
 async function fetchLichessGamesForUser(username) {
@@ -300,26 +246,12 @@ async function fetchLichessGamesForUser(username) {
     perfTypeParam
   )}`;
 
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/x-ndjson"
-    }
-  });
-
-  if (response.status === 404) {
-    throw new Error("User not found on Lichess.");
-  }
-
-  if (!response.ok) {
-    throw new Error(`Lichess request failed (${response.status})`);
-  }
+  const response = await fetch(url, { headers: { Accept: "application/x-ndjson" } });
+  if (response.status === 404) throw new Error("User not found on Lichess.");
+  if (!response.ok) throw new Error(`Lichess request failed (${response.status})`);
 
   const raw = await response.text();
-  const lines = raw
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
+  const lines = raw.split("\n").map((line) => line.trim()).filter(Boolean);
   return lines.map((line) => JSON.parse(line));
 }
 
@@ -330,7 +262,6 @@ function buildFromLichessGames(games, username) {
       const lastMoveAt = game.lastMoveAt || createdAt;
       const durationMs = Math.max(0, lastMoveAt - createdAt);
       const player = getLichessUserPlayer(game, username);
-
       return {
         playedAt: lastMoveAt || createdAt,
         gameType: normalizeGameType(game.speed || game.perf),
@@ -346,20 +277,12 @@ function buildFromLichessGames(games, username) {
 
 async function fetchChessComGamesForUser(username) {
   const normalizedUsername = username.toLowerCase();
-
-  const archivesRes = await fetch(
-    `/api/chesscom/player/${encodeURIComponent(normalizedUsername)}/games/archives`
-  );
-  if (archivesRes.status === 404) {
-    throw new Error("User not found on Chess.com.");
-  }
-  if (!archivesRes.ok) {
-    throw new Error(`Chess.com request failed (${archivesRes.status})`);
-  }
+  const archivesRes = await fetch(`/api/chesscom/player/${encodeURIComponent(normalizedUsername)}/games/archives`);
+  if (archivesRes.status === 404) throw new Error("User not found on Chess.com.");
+  if (!archivesRes.ok) throw new Error(`Chess.com request failed (${archivesRes.status})`);
 
   const archivesData = await archivesRes.json();
   const archives = Array.isArray(archivesData.archives) ? archivesData.archives : [];
-
   const selectedArchives = archives
     .map((url) => parseChessComArchiveMonth(url))
     .filter((archive) => archive && archive.monthEnd >= rangeFromMs && archive.monthStart <= rangeToMs);
@@ -367,20 +290,15 @@ async function fetchChessComGamesForUser(username) {
   const archiveResponses = await Promise.all(
     selectedArchives.map(async (archive) => {
       const res = await fetch(
-        `/api/chesscom/player/${encodeURIComponent(normalizedUsername)}/games/archive/${archive.year}/${String(
-          archive.month
-        ).padStart(2, "0")}`
+        `/api/chesscom/player/${encodeURIComponent(normalizedUsername)}/games/archive/${archive.year}/${String(archive.month).padStart(2, "0")}`
       );
-      if (!res.ok) {
-        return [];
-      }
+      if (!res.ok) return [];
       const data = await res.json();
       return Array.isArray(data.games) ? data.games : [];
     })
   );
 
   const allGames = archiveResponses.flat();
-
   return allGames
     .filter((game) => (game.end_time || 0) >= rangeFromSec)
     .filter((game) => (game.end_time || 0) <= rangeToSec)
@@ -392,10 +310,7 @@ async function fetchChessComGamesForUser(username) {
       const isWhite = whiteUser === lower;
       const isBlack = blackUser === lower;
       const player = isWhite ? game.white : isBlack ? game.black : null;
-
-      if (!player) {
-        return null;
-      }
+      if (!player) return null;
 
       const playedAt = (game.end_time || game.start_time || 0) * 1000;
       const durationMs =
@@ -416,35 +331,27 @@ async function fetchChessComGamesForUser(username) {
 }
 
 async function fetchAndBuildGames(username) {
-  if (platform === "chesscom") {
-    return fetchChessComGamesForUser(username);
-  }
-
+  if (platform === "chesscom") return fetchChessComGamesForUser(username);
   const lichessGames = await fetchLichessGamesForUser(username);
   return buildFromLichessGames(lichessGames, username);
 }
 
 function buildStats(games) {
   const totalGames = games.length;
-  const wins = games.filter((g) => g.result === "Win").length;
+  const wins = games.filter((g) => g.result === t("stats_result_win")).length;
   const winRate = totalGames === 0 ? 0 : (wins / totalGames) * 100;
 
   const durationValues = games.map((g) => g.durationMs).filter((ms) => typeof ms === "number");
-  const avgDurationMs =
-    durationValues.length === 0 ? null : Math.round(durationValues.reduce((sum, ms) => sum + ms, 0) / durationValues.length);
-
+  const avgDurationMs = durationValues.length === 0 ? null : Math.round(durationValues.reduce((sum, ms) => sum + ms, 0) / durationValues.length);
   const lastPlayedAt = totalGames === 0 ? 0 : games.reduce((latest, g) => Math.max(latest, g.playedAt || 0), 0);
+
   const typeBreakdown = {};
   selectedTypes.forEach((type) => {
     const typeGames = games.filter((g) => g.gameType === type);
-    const typeWins = typeGames.filter((g) => g.result === "Win").length;
+    const typeWins = typeGames.filter((g) => g.result === t("stats_result_win")).length;
     const typeDurationValues = typeGames.map((g) => g.durationMs).filter((ms) => typeof ms === "number");
-    const typeAvgDurationMs =
-      typeDurationValues.length === 0
-        ? null
-        : Math.round(typeDurationValues.reduce((sum, ms) => sum + ms, 0) / typeDurationValues.length);
-    const typeLastPlayedAt =
-      typeGames.length === 0 ? 0 : typeGames.reduce((latest, g) => Math.max(latest, g.playedAt || 0), 0);
+    const typeAvgDurationMs = typeDurationValues.length === 0 ? null : Math.round(typeDurationValues.reduce((sum, ms) => sum + ms, 0) / typeDurationValues.length);
+    const typeLastPlayedAt = typeGames.length === 0 ? 0 : typeGames.reduce((latest, g) => Math.max(latest, g.playedAt || 0), 0);
 
     let typeRatingChange = null;
     if (platform === "lichess") {
@@ -454,7 +361,6 @@ function buildStats(games) {
       const typeRatingsByTime = typeGames
         .filter((g) => typeof g.rating === "number" && g.playedAt)
         .sort((a, b) => a.playedAt - b.playedAt);
-
       if (typeRatingsByTime.length >= 2) {
         const first = typeRatingsByTime[0].rating;
         const last = typeRatingsByTime[typeRatingsByTime.length - 1].rating;
@@ -471,30 +377,7 @@ function buildStats(games) {
     };
   });
 
-  let ratingChangeInRange = null;
-  if (platform === "lichess") {
-    const diffs = games.map((g) => g.ratingDiff).filter((value) => typeof value === "number");
-    ratingChangeInRange = diffs.length === 0 ? null : diffs.reduce((sum, value) => sum + value, 0);
-  } else {
-    const ratingsByTime = games
-      .filter((g) => typeof g.rating === "number" && g.playedAt)
-      .sort((a, b) => a.playedAt - b.playedAt);
-
-    if (ratingsByTime.length >= 2) {
-      const first = ratingsByTime[0].rating;
-      const last = ratingsByTime[ratingsByTime.length - 1].rating;
-      ratingChangeInRange = last - first;
-    }
-  }
-
-  return {
-    totalGames,
-    winRate,
-    avgDurationMs,
-    typeBreakdown,
-    ratingChangeInRange,
-    lastPlayedAt
-  };
+  return { totalGames, winRate, avgDurationMs, typeBreakdown, lastPlayedAt };
 }
 
 function renderRow(username, stats, error = null) {
@@ -513,58 +396,37 @@ function renderRow(username, stats, error = null) {
     body.appendChild(tr);
     renderedUsernameCount += 1;
     updateTableScrollState();
-    exportRows.push({
-      username,
-      games: "",
-      breakdown: "",
-      winRate: "",
-      avgGameDuration: "",
-      ratingChange: "",
-      lastPlayed: "",
-      error: `Load failed: ${error}`
-    });
+
+    exportRows.push({ username, games: "", breakdown: "", winRate: "", avgGameDuration: "", ratingChange: "", lastPlayed: "", error: t("stats_load_failed", { error }) });
     return;
   }
 
   const rows = selectedTypes.map((type) => ({
-      breakdown: formatTypeLabel(type),
-      games: stats.typeBreakdown[type].games,
-      winRate: stats.typeBreakdown[type].winRate,
-      avgDurationMs: stats.typeBreakdown[type].avgDurationMs,
-      ratingChange: stats.typeBreakdown[type].ratingChange,
-      lastPlayedAt: stats.typeBreakdown[type].lastPlayedAt
-    }));
+    breakdown: formatTypeLabel(type),
+    games: stats.typeBreakdown[type].games,
+    winRate: stats.typeBreakdown[type].winRate,
+    avgDurationMs: stats.typeBreakdown[type].avgDurationMs,
+    ratingChange: stats.typeBreakdown[type].ratingChange,
+    lastPlayedAt: stats.typeBreakdown[type].lastPlayedAt
+  }));
 
   rows.forEach((row) => {
     const tr = document.createElement("tr");
+    const cells = [
+      username,
+      String(row.games),
+      row.breakdown,
+      `${row.winRate.toFixed(1)}%`,
+      formatDuration(row.avgDurationMs),
+      formatRatingChange(row.ratingChange),
+      formatDate(row.lastPlayedAt)
+    ];
 
-    const usernameTd = document.createElement("td");
-    usernameTd.textContent = username;
-    tr.appendChild(usernameTd);
-
-    const totalTd = document.createElement("td");
-    totalTd.textContent = String(row.games);
-    tr.appendChild(totalTd);
-
-    const breakdownTd = document.createElement("td");
-    breakdownTd.textContent = row.breakdown;
-    tr.appendChild(breakdownTd);
-
-    const winRateTd = document.createElement("td");
-    winRateTd.textContent = `${row.winRate.toFixed(1)}%`;
-    tr.appendChild(winRateTd);
-
-    const avgTd = document.createElement("td");
-    avgTd.textContent = formatDuration(row.avgDurationMs);
-    tr.appendChild(avgTd);
-
-    const ratingChangeTd = document.createElement("td");
-    ratingChangeTd.textContent = formatRatingChange(row.ratingChange);
-    tr.appendChild(ratingChangeTd);
-
-    const lastPlayedTd = document.createElement("td");
-    lastPlayedTd.textContent = formatDate(row.lastPlayedAt);
-    tr.appendChild(lastPlayedTd);
+    cells.forEach((value) => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(td);
+    });
 
     body.appendChild(tr);
     exportRows.push({
@@ -578,22 +440,19 @@ function renderRow(username, stats, error = null) {
       error: ""
     });
   });
+
   renderedUsernameCount += 1;
   updateTableScrollState();
 }
 
 function setLoading(visible) {
-  if (!loading) {
-    return;
-  }
+  if (!loading) return;
   loading.classList.toggle("hidden", !visible);
 }
 
 if (downloadCsvButton) {
   downloadCsvButton.addEventListener("click", () => {
-    if (exportRows.length === 0) {
-      return;
-    }
+    if (exportRows.length === 0) return;
     downloadCsv();
   });
 }
@@ -603,6 +462,10 @@ if (logoutButton) {
     await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
     window.location.href = "login.html";
   });
+}
+
+if (viewRawLink) {
+  viewRawLink.href = `raw-data.html?${params.toString()}`;
 }
 
 async function run() {
@@ -651,6 +514,4 @@ async function run() {
   });
 }
 
-ensureAuthenticated()
-  .then(() => run())
-  .catch(() => {});
+ensureAuthenticated().then(() => run()).catch(() => {});

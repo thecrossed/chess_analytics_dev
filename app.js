@@ -126,6 +126,14 @@ function normalizeRangeDays(raw) {
   return Math.min(MAX_RANGE_DAYS, Math.max(1, value));
 }
 
+function parseRangeDaysStrict(raw) {
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  return value;
+}
+
 function parseDateInputValue(raw) {
   if (!raw) {
     return null;
@@ -238,7 +246,17 @@ buildPageButton.addEventListener("click", () => {
     return;
   }
 
-  const rangeDays = normalizeRangeDays(rangeDaysInput?.value || "30");
+  const rawRangeDays = rangeDaysInput?.value || "30";
+  const strictRangeDays = parseRangeDaysStrict(rawRangeDays);
+  if (!strictRangeDays || strictRangeDays < 1) {
+    alert(t("alert_invalid_date_selection"));
+    return;
+  }
+  if (strictRangeDays > MAX_RANGE_DAYS) {
+    alert(t("alert_max_120_days", { days: strictRangeDays }));
+    return;
+  }
+  const rangeDays = normalizeRangeDays(rawRangeDays);
   const fromRaw = dateFromInput?.value || "";
   const toRaw = dateToInput?.value || "";
   const hasFrom = Boolean(fromRaw);
@@ -269,7 +287,7 @@ buildPageButton.addEventListener("click", () => {
     }
     const customRangeDays = Math.floor((toMs - fromMs) / (24 * 60 * 60 * 1000)) + 1;
     if (customRangeDays > MAX_RANGE_DAYS) {
-      alert(t("alert_max_120_days"));
+      alert(t("alert_max_120_days", { days: customRangeDays }));
       return;
     }
     params.set("from", fromRaw);

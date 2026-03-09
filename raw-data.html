@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n-title="stats_raw_preview">Raw Data Preview</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card wide">
+        <div class="actions">
+          <small id="auth-user" class="hint-inline"></small>
+          <button id="logout-btn" type="button" data-i18n="nav_logout">Log Out</button>
+        </div>
+
+        <h1 data-i18n="stats_raw_preview">Raw Data Preview</h1>
+        <p id="raw-summary" class="hint" data-i18n="stats_loading">Loading data...</p>
+
+        <div id="raw-table-wrap" class="table-wrap scrollable-rows">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="stats_username">Username</th>
+                <th data-i18n="stats_raw_white_player">White Player</th>
+                <th data-i18n="stats_raw_white_rating">White Rating</th>
+                <th data-i18n="stats_raw_black_player">Black Player</th>
+                <th data-i18n="stats_raw_black_rating">Black Rating</th>
+                <th data-i18n="stats_raw_game_type">Game Type</th>
+                <th data-i18n="stats_raw_result">Result</th>
+                <th data-i18n="stats_raw_played_at">Played At (UTC)</th>
+                <th data-i18n="stats_raw_duration_ms">Duration Ms</th>
+                <th data-i18n="stats_raw_rating_diff">Rating Diff</th>
+              </tr>
+            </thead>
+            <tbody id="raw-body"></tbody>
+          </table>
+        </div>
+
+        <div class="actions">
+          <button id="raw-prev-page" type="button" data-i18n="raw_prev_page">Previous</button>
+          <small id="raw-page-info" class="hint-inline">Page 1/1</small>
+          <button id="raw-next-page" type="button" data-i18n="raw_next_page">Next</button>
+        </div>
+
+        <div class="actions">
+          <button id="download-raw-csv" type="button" disabled data-i18n="stats_download_raw">Download Raw Data</button>
+          <a id="back-stats-link" class="button-link" href="stats.html" data-i18n="nav_back_stats">Back to Game Stats</a>
+          <a class="button-link" href="index.html" data-i18n="nav_back_home">Back to Home</a>
+        </div>
+      </section>
+    </main>
+
+    <script src="language.js"></script>
+    <script src="raw-data.js" type="module"></script>
+  </body>
+</html>
