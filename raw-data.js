@@ -129,6 +129,58 @@ function parseChessComArchiveMonth(url) {
   return { year, month, monthStart, monthEnd };
 }
 
+function parseClockToSeconds(raw) {
+  const match = String(raw || "").match(/^(\d+):(\d{2}):(\d{2}(?:\.\d+)?)$/);
+  if (!match) return null;
+  const hours = Number.parseInt(match[1], 10);
+  const minutes = Number.parseInt(match[2], 10);
+  const seconds = Number.parseFloat(match[3]);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+    return null;
+  }
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function parseTimeControl(timeControl) {
+  const match = String(timeControl || "").trim().match(/^(\d+)(?:\+(\d+))?$/);
+  if (!match) return null;
+  const base = Number.parseInt(match[1], 10);
+  const inc = Number.parseInt(match[2] || "0", 10);
+  if (!Number.isFinite(base) || !Number.isFinite(inc)) return null;
+  return { base, inc };
+}
+
+function estimateDurationFromChessComPgn(pgn, timeControl) {
+  const tc = parseTimeControl(timeControl);
+  if (!tc || typeof pgn !== "string" || pgn.length === 0) return null;
+
+  const clocks = [];
+  const re = /\[%clk\s+(\d+:\d{2}:\d{2}(?:\.\d+)?)\]/g;
+  let match;
+  while ((match = re.exec(pgn)) !== null) {
+    const sec = parseClockToSeconds(match[1]);
+    if (sec !== null) clocks.push(sec);
+  }
+  if (clocks.length === 0) return null;
+
+  let totalSpent = 0;
+  let prevWhite = tc.base;
+  let prevBlack = tc.base;
+  for (let i = 0; i < clocks.length; i += 1) {
+    const isWhitePly = i % 2 === 0;
+    const current = clocks[i];
+    const prev = isWhitePly ? prevWhite : prevBlack;
+    const spent = prev + tc.inc - current;
+    if (Number.isFinite(spent) && spent >= 0 && spent <= tc.base * 2) {
+      totalSpent += spent;
+    }
+    if (isWhitePly) prevWhite = current;
+    else prevBlack = current;
+  }
+
+  return totalSpent > 0 ? Math.round(totalSpent * 1000) : null;
+}
+
 async function fetchLichessGamesForUser(username) {
   const maxGames = 200;
   const normalizedUsername = username.toLowerCase();
@@ -209,10 +261,11 @@ async function fetchChessComGamesForUser(username) {
       if (!player) return null;
 
       const playedAt = (game.end_time || game.start_time || 0) * 1000;
-      const durationMs =
+      const wallDurationMs =
         typeof game.start_time === "number" && typeof game.end_time === "number" && game.end_time >= game.start_time
           ? (game.end_time - game.start_time) * 1000
           : null;
+      const durationMs = wallDurationMs ?? estimateDurationFromChessComPgn(game.pgn, game.time_control);
 
       return {
         playedAt,
