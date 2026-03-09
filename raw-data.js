@@ -129,6 +129,23 @@ function parseChessComArchiveMonth(url) {
   return { year, month, monthStart, monthEnd };
 }
 
+function assignSequentialRatingDiff(games) {
+  const sorted = [...games].sort((a, b) => (a.playedAt || 0) - (b.playedAt || 0));
+  let previousRating = null;
+  sorted.forEach((game) => {
+    const currentRating = typeof game.playerRating === "number" ? game.playerRating : null;
+    if (currentRating === null || previousRating === null) {
+      game.ratingDiff = null;
+    } else {
+      game.ratingDiff = currentRating - previousRating;
+    }
+    if (currentRating !== null) {
+      previousRating = currentRating;
+    }
+  });
+  return sorted;
+}
+
 function parseClockToSeconds(raw) {
   const match = String(raw || "").match(/^(\d+):(\d{2}):(\d{2}(?:\.\d+)?)$/);
   if (!match) return null;
@@ -247,7 +264,7 @@ async function fetchChessComGamesForUser(username) {
   );
 
   const allGames = archiveResponses.flat();
-  return allGames
+  const mapped = allGames
     .filter((game) => (game.end_time || 0) >= rangeFromSec)
     .filter((game) => (game.end_time || 0) <= rangeToSec)
     .filter((game) => selectedTypes.includes((game.time_class || "").toLowerCase()))
@@ -276,10 +293,12 @@ async function fetchChessComGamesForUser(username) {
         whiteRating: typeof game.white?.rating === "number" ? game.white.rating : null,
         blackUsername: game.black?.username || "",
         blackRating: typeof game.black?.rating === "number" ? game.black.rating : null,
+        playerRating: typeof player.rating === "number" ? player.rating : null,
         ratingDiff: null,
       };
     })
     .filter(Boolean);
+  return assignSequentialRatingDiff(mapped);
 }
 
 async function fetchAndBuildGames(username) {
