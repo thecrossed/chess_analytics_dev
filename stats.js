@@ -2,6 +2,7 @@ const summary = document.getElementById("summary");
 const body = document.getElementById("stats-body");
 const loading = document.getElementById("loading");
 const tableWrap = document.getElementById("stats-table-wrap");
+const rawBody = document.getElementById("raw-body");
 const downloadCsvButton = document.getElementById("download-csv");
 const downloadRawCsvButton = document.getElementById("download-raw-csv");
 const authUser = document.getElementById("auth-user");
@@ -241,6 +242,33 @@ function addRawRows(username, games) {
       ratingDiff: typeof g.ratingDiff === "number" ? String(g.ratingDiff) : "",
       rating: typeof g.rating === "number" ? String(g.rating) : ""
     });
+  });
+  renderRawPreview();
+}
+
+function renderRawPreview() {
+  if (!rawBody) {
+    return;
+  }
+  rawBody.innerHTML = "";
+  rawExportRows.forEach((row) => {
+    const tr = document.createElement("tr");
+    const values = [
+      row.username,
+      row.platform,
+      row.gameType,
+      row.result,
+      row.playedAtUtc,
+      row.durationMs,
+      row.ratingDiff,
+      row.rating
+    ];
+    values.forEach((value) => {
+      const td = document.createElement("td");
+      td.textContent = value || "-";
+      tr.appendChild(td);
+    });
+    rawBody.appendChild(tr);
   });
 }
 

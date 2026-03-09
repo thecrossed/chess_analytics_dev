@@ -68,6 +68,15 @@ const TRANSLATIONS = {
     stats_last_played: "Last Played",
     stats_download_csv: "Download CSV",
     stats_download_raw: "Download Raw Data",
+    stats_raw_preview: "Raw Data Preview",
+    stats_raw_preview_hint: "Preview raw games first, then choose whether to download.",
+    stats_raw_platform: "Platform",
+    stats_raw_game_type: "Game Type",
+    stats_raw_result: "Result",
+    stats_raw_played_at: "Played At (UTC)",
+    stats_raw_duration_ms: "Duration Ms",
+    stats_raw_rating_diff: "Rating Diff",
+    stats_raw_rating: "Rating",
     auth_signed_in_as: "Signed in as {username}",
     msg_logging_in: "Logging in...",
     msg_login_failed: "Login failed. Check username/password.",
@@ -186,7 +195,16 @@ const TRANSLATIONS = {
     stats_rating_change: "Variation Elo (période)",
     stats_last_played: "Dernière partie",
     stats_download_csv: "Télécharger CSV",
-    stats_download_raw: "Télécharger les données brutes"
+    stats_download_raw: "Télécharger les données brutes",
+    stats_raw_preview: "Aperçu des données brutes",
+    stats_raw_preview_hint: "Prévisualisez d'abord les parties brutes, puis choisissez de télécharger.",
+    stats_raw_platform: "Plateforme",
+    stats_raw_game_type: "Type de partie",
+    stats_raw_result: "Résultat",
+    stats_raw_played_at: "Joué le (UTC)",
+    stats_raw_duration_ms: "Durée ms",
+    stats_raw_rating_diff: "Diff. Elo",
+    stats_raw_rating: "Elo"
   },
   zh: {
     lang_selector_label: "语言",
@@ -246,7 +264,16 @@ const TRANSLATIONS = {
     stats_rating_change: "等级分变化（范围）",
     stats_last_played: "最近对局",
     stats_download_csv: "下载 CSV",
-    stats_download_raw: "下载原始数据"
+    stats_download_raw: "下载原始数据",
+    stats_raw_preview: "原始数据预览",
+    stats_raw_preview_hint: "先查看原始对局数据，再决定是否下载。",
+    stats_raw_platform: "平台",
+    stats_raw_game_type: "对局类型",
+    stats_raw_result: "结果",
+    stats_raw_played_at: "对局时间 (UTC)",
+    stats_raw_duration_ms: "时长毫秒",
+    stats_raw_rating_diff: "等级分变化",
+    stats_raw_rating: "等级分"
   },
   es: {
     lang_selector_label: "Idioma",
@@ -306,7 +333,16 @@ const TRANSLATIONS = {
     stats_rating_change: "Cambio de rating (rango)",
     stats_last_played: "Última partida",
     stats_download_csv: "Descargar CSV",
-    stats_download_raw: "Descargar datos crudos"
+    stats_download_raw: "Descargar datos crudos",
+    stats_raw_preview: "Vista previa de datos crudos",
+    stats_raw_preview_hint: "Primero revisa las partidas crudas y luego decide si descargar.",
+    stats_raw_platform: "Plataforma",
+    stats_raw_game_type: "Tipo de partida",
+    stats_raw_result: "Resultado",
+    stats_raw_played_at: "Jugado en (UTC)",
+    stats_raw_duration_ms: "Duración ms",
+    stats_raw_rating_diff: "Cambio de rating",
+    stats_raw_rating: "Rating"
   },
   sv: {
     lang_selector_label: "Språk",
@@ -366,7 +402,16 @@ const TRANSLATIONS = {
     stats_rating_change: "Ratingändring (intervall)",
     stats_last_played: "Senast spelad",
     stats_download_csv: "Ladda ner CSV",
-    stats_download_raw: "Ladda ner rådata"
+    stats_download_raw: "Ladda ner rådata",
+    stats_raw_preview: "Förhandsgranskning av rådata",
+    stats_raw_preview_hint: "Visa först råpartier och välj sedan om du vill ladda ner.",
+    stats_raw_platform: "Plattform",
+    stats_raw_game_type: "Partityp",
+    stats_raw_result: "Resultat",
+    stats_raw_played_at: "Spelad vid (UTC)",
+    stats_raw_duration_ms: "Varaktighet ms",
+    stats_raw_rating_diff: "Ratingförändring",
+    stats_raw_rating: "Rating"
   }
 };
 

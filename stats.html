@@ -37,6 +37,26 @@
           </table>
         </div>
 
+        <h2 data-i18n="stats_raw_preview">Raw Data Preview</h2>
+        <p class="hint" data-i18n="stats_raw_preview_hint">Preview raw games first, then choose whether to download.</p>
+        <div id="raw-table-wrap" class="table-wrap scrollable-rows">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="stats_username">Username</th>
+                <th data-i18n="stats_raw_platform">Platform</th>
+                <th data-i18n="stats_raw_game_type">Game Type</th>
+                <th data-i18n="stats_raw_result">Result</th>
+                <th data-i18n="stats_raw_played_at">Played At (UTC)</th>
+                <th data-i18n="stats_raw_duration_ms">Duration Ms</th>
+                <th data-i18n="stats_raw_rating_diff">Rating Diff</th>
+                <th data-i18n="stats_raw_rating">Rating</th>
+              </tr>
+            </thead>
+            <tbody id="raw-body"></tbody>
+          </table>
+        </div>
+
         <div class="actions">
           <button id="download-csv" type="button" disabled data-i18n="stats_download_csv">Download CSV</button>
           <button id="download-raw-csv" type="button" disabled data-i18n="stats_download_raw">Download Raw Data</button>
