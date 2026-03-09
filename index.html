@@ -15,7 +15,7 @@
           <button id="logout-btn" type="button">Log Out</button>
         </div>
         <h1>Chess Data Stats</h1>
-        <p class="hint">Add one or more usernames and choose a range (max 120 days).</p>
+        <p class="hint">Add one or more usernames and choose a date range (max 120 days).</p>
         <div class="row import-row">
           <label for="platform">Platform</label>
           <select id="platform" name="platform">
@@ -24,8 +24,12 @@
           </select>
         </div>
         <div class="row import-row">
-          <label for="range-days">Range (days)</label>
-          <input id="range-days" name="range-days" type="number" min="1" max="120" step="1" value="30" />
+          <label for="date-from">From</label>
+          <input id="date-from" name="date-from" type="date" />
+        </div>
+        <div class="row import-row">
+          <label for="date-to">To</label>
+          <input id="date-to" name="date-to" type="date" />
         </div>
         <div class="row import-row">
           <span>Game Types</span>

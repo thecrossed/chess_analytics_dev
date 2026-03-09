@@ -10,6 +10,8 @@ const params = new URLSearchParams(window.location.search);
 const usersParam = params.get("users") || "";
 const platformParam = params.get("platform") || "lichess";
 const daysParam = params.get("days") || "30";
+const fromParam = params.get("from") || "";
+const toParam = params.get("to") || "";
 const typesParam = params.get("types") || "bullet,blitz,rapid";
 const usernames = usersParam
   .split(",")
@@ -28,8 +30,43 @@ function normalizeDays(raw) {
   return Math.min(120, Math.max(1, value));
 }
 
+function parseDateParam(raw, isEnd = false) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return null;
+  }
+  const baseMs = Date.parse(`${raw}T00:00:00Z`);
+  if (!Number.isFinite(baseMs)) {
+    return null;
+  }
+  if (!isEnd) {
+    return baseMs;
+  }
+  return baseMs + 24 * 60 * 60 * 1000 - 1;
+}
+
+function formatDateKey(ms) {
+  const d = new Date(ms);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 const platform = normalizePlatform(platformParam);
-const rangeDays = normalizeDays(daysParam);
+const fallbackDays = normalizeDays(daysParam);
+const explicitFromMs = parseDateParam(fromParam, false);
+const explicitToMs = parseDateParam(toParam, true);
+const defaultToMs = Date.now();
+const defaultFromMs = defaultToMs - (fallbackDays - 1) * 24 * 60 * 60 * 1000;
+const MAX_RANGE_MS = (120 - 1) * 24 * 60 * 60 * 1000;
+let rangeFromMs = explicitFromMs && explicitToMs && explicitFromMs <= explicitToMs ? explicitFromMs : defaultFromMs;
+const rangeToMs = explicitFromMs && explicitToMs && explicitFromMs <= explicitToMs ? explicitToMs : defaultToMs;
+if (rangeToMs - rangeFromMs > MAX_RANGE_MS) {
+  rangeFromMs = rangeToMs - MAX_RANGE_MS;
+}
+const rangeFromSec = Math.floor(rangeFromMs / 1000);
+const rangeToSec = Math.floor(rangeToMs / 1000);
+const rangeLabel = `${formatDateKey(rangeFromMs)} to ${formatDateKey(rangeToMs)}`;
 const allowedTypes = new Set(["bullet", "blitz", "rapid"]);
 const selectedTypes = Array.from(
   new Set(
@@ -156,7 +193,7 @@ function downloadCsv() {
   const a = document.createElement("a");
   const safePlatform = platform === "chesscom" ? "chesscom" : "lichess";
   a.href = url;
-  a.download = `game-stats-${safePlatform}-${rangeDays}d.csv`;
+  a.download = `game-stats-${safePlatform}-${formatDateKey(rangeFromMs)}-to-${formatDateKey(rangeToMs)}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -250,13 +287,12 @@ function parseChessComArchiveMonth(url) {
 }
 
 async function fetchLichessGamesForUser(username) {
-  const sinceMs = Date.now() - rangeDays * 24 * 60 * 60 * 1000;
   const maxGames = 200;
   const normalizedUsername = username.toLowerCase();
   const perfTypeParam = selectedTypes.join(",");
   const url = `https://lichess.org/api/games/user/${encodeURIComponent(
     normalizedUsername
-  )}?since=${sinceMs}&max=${maxGames}&clocks=true&moves=false&opening=false&pgnInJson=false&perfType=${encodeURIComponent(
+  )}?since=${rangeFromMs}&until=${rangeToMs}&max=${maxGames}&clocks=true&moves=false&opening=false&pgnInJson=false&perfType=${encodeURIComponent(
     perfTypeParam
   )}`;
 
@@ -300,12 +336,11 @@ function buildFromLichessGames(games, username) {
         rating: null
       };
     })
-    .filter((g) => g.playedAt > 0);
+    .filter((g) => g.playedAt > 0)
+    .filter((g) => g.playedAt >= rangeFromMs && g.playedAt <= rangeToMs);
 }
 
 async function fetchChessComGamesForUser(username) {
-  const sinceMs = Date.now() - rangeDays * 24 * 60 * 60 * 1000;
-  const sinceSec = Math.floor(sinceMs / 1000);
   const normalizedUsername = username.toLowerCase();
 
   const archivesRes = await fetch(
@@ -323,7 +358,7 @@ async function fetchChessComGamesForUser(username) {
 
   const selectedArchives = archives
     .map((url) => parseChessComArchiveMonth(url))
-    .filter((archive) => archive && archive.monthEnd >= sinceMs);
+    .filter((archive) => archive && archive.monthEnd >= rangeFromMs && archive.monthStart <= rangeToMs);
 
   const archiveResponses = await Promise.all(
     selectedArchives.map(async (archive) => {
@@ -343,7 +378,8 @@ async function fetchChessComGamesForUser(username) {
   const allGames = archiveResponses.flat();
 
   return allGames
-    .filter((game) => (game.end_time || 0) >= sinceSec)
+    .filter((game) => (game.end_time || 0) >= rangeFromSec)
+    .filter((game) => (game.end_time || 0) <= rangeToSec)
     .filter((game) => selectedTypes.includes((game.time_class || "").toLowerCase()))
     .map((game) => {
       const whiteUser = game.white?.username?.toLowerCase();
@@ -597,7 +633,7 @@ async function run() {
     downloadCsvButton.disabled = exportRows.length === 0;
   }
   updateTableScrollState();
-  summary.textContent = `Completed ${finished}/${usernames.length}. Range: last ${rangeDays} days (${platformLabel}, ${typeLabel}).`;
+  summary.textContent = `Completed ${finished}/${usernames.length}. Range: ${rangeLabel} (${platformLabel}, ${typeLabel}).`;
 }
 
 ensureAuthenticated()
