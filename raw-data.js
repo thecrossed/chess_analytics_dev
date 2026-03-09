@@ -160,8 +160,11 @@ function buildFromLichessGames(games, username) {
         gameType: normalizeGameType(game.speed || game.perf),
         durationMs,
         result: getResultFromLichessGame(game, username),
+        whiteUsername: game.players?.white?.user?.name || "",
+        whiteRating: typeof game.players?.white?.rating === "number" ? game.players.white.rating : null,
+        blackUsername: game.players?.black?.user?.name || "",
+        blackRating: typeof game.players?.black?.rating === "number" ? game.players.black.rating : null,
         ratingDiff: typeof player?.ratingDiff === "number" ? player.ratingDiff : null,
-        rating: null
       };
     })
     .filter((g) => g.playedAt > 0)
@@ -216,8 +219,11 @@ async function fetchChessComGamesForUser(username) {
         gameType: normalizeGameType(game.time_class),
         durationMs,
         result: normalizeChessComResult(player.result),
+        whiteUsername: game.white?.username || "",
+        whiteRating: typeof game.white?.rating === "number" ? game.white.rating : null,
+        blackUsername: game.black?.username || "",
+        blackRating: typeof game.black?.rating === "number" ? game.black.rating : null,
         ratingDiff: null,
-        rating: typeof player.rating === "number" ? player.rating : null
       };
     })
     .filter(Boolean);
@@ -233,13 +239,15 @@ function addRawRows(username, games) {
   games.forEach((g) => {
     rawExportRows.push({
       username,
-      platform: platform === "chesscom" ? "Chess.com" : "Lichess",
+      whiteUsername: g.whiteUsername || "",
+      whiteRating: typeof g.whiteRating === "number" ? String(g.whiteRating) : "",
+      blackUsername: g.blackUsername || "",
+      blackRating: typeof g.blackRating === "number" ? String(g.blackRating) : "",
       gameType: g.gameType || "",
       result: g.result || "",
       playedAtUtc: g.playedAt ? new Date(g.playedAt).toISOString() : "",
       durationMs: typeof g.durationMs === "number" ? String(g.durationMs) : "",
-      ratingDiff: typeof g.ratingDiff === "number" ? String(g.ratingDiff) : "",
-      rating: typeof g.rating === "number" ? String(g.rating) : ""
+      ratingDiff: typeof g.ratingDiff === "number" ? String(g.ratingDiff) : ""
     });
   });
 }
@@ -254,7 +262,18 @@ function renderRawPreview() {
 
   rawExportRows.slice(startIndex, endIndex).forEach((row) => {
     const tr = document.createElement("tr");
-    [row.username, row.platform, row.gameType, row.result, row.playedAtUtc, row.durationMs, row.ratingDiff, row.rating].forEach((value) => {
+    [
+      row.username,
+      row.whiteUsername,
+      row.whiteRating,
+      row.blackUsername,
+      row.blackRating,
+      row.gameType,
+      row.result,
+      row.playedAtUtc,
+      row.durationMs,
+      row.ratingDiff
+    ].forEach((value) => {
       const td = document.createElement("td");
       td.textContent = value || "-";
       tr.appendChild(td);
@@ -268,11 +287,33 @@ function renderRawPreview() {
 }
 
 function downloadRawCsv() {
-  const header = ["Username", "Platform", "Game Type", "Result", "Played At (UTC)", "Duration Ms", "Rating Diff", "Rating"];
+  const header = [
+    "Username",
+    "White Player",
+    "White Rating",
+    "Black Player",
+    "Black Rating",
+    "Game Type",
+    "Result",
+    "Played At (UTC)",
+    "Duration Ms",
+    "Rating Diff"
+  ];
   const lines = [header.map(csvEscape).join(",")];
   rawExportRows.forEach((row) => {
     lines.push(
-      [row.username, row.platform, row.gameType, row.result, row.playedAtUtc, row.durationMs, row.ratingDiff, row.rating]
+      [
+        row.username,
+        row.whiteUsername,
+        row.whiteRating,
+        row.blackUsername,
+        row.blackRating,
+        row.gameType,
+        row.result,
+        row.playedAtUtc,
+        row.durationMs,
+        row.ratingDiff
+      ]
         .map(csvEscape)
         .join(",")
     );
