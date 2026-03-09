@@ -84,6 +84,11 @@ function csvEscape(value) {
   return `"${raw.replace(/"/g, '""')}"`;
 }
 
+function formatDurationMinutes(ms) {
+  if (typeof ms !== "number") return "";
+  return (ms / 60000).toFixed(2);
+}
+
 function normalizeGameType(value) {
   const normalized = (value || "").toLowerCase();
   return allowedTypes.has(normalized) ? normalized : null;
@@ -318,7 +323,7 @@ function addRawRows(username, games) {
       gameType: g.gameType || "",
       result: g.result || "",
       playedAtUtc: g.playedAt ? new Date(g.playedAt).toISOString() : "",
-      durationMs: typeof g.durationMs === "number" ? String(g.durationMs) : "",
+      durationMinutes: formatDurationMinutes(g.durationMs),
       ratingDiff: typeof g.ratingDiff === "number" ? String(g.ratingDiff) : ""
     });
   });
@@ -343,7 +348,7 @@ function renderRawPreview() {
       row.gameType,
       row.result,
       row.playedAtUtc,
-      row.durationMs,
+      row.durationMinutes,
       row.ratingDiff
     ].forEach((value) => {
       const td = document.createElement("td");
@@ -368,7 +373,7 @@ function downloadRawCsv() {
     "Game Type",
     "Result",
     "Played At (UTC)",
-    "Duration Ms",
+    "Duration (min)",
     "Rating Diff"
   ];
   const lines = [header.map(csvEscape).join(",")];
@@ -383,7 +388,7 @@ function downloadRawCsv() {
         row.gameType,
         row.result,
         row.playedAtUtc,
-        row.durationMs,
+        row.durationMinutes,
         row.ratingDiff
       ]
         .map(csvEscape)
