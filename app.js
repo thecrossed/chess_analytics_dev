@@ -3,7 +3,8 @@ const input = document.getElementById("username");
 const userList = document.getElementById("user-list");
 const buildPageButton = document.getElementById("build-page");
 const platformSelect = document.getElementById("platform");
-const rangeDaysInput = document.getElementById("range-days");
+const dateFromInput = document.getElementById("date-from");
+const dateToInput = document.getElementById("date-to");
 const uploadCsvButton = document.getElementById("upload-csv");
 const csvFileInput = document.getElementById("csv-file");
 const gameTypeInputs = Array.from(document.querySelectorAll('input[name="game-type"]'));
@@ -14,6 +15,7 @@ const users = new Set();
 const USERNAME_RE = /^[A-Za-z0-9_-]{2,30}$/;
 const DEFAULT_USERNAME = "MagnusCarlsen";
 const MAX_VISIBLE_USERS = 20;
+const MAX_RANGE_DAYS = 120;
 
 async function ensureAuthenticated() {
   const res = await fetch("/api/auth/me", { credentials: "same-origin" });
@@ -107,12 +109,34 @@ function parseCsvUsernames(csvText) {
   return tokens;
 }
 
-function normalizeRangeDays(raw) {
-  const value = Number.parseInt(raw, 10);
-  if (!Number.isFinite(value)) {
-    return 30;
+function toDateInputValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInputValue(raw) {
+  if (!raw) {
+    return null;
   }
-  return Math.min(120, Math.max(1, value));
+  const ms = Date.parse(`${raw}T00:00:00Z`);
+  if (!Number.isFinite(ms)) {
+    return null;
+  }
+  return ms;
+}
+
+function ensureDefaultDateRange() {
+  const today = new Date();
+  const fromDate = new Date(today);
+  fromDate.setDate(fromDate.getDate() - 29);
+  if (dateFromInput && !dateFromInput.value) {
+    dateFromInput.value = toDateInputValue(fromDate);
+  }
+  if (dateToInput && !dateToInput.value) {
+    dateToInput.value = toDateInputValue(today);
+  }
 }
 
 function getSelectedGameTypes() {
@@ -198,14 +222,34 @@ buildPageButton.addEventListener("click", () => {
     return;
   }
 
+  const fromRaw = dateFromInput?.value || "";
+  const toRaw = dateToInput?.value || "";
+  const fromMs = parseDateInputValue(fromRaw);
+  const toMs = parseDateInputValue(toRaw);
+  if (!fromMs || !toMs) {
+    alert("Please select both From and To dates.");
+    return;
+  }
+  if (fromMs > toMs) {
+    alert("From date cannot be after To date.");
+    return;
+  }
+  const rangeDays = Math.floor((toMs - fromMs) / (24 * 60 * 60 * 1000)) + 1;
+  if (rangeDays > MAX_RANGE_DAYS) {
+    alert("Date range cannot exceed 120 days.");
+    return;
+  }
+
   const params = new URLSearchParams({
     users: Array.from(users).join(","),
     platform: platformSelect.value,
-    days: String(normalizeRangeDays(rangeDaysInput.value)),
+    from: fromRaw,
+    to: toRaw,
     types: selectedTypes.join(",")
   });
 
   window.location.href = `stats.html?${params.toString()}`;
 });
 
+ensureDefaultDateRange();
 ensureAuthenticated().catch(() => {});
