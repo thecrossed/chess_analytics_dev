@@ -77,6 +77,8 @@ const TRANSLATIONS = {
     stats_raw_duration_ms: "Duration Ms",
     stats_raw_rating_diff: "Rating Diff",
     stats_raw_rating: "Rating",
+    raw_prev_page: "Previous",
+    raw_next_page: "Next",
     auth_signed_in_as: "Signed in as {username}",
     msg_logging_in: "Logging in...",
     msg_login_failed: "Login failed. Check username/password.",
@@ -204,7 +206,9 @@ const TRANSLATIONS = {
     stats_raw_played_at: "Joué le (UTC)",
     stats_raw_duration_ms: "Durée ms",
     stats_raw_rating_diff: "Diff. Elo",
-    stats_raw_rating: "Elo"
+    stats_raw_rating: "Elo",
+    raw_prev_page: "Précédent",
+    raw_next_page: "Suivant"
   },
   zh: {
     lang_selector_label: "语言",
@@ -273,7 +277,9 @@ const TRANSLATIONS = {
     stats_raw_played_at: "对局时间 (UTC)",
     stats_raw_duration_ms: "时长毫秒",
     stats_raw_rating_diff: "等级分变化",
-    stats_raw_rating: "等级分"
+    stats_raw_rating: "等级分",
+    raw_prev_page: "上一页",
+    raw_next_page: "下一页"
   },
   es: {
     lang_selector_label: "Idioma",
@@ -342,7 +348,9 @@ const TRANSLATIONS = {
     stats_raw_played_at: "Jugado en (UTC)",
     stats_raw_duration_ms: "Duración ms",
     stats_raw_rating_diff: "Cambio de rating",
-    stats_raw_rating: "Rating"
+    stats_raw_rating: "Rating",
+    raw_prev_page: "Anterior",
+    raw_next_page: "Siguiente"
   },
   sv: {
     lang_selector_label: "Språk",
@@ -411,7 +419,9 @@ const TRANSLATIONS = {
     stats_raw_played_at: "Spelad vid (UTC)",
     stats_raw_duration_ms: "Varaktighet ms",
     stats_raw_rating_diff: "Ratingförändring",
-    stats_raw_rating: "Rating"
+    stats_raw_rating: "Rating",
+    raw_prev_page: "Föregående",
+    raw_next_page: "Nästa"
   }
 };
 

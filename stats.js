@@ -3,6 +3,9 @@ const body = document.getElementById("stats-body");
 const loading = document.getElementById("loading");
 const tableWrap = document.getElementById("stats-table-wrap");
 const rawBody = document.getElementById("raw-body");
+const rawPrevPageButton = document.getElementById("raw-prev-page");
+const rawNextPageButton = document.getElementById("raw-next-page");
+const rawPageInfo = document.getElementById("raw-page-info");
 const downloadCsvButton = document.getElementById("download-csv");
 const downloadRawCsvButton = document.getElementById("download-raw-csv");
 const authUser = document.getElementById("auth-user");
@@ -87,7 +90,9 @@ if (selectedTypes.length === 0) {
 const exportRows = [];
 const rawExportRows = [];
 const MAX_VISIBLE_ROWS_BEFORE_SCROLL = 20;
+const RAW_PAGE_SIZE = 50;
 let renderedUsernameCount = 0;
+let rawCurrentPage = 1;
 
 async function ensureAuthenticated() {
   const res = await fetch("/api/auth/me", { credentials: "same-origin" });
@@ -251,7 +256,13 @@ function renderRawPreview() {
     return;
   }
   rawBody.innerHTML = "";
-  rawExportRows.forEach((row) => {
+  const totalPages = Math.max(1, Math.ceil(rawExportRows.length / RAW_PAGE_SIZE));
+  if (rawCurrentPage > totalPages) {
+    rawCurrentPage = totalPages;
+  }
+  const startIndex = (rawCurrentPage - 1) * RAW_PAGE_SIZE;
+  const endIndex = startIndex + RAW_PAGE_SIZE;
+  rawExportRows.slice(startIndex, endIndex).forEach((row) => {
     const tr = document.createElement("tr");
     const values = [
       row.username,
@@ -270,6 +281,16 @@ function renderRawPreview() {
     });
     rawBody.appendChild(tr);
   });
+
+  if (rawPrevPageButton) {
+    rawPrevPageButton.disabled = rawCurrentPage <= 1;
+  }
+  if (rawNextPageButton) {
+    rawNextPageButton.disabled = rawCurrentPage >= totalPages;
+  }
+  if (rawPageInfo) {
+    rawPageInfo.textContent = `Page ${rawCurrentPage}/${totalPages}`;
+  }
 }
 
 function updateTableScrollState() {
@@ -672,6 +693,27 @@ if (downloadRawCsvButton) {
       return;
     }
     downloadRawCsv();
+  });
+}
+
+if (rawPrevPageButton) {
+  rawPrevPageButton.addEventListener("click", () => {
+    if (rawCurrentPage <= 1) {
+      return;
+    }
+    rawCurrentPage -= 1;
+    renderRawPreview();
+  });
+}
+
+if (rawNextPageButton) {
+  rawNextPageButton.addEventListener("click", () => {
+    const totalPages = Math.max(1, Math.ceil(rawExportRows.length / RAW_PAGE_SIZE));
+    if (rawCurrentPage >= totalPages) {
+      return;
+    }
+    rawCurrentPage += 1;
+    renderRawPreview();
   });
 }
 
