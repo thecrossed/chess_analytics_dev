@@ -89,6 +89,12 @@ function formatDurationMinutes(ms) {
   return (ms / 60000).toFixed(2);
 }
 
+function formatRatingGap(whiteRating, blackRating) {
+  if (typeof whiteRating !== "number" || typeof blackRating !== "number") return "";
+  const gap = whiteRating - blackRating;
+  return gap > 0 ? `+${gap}` : String(gap);
+}
+
 function normalizeGameType(value) {
   const normalized = (value || "").toLowerCase();
   return allowedTypes.has(normalized) ? normalized : null;
@@ -320,6 +326,7 @@ function addRawRows(username, games) {
       whiteRating: typeof g.whiteRating === "number" ? String(g.whiteRating) : "",
       blackUsername: g.blackUsername || "",
       blackRating: typeof g.blackRating === "number" ? String(g.blackRating) : "",
+      ratingGap: formatRatingGap(g.whiteRating, g.blackRating),
       gameType: g.gameType || "",
       result: g.result || "",
       playedAtUtc: g.playedAt ? new Date(g.playedAt).toISOString() : "",
@@ -345,6 +352,7 @@ function renderRawPreview() {
       row.whiteRating,
       row.blackUsername,
       row.blackRating,
+      row.ratingGap,
       row.gameType,
       row.result,
       row.playedAtUtc,
@@ -370,6 +378,7 @@ function downloadRawCsv() {
     "White Rating",
     "Black Player",
     "Black Rating",
+    "Rating Gap",
     "Game Type",
     "Result",
     "Played At (UTC)",
@@ -385,6 +394,7 @@ function downloadRawCsv() {
         row.whiteRating,
         row.blackUsername,
         row.blackRating,
+        row.ratingGap,
         row.gameType,
         row.result,
         row.playedAtUtc,
