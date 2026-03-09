@@ -84,6 +84,17 @@ function csvEscape(value) {
   return `"${raw.replace(/"/g, '""')}"`;
 }
 
+function formatDurationMinutes(ms) {
+  if (typeof ms !== "number") return "";
+  return (ms / 60000).toFixed(2);
+}
+
+function formatRatingGap(whiteRating, blackRating) {
+  if (typeof whiteRating !== "number" || typeof blackRating !== "number") return "";
+  const gap = whiteRating - blackRating;
+  return gap > 0 ? `+${gap}` : String(gap);
+}
+
 function normalizeGameType(value) {
   const normalized = (value || "").toLowerCase();
   return allowedTypes.has(normalized) ? normalized : null;
@@ -127,6 +138,75 @@ function parseChessComArchiveMonth(url) {
   const monthStart = Date.UTC(year, month - 1, 1);
   const monthEnd = Date.UTC(year, month, 0, 23, 59, 59, 999);
   return { year, month, monthStart, monthEnd };
+}
+
+function assignSequentialRatingDiff(games) {
+  const sorted = [...games].sort((a, b) => (a.playedAt || 0) - (b.playedAt || 0));
+  let previousRating = null;
+  sorted.forEach((game) => {
+    const currentRating = typeof game.playerRating === "number" ? game.playerRating : null;
+    if (currentRating === null || previousRating === null) {
+      game.ratingDiff = null;
+    } else {
+      game.ratingDiff = currentRating - previousRating;
+    }
+    if (currentRating !== null) {
+      previousRating = currentRating;
+    }
+  });
+  return sorted;
+}
+
+function parseClockToSeconds(raw) {
+  const match = String(raw || "").match(/^(\d+):(\d{2}):(\d{2}(?:\.\d+)?)$/);
+  if (!match) return null;
+  const hours = Number.parseInt(match[1], 10);
+  const minutes = Number.parseInt(match[2], 10);
+  const seconds = Number.parseFloat(match[3]);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+    return null;
+  }
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function parseTimeControl(timeControl) {
+  const match = String(timeControl || "").trim().match(/^(\d+)(?:\+(\d+))?$/);
+  if (!match) return null;
+  const base = Number.parseInt(match[1], 10);
+  const inc = Number.parseInt(match[2] || "0", 10);
+  if (!Number.isFinite(base) || !Number.isFinite(inc)) return null;
+  return { base, inc };
+}
+
+function estimateDurationFromChessComPgn(pgn, timeControl) {
+  const tc = parseTimeControl(timeControl);
+  if (!tc || typeof pgn !== "string" || pgn.length === 0) return null;
+
+  const clocks = [];
+  const re = /\[%clk\s+(\d+:\d{2}:\d{2}(?:\.\d+)?)\]/g;
+  let match;
+  while ((match = re.exec(pgn)) !== null) {
+    const sec = parseClockToSeconds(match[1]);
+    if (sec !== null) clocks.push(sec);
+  }
+  if (clocks.length === 0) return null;
+
+  let totalSpent = 0;
+  let prevWhite = tc.base;
+  let prevBlack = tc.base;
+  for (let i = 0; i < clocks.length; i += 1) {
+    const isWhitePly = i % 2 === 0;
+    const current = clocks[i];
+    const prev = isWhitePly ? prevWhite : prevBlack;
+    const spent = prev + tc.inc - current;
+    if (Number.isFinite(spent) && spent >= 0 && spent <= tc.base * 2) {
+      totalSpent += spent;
+    }
+    if (isWhitePly) prevWhite = current;
+    else prevBlack = current;
+  }
+
+  return totalSpent > 0 ? Math.round(totalSpent * 1000) : null;
 }
 
 async function fetchLichessGamesForUser(username) {
@@ -195,7 +275,7 @@ async function fetchChessComGamesForUser(username) {
   );
 
   const allGames = archiveResponses.flat();
-  return allGames
+  const mapped = allGames
     .filter((game) => (game.end_time || 0) >= rangeFromSec)
     .filter((game) => (game.end_time || 0) <= rangeToSec)
     .filter((game) => selectedTypes.includes((game.time_class || "").toLowerCase()))
@@ -209,10 +289,11 @@ async function fetchChessComGamesForUser(username) {
       if (!player) return null;
 
       const playedAt = (game.end_time || game.start_time || 0) * 1000;
-      const durationMs =
+      const wallDurationMs =
         typeof game.start_time === "number" && typeof game.end_time === "number" && game.end_time >= game.start_time
           ? (game.end_time - game.start_time) * 1000
           : null;
+      const durationMs = wallDurationMs ?? estimateDurationFromChessComPgn(game.pgn, game.time_control);
 
       return {
         playedAt,
@@ -223,10 +304,12 @@ async function fetchChessComGamesForUser(username) {
         whiteRating: typeof game.white?.rating === "number" ? game.white.rating : null,
         blackUsername: game.black?.username || "",
         blackRating: typeof game.black?.rating === "number" ? game.black.rating : null,
+        playerRating: typeof player.rating === "number" ? player.rating : null,
         ratingDiff: null,
       };
     })
     .filter(Boolean);
+  return assignSequentialRatingDiff(mapped);
 }
 
 async function fetchAndBuildGames(username) {
@@ -243,10 +326,11 @@ function addRawRows(username, games) {
       whiteRating: typeof g.whiteRating === "number" ? String(g.whiteRating) : "",
       blackUsername: g.blackUsername || "",
       blackRating: typeof g.blackRating === "number" ? String(g.blackRating) : "",
+      ratingGap: formatRatingGap(g.whiteRating, g.blackRating),
       gameType: g.gameType || "",
       result: g.result || "",
       playedAtUtc: g.playedAt ? new Date(g.playedAt).toISOString() : "",
-      durationMs: typeof g.durationMs === "number" ? String(g.durationMs) : "",
+      durationMinutes: formatDurationMinutes(g.durationMs),
       ratingDiff: typeof g.ratingDiff === "number" ? String(g.ratingDiff) : ""
     });
   });
@@ -268,10 +352,11 @@ function renderRawPreview() {
       row.whiteRating,
       row.blackUsername,
       row.blackRating,
+      row.ratingGap,
       row.gameType,
       row.result,
       row.playedAtUtc,
-      row.durationMs,
+      row.durationMinutes,
       row.ratingDiff
     ].forEach((value) => {
       const td = document.createElement("td");
@@ -293,11 +378,12 @@ function downloadRawCsv() {
     "White Rating",
     "Black Player",
     "Black Rating",
+    "Rating Gap (White-Black)",
     "Game Type",
     "Result",
     "Played At (UTC)",
-    "Duration Ms",
-    "Rating Diff"
+    "Duration (min)",
+    "Rating Diff (User Change)"
   ];
   const lines = [header.map(csvEscape).join(",")];
   rawExportRows.forEach((row) => {
@@ -308,10 +394,11 @@ function downloadRawCsv() {
         row.whiteRating,
         row.blackUsername,
         row.blackRating,
+        row.ratingGap,
         row.gameType,
         row.result,
         row.playedAtUtc,
-        row.durationMs,
+        row.durationMinutes,
         row.ratingDiff
       ]
         .map(csvEscape)
