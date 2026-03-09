@@ -67,6 +67,7 @@ const TRANSLATIONS = {
     stats_rating_change: "Rating Change (Range)",
     stats_last_played: "Last Played",
     stats_download_csv: "Download CSV",
+    stats_download_raw: "Download Raw Data",
     auth_signed_in_as: "Signed in as {username}",
     msg_logging_in: "Logging in...",
     msg_login_failed: "Login failed. Check username/password.",
@@ -184,7 +185,8 @@ const TRANSLATIONS = {
     stats_avg_duration: "Durée moyenne",
     stats_rating_change: "Variation Elo (période)",
     stats_last_played: "Dernière partie",
-    stats_download_csv: "Télécharger CSV"
+    stats_download_csv: "Télécharger CSV",
+    stats_download_raw: "Télécharger les données brutes"
   },
   zh: {
     lang_selector_label: "语言",
@@ -243,7 +245,8 @@ const TRANSLATIONS = {
     stats_avg_duration: "平均时长",
     stats_rating_change: "等级分变化（范围）",
     stats_last_played: "最近对局",
-    stats_download_csv: "下载 CSV"
+    stats_download_csv: "下载 CSV",
+    stats_download_raw: "下载原始数据"
   },
   es: {
     lang_selector_label: "Idioma",
@@ -302,7 +305,8 @@ const TRANSLATIONS = {
     stats_avg_duration: "Duración media",
     stats_rating_change: "Cambio de rating (rango)",
     stats_last_played: "Última partida",
-    stats_download_csv: "Descargar CSV"
+    stats_download_csv: "Descargar CSV",
+    stats_download_raw: "Descargar datos crudos"
   },
   sv: {
     lang_selector_label: "Språk",
@@ -361,7 +365,8 @@ const TRANSLATIONS = {
     stats_avg_duration: "Genomsnittlig speltid",
     stats_rating_change: "Ratingändring (intervall)",
     stats_last_played: "Senast spelad",
-    stats_download_csv: "Ladda ner CSV"
+    stats_download_csv: "Ladda ner CSV",
+    stats_download_raw: "Ladda ner rådata"
   }
 };
 

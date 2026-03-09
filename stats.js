@@ -3,6 +3,7 @@ const body = document.getElementById("stats-body");
 const loading = document.getElementById("loading");
 const tableWrap = document.getElementById("stats-table-wrap");
 const downloadCsvButton = document.getElementById("download-csv");
+const downloadRawCsvButton = document.getElementById("download-raw-csv");
 const authUser = document.getElementById("auth-user");
 const logoutButton = document.getElementById("logout-btn");
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
@@ -83,6 +84,7 @@ if (selectedTypes.length === 0) {
 }
 
 const exportRows = [];
+const rawExportRows = [];
 const MAX_VISIBLE_ROWS_BEFORE_SCROLL = 20;
 let renderedUsernameCount = 0;
 
@@ -204,6 +206,44 @@ function downloadCsv() {
   URL.revokeObjectURL(url);
 }
 
+function downloadRawCsv() {
+  const header = ["Username", "Platform", "Game Type", "Result", "Played At (UTC)", "Duration Ms", "Rating Diff", "Rating"];
+  const lines = [header.map(csvEscape).join(",")];
+  rawExportRows.forEach((row) => {
+    lines.push(
+      [row.username, row.platform, row.gameType, row.result, row.playedAtUtc, row.durationMs, row.ratingDiff, row.rating]
+        .map(csvEscape)
+        .join(",")
+    );
+  });
+  const csvContent = lines.join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const safePlatform = platform === "chesscom" ? "chesscom" : "lichess";
+  a.href = url;
+  a.download = `raw-games-${safePlatform}-${formatDateKey(rangeFromMs)}-to-${formatDateKey(rangeToMs)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function addRawRows(username, games) {
+  games.forEach((g) => {
+    rawExportRows.push({
+      username,
+      platform: platform === "chesscom" ? "Chess.com" : "Lichess",
+      gameType: g.gameType || "",
+      result: g.result || "",
+      playedAtUtc: g.playedAt ? new Date(g.playedAt).toISOString() : "",
+      durationMs: typeof g.durationMs === "number" ? String(g.durationMs) : "",
+      ratingDiff: typeof g.ratingDiff === "number" ? String(g.ratingDiff) : "",
+      rating: typeof g.rating === "number" ? String(g.rating) : ""
+    });
+  });
+}
+
 function updateTableScrollState() {
   if (!tableWrap || !body) {
     return;
@@ -237,7 +277,7 @@ function getResultFromLichessGame(game, username) {
   if (game.winner) {
     const playerColor = whiteUser === lower ? "white" : blackUser === lower ? "black" : null;
     if (!playerColor) {
-      return "Unknown";
+      return t("stats_result_unknown");
     }
     return game.winner === playerColor ? t("stats_result_win") : t("stats_result_loss");
   }
@@ -260,7 +300,7 @@ function normalizeChessComResult(result) {
   ]);
 
   if (drawResults.has(result)) {
-    return "Draw";
+    return t("stats_result_draw");
   }
 
   return t("stats_result_loss");
@@ -426,7 +466,7 @@ async function fetchAndBuildGames(username) {
 
 function buildStats(games) {
   const totalGames = games.length;
-  const wins = games.filter((g) => g.result === "Win").length;
+  const wins = games.filter((g) => g.result === t("stats_result_win")).length;
   const winRate = totalGames === 0 ? 0 : (wins / totalGames) * 100;
 
   const durationValues = games.map((g) => g.durationMs).filter((ms) => typeof ms === "number");
@@ -437,7 +477,7 @@ function buildStats(games) {
   const typeBreakdown = {};
   selectedTypes.forEach((type) => {
     const typeGames = games.filter((g) => g.gameType === type);
-    const typeWins = typeGames.filter((g) => g.result === "Win").length;
+    const typeWins = typeGames.filter((g) => g.result === t("stats_result_win")).length;
     const typeDurationValues = typeGames.map((g) => g.durationMs).filter((ms) => typeof ms === "number");
     const typeAvgDurationMs =
       typeDurationValues.length === 0
@@ -598,6 +638,15 @@ if (downloadCsvButton) {
   });
 }
 
+if (downloadRawCsvButton) {
+  downloadRawCsvButton.addEventListener("click", () => {
+    if (rawExportRows.length === 0) {
+      return;
+    }
+    downloadRawCsv();
+  });
+}
+
 if (logoutButton) {
   logoutButton.addEventListener("click", async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
@@ -622,6 +671,7 @@ async function run() {
   for (const username of usernames) {
     try {
       const games = await fetchAndBuildGames(username);
+      addRawRows(username, games);
       const stats = buildStats(games);
       renderRow(username, stats);
     } catch (error) {
@@ -640,6 +690,9 @@ async function run() {
   setLoading(false);
   if (downloadCsvButton) {
     downloadCsvButton.disabled = exportRows.length === 0;
+  }
+  if (downloadRawCsvButton) {
+    downloadRawCsvButton.disabled = rawExportRows.length === 0;
   }
   updateTableScrollState();
   summary.textContent = t("stats_completed_range", {
