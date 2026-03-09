@@ -1,5 +1,6 @@
 const registerForm = document.getElementById("register-form");
 const message = document.getElementById("auth-message");
+const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 function setMessage(text, isError = false) {
   message.textContent = text;
@@ -8,17 +9,17 @@ function setMessage(text, isError = false) {
 
 function showPasswordPolicyError(errorCode) {
   if (errorCode === "password_too_short") {
-    setMessage("Password must be at least 12 characters.", true);
+    setMessage(t("msg_password_too_short"), true);
   } else if (errorCode === "password_too_weak") {
-    setMessage("Password is too common. Choose a stronger one.", true);
+    setMessage(t("msg_password_too_weak"), true);
   } else if (errorCode === "password_missing_uppercase") {
-    setMessage("Password must include at least one uppercase letter.", true);
+    setMessage(t("msg_password_missing_uppercase"), true);
   } else if (errorCode === "password_missing_lowercase") {
-    setMessage("Password must include at least one lowercase letter.", true);
+    setMessage(t("msg_password_missing_lowercase"), true);
   } else if (errorCode === "password_missing_number") {
-    setMessage("Password must include at least one number.", true);
+    setMessage(t("msg_password_missing_number"), true);
   } else if (errorCode === "password_missing_symbol") {
-    setMessage("Password must include at least one symbol.", true);
+    setMessage(t("msg_password_missing_symbol"), true);
   } else {
     return false;
   }
@@ -27,7 +28,7 @@ function showPasswordPolicyError(errorCode) {
 
 registerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  setMessage("Creating account...");
+  setMessage(t("msg_creating_account"));
 
   const username = document.getElementById("register-username").value.trim();
   const email = document.getElementById("register-email").value.trim();
@@ -45,28 +46,28 @@ registerForm.addEventListener("submit", async (event) => {
     const error = data.error || "register_failed";
     if (error === "rate_limited") {
       const wait = Number(data.retry_after || 0);
-      setMessage(wait > 0 ? `Too many attempts. Try again in ${wait}s.` : "Too many attempts. Please try again later.", true);
+      setMessage(wait > 0 ? t("msg_rate_limited_wait", { wait }) : t("msg_rate_limited_later"), true);
     } else if (error === "payload_too_large") {
-      setMessage("Request too large. Please shorten input and retry.", true);
+      setMessage(t("msg_payload_too_large"), true);
     } else if (error === "username_exists") {
-      setMessage("This username already exists.", true);
+      setMessage(t("msg_username_exists"), true);
     } else if (error === "email_exists") {
-      setMessage("This email is already registered.", true);
+      setMessage(t("msg_email_exists"), true);
     } else if (error === "email_required") {
-      setMessage("Email is required.", true);
+      setMessage(t("msg_email_required"), true);
     } else if (error === "invalid_email") {
-      setMessage("Please enter a valid email address.", true);
+      setMessage(t("msg_invalid_email"), true);
     } else if (showPasswordPolicyError(error)) {
       return;
     } else if (error === "invalid_username") {
-      setMessage("Username must be 3-32 chars: letters, numbers, _ or -.", true);
+      setMessage(t("msg_invalid_username"), true);
     } else {
-      setMessage("Register failed.", true);
+      setMessage(t("msg_register_failed"), true);
     }
     return;
   }
 
-  setMessage("Account created. Redirecting to login...");
+  setMessage(t("msg_account_created_redirect"));
   setTimeout(() => {
     window.location.href = "login.html";
   }, 900);

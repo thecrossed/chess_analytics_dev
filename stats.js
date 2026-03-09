@@ -5,6 +5,7 @@ const tableWrap = document.getElementById("stats-table-wrap");
 const downloadCsvButton = document.getElementById("download-csv");
 const authUser = document.getElementById("auth-user");
 const logoutButton = document.getElementById("logout-btn");
+const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 const params = new URLSearchParams(window.location.search);
 const usersParam = params.get("users") || "";
@@ -93,7 +94,7 @@ async function ensureAuthenticated() {
   }
   const data = await res.json();
   if (authUser) {
-    authUser.textContent = `Signed in as ${data.username}`;
+    authUser.textContent = t("auth_signed_in_as", { username: data.username });
   }
 }
 
@@ -149,6 +150,9 @@ function normalizeGameType(value) {
 }
 
 function formatTypeLabel(value) {
+  if (value === "bullet") return t("home_bullet");
+  if (value === "blitz") return t("home_blitz");
+  if (value === "rapid") return t("home_rapid");
   return value[0].toUpperCase() + value.slice(1);
 }
 
@@ -159,13 +163,13 @@ function csvEscape(value) {
 
 function downloadCsv() {
   const header = [
-    "Username",
-    "Games",
-    "Breakdown",
-    "Win Rate",
-    "Avg Game Duration",
-    "Rating Change (Range)",
-    "Last Played",
+    t("stats_username"),
+    t("stats_games"),
+    t("stats_breakdown"),
+    t("stats_win_rate"),
+    t("stats_avg_duration"),
+    t("stats_rating_change"),
+    t("stats_last_played"),
     "Error"
   ];
 
@@ -235,15 +239,15 @@ function getResultFromLichessGame(game, username) {
     if (!playerColor) {
       return "Unknown";
     }
-    return game.winner === playerColor ? "Win" : "Loss";
+    return game.winner === playerColor ? t("stats_result_win") : t("stats_result_loss");
   }
 
-  return "Draw";
+  return t("stats_result_draw");
 }
 
 function normalizeChessComResult(result) {
   if (result === "win") {
-    return "Win";
+    return t("stats_result_win");
   }
 
   const drawResults = new Set([
@@ -259,7 +263,7 @@ function normalizeChessComResult(result) {
     return "Draw";
   }
 
-  return "Loss";
+  return t("stats_result_loss");
 }
 
 function parseChessComArchiveMonth(url) {
@@ -503,7 +507,7 @@ function renderRow(username, stats, error = null) {
     const errorTd = document.createElement("td");
     errorTd.colSpan = 6;
     const small = document.createElement("small");
-    small.textContent = `Load failed: ${error}`;
+    small.textContent = t("stats_load_failed", { error });
     errorTd.appendChild(small);
     tr.appendChild(errorTd);
     body.appendChild(tr);
@@ -604,7 +608,7 @@ if (logoutButton) {
 async function run() {
   if (usernames.length === 0) {
     setLoading(false);
-    summary.textContent = "No usernames received. Please go back to the home page and add accounts.";
+    summary.textContent = t("stats_no_usernames");
     return;
   }
 
@@ -612,7 +616,7 @@ async function run() {
   const typeLabel = selectedTypes.map((value) => formatTypeLabel(value)).join(", ");
 
   setLoading(true);
-  summary.textContent = `${usernames.length} users total on ${platformLabel} (${typeLabel}), loading...`;
+  summary.textContent = t("stats_users_loading", { count: usernames.length, platform: platformLabel, types: typeLabel });
 
   let finished = 0;
   for (const username of usernames) {
@@ -621,10 +625,15 @@ async function run() {
       const stats = buildStats(games);
       renderRow(username, stats);
     } catch (error) {
-      renderRow(username, null, error.message || "Unknown error");
+      renderRow(username, null, error.message || t("stats_unknown_error"));
     } finally {
       finished += 1;
-      summary.textContent = `Completed ${finished}/${usernames.length} (${platformLabel}, ${typeLabel})`;
+      summary.textContent = t("stats_completed_progress", {
+        finished,
+        total: usernames.length,
+        platform: platformLabel,
+        types: typeLabel
+      });
     }
   }
 
@@ -633,7 +642,13 @@ async function run() {
     downloadCsvButton.disabled = exportRows.length === 0;
   }
   updateTableScrollState();
-  summary.textContent = `Completed ${finished}/${usernames.length}. Range: ${rangeLabel} (${platformLabel}, ${typeLabel}).`;
+  summary.textContent = t("stats_completed_range", {
+    finished,
+    total: usernames.length,
+    range: rangeLabel,
+    platform: platformLabel,
+    types: typeLabel
+  });
 }
 
 ensureAuthenticated()
