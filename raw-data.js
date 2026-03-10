@@ -238,6 +238,7 @@ function buildFromLichessGames(games, username) {
         gameType: normalizeGameType(game.speed || game.perf),
         durationMs,
         result: getResultFromLichessGame(game, username),
+        gameUrl: game.id ? `https://lichess.org/${game.id}` : "",
         whiteUsername: game.players?.white?.user?.name || "",
         whiteRating: typeof game.players?.white?.rating === "number" ? game.players.white.rating : null,
         blackUsername: game.players?.black?.user?.name || "",
@@ -298,6 +299,7 @@ async function fetchChessComGamesForUser(username) {
         gameType: normalizeGameType(game.time_class),
         durationMs,
         result: normalizeChessComResult(player.result),
+        gameUrl: game.url || "",
         whiteUsername: game.white?.username || "",
         whiteRating: typeof game.white?.rating === "number" ? game.white.rating : null,
         blackUsername: game.black?.username || "",
@@ -327,6 +329,7 @@ function addRawRows(username, games) {
       ratingGap: formatRatingGap(g.whiteRating, g.blackRating),
       gameType: g.gameType || "",
       result: g.result || "",
+      gameUrl: g.gameUrl || "",
       playedAtUtc: g.playedAt ? new Date(g.playedAt).toISOString() : "",
       durationMinutes: formatDurationMinutes(g.durationMs),
       ratingDiff: typeof g.ratingDiff === "number" ? String(g.ratingDiff) : ""
@@ -344,7 +347,7 @@ function renderRawPreview() {
 
   rawExportRows.slice(startIndex, endIndex).forEach((row) => {
     const tr = document.createElement("tr");
-    [
+    const textColumns = [
       row.username,
       row.whiteUsername,
       row.whiteRating,
@@ -352,11 +355,28 @@ function renderRawPreview() {
       row.blackRating,
       row.ratingGap,
       row.gameType,
-      row.result,
-      row.playedAtUtc,
-      row.durationMinutes,
-      row.ratingDiff
-    ].forEach((value) => {
+      row.result
+    ];
+    textColumns.forEach((value) => {
+      const td = document.createElement("td");
+      td.textContent = value || "-";
+      tr.appendChild(td);
+    });
+
+    const linkTd = document.createElement("td");
+    if (row.gameUrl) {
+      const link = document.createElement("a");
+      link.href = row.gameUrl;
+      link.textContent = row.gameUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      linkTd.appendChild(link);
+    } else {
+      linkTd.textContent = "-";
+    }
+    tr.appendChild(linkTd);
+
+    [row.playedAtUtc, row.durationMinutes, row.ratingDiff].forEach((value) => {
       const td = document.createElement("td");
       td.textContent = value || "-";
       tr.appendChild(td);
@@ -379,6 +399,7 @@ function downloadRawCsv() {
     "Rating Gap (White-Black)",
     "Game Type",
     "Result",
+    "Game Link",
     "Played At (UTC)",
     "Duration (min)",
     "Rating Diff (User Change)"
@@ -395,6 +416,7 @@ function downloadRawCsv() {
         row.ratingGap,
         row.gameType,
         row.result,
+        row.gameUrl,
         row.playedAtUtc,
         row.durationMinutes,
         row.ratingDiff
