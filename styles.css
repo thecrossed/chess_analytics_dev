@@ -234,6 +234,20 @@ button:hover,
   font-size: 12px;
 }
 
+.lang-corner-link {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  text-decoration: none;
+  color: var(--accent);
+  background: #fff;
+}
+
+.lang-corner-link:hover {
+  border-color: var(--accent);
+}
+
 .stack-form {
   display: grid;
   gap: 8px;

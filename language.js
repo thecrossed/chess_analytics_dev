@@ -580,6 +580,11 @@ function injectLanguageSelector(lang) {
   const select = document.createElement("select");
   select.id = "lang-select";
   select.className = "lang-corner-select";
+  const isHomePage =
+    window.location.pathname === "/" ||
+    window.location.pathname.endsWith("/index.html") ||
+    window.location.pathname.endsWith("index.html");
+  let supportLink = null;
 
   SUPPORTED_LANGS.forEach((value) => {
     const option = document.createElement("option");
@@ -596,8 +601,19 @@ function injectLanguageSelector(lang) {
     localStorage.setItem(LANG_STORAGE_KEY, next);
     applyTranslations(next);
     label.textContent = translateKey(next, "lang_selector_label");
+    if (supportLink) {
+      supportLink.textContent = translateKey(next, "nav_support");
+    }
     window.dispatchEvent(new CustomEvent("languagechange", { detail: { lang: next } }));
   });
+
+  if (isHomePage) {
+    supportLink = document.createElement("a");
+    supportLink.href = "support.html";
+    supportLink.className = "lang-corner-link";
+    supportLink.textContent = translateKey(lang, "nav_support");
+    wrap.appendChild(supportLink);
+  }
 
   wrap.appendChild(label);
   wrap.appendChild(select);
