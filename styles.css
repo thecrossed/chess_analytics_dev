@@ -23,7 +23,7 @@ body {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: clamp(12px, 2.6vw, 28px);
 }
 
 .card {
@@ -31,16 +31,18 @@ body {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 24px;
+  padding: clamp(14px, 2.2vw, 26px);
   box-shadow: 0 8px 20px rgba(16, 24, 40, 0.06);
 }
 
 .card.wide {
-  width: min(1080px, 100%);
+  width: min(1160px, 100%);
 }
 
 h1 {
   margin: 0 0 10px;
+  font-size: clamp(22px, 2.2vw, 34px);
+  line-height: 1.2;
 }
 
 .hint {
@@ -71,12 +73,15 @@ h1 {
 
 .row {
   display: flex;
-  gap: 10px;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
 }
 
 .import-row {
   align-items: center;
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
 .hint-inline {
@@ -103,6 +108,7 @@ input {
   border-radius: 10px;
   font-size: 16px;
   padding: 10px 12px;
+  min-height: 42px;
 }
 
 textarea {
@@ -113,6 +119,7 @@ textarea {
   padding: 10px 12px;
   resize: vertical;
   font-family: inherit;
+  min-height: 120px;
 }
 
 select {
@@ -121,6 +128,7 @@ select {
   font-size: 16px;
   padding: 10px 12px;
   background: #fff;
+  min-height: 42px;
 }
 
 button,
@@ -131,8 +139,12 @@ button,
   color: #fff;
   font-size: 15px;
   cursor: pointer;
-  padding: 10px 14px;
+  padding: 12px 16px;
   text-decoration: none;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 button:hover,
@@ -186,14 +198,17 @@ button:hover,
 
 .actions {
   display: flex;
-  gap: 10px;
+  gap: 14px;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 16px;
 }
 
 .small-links {
-  margin-top: 12px;
+  margin-top: 16px;
   display: flex;
-  gap: 12px;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .small-links a {
@@ -250,7 +265,7 @@ hr {
 }
 
 .table-wrap.scrollable-rows {
-  max-height: 520px;
+  max-height: min(65vh, 560px);
   overflow-y: auto;
 }
 
@@ -265,6 +280,7 @@ td {
   text-align: left;
   padding: 10px;
   vertical-align: top;
+  white-space: nowrap;
 }
 
 td small {
@@ -282,19 +298,73 @@ td small {
   border: 0;
 }
 
+@media (max-width: 1024px) {
+  .card.wide {
+    width: 100%;
+  }
+
+  th,
+  td {
+    padding: 8px;
+    font-size: 14px;
+  }
+}
+
 @media (max-width: 720px) {
+  .shell {
+    place-items: start center;
+    padding-top: 56px;
+  }
+
+  .card {
+    border-radius: 14px;
+  }
+
   .row {
     flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 12px;
   }
 
   .actions {
     justify-content: stretch;
+    margin-top: 14px;
   }
 
   button,
   .button-link {
     width: 100%;
     text-align: center;
+  }
+
+  .lang-corner {
+    top: 6px;
+    right: 6px;
+    left: 6px;
+    justify-content: flex-end;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 12px;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+
+  .hint,
+  .hint-inline {
+    font-size: 13px;
+  }
+
+  th,
+  td {
+    font-size: 13px;
+    padding: 7px;
   }
 }
 
