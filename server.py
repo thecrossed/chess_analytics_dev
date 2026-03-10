@@ -11,7 +11,7 @@ import threading
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
-from typing import Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
@@ -30,6 +30,11 @@ RATE_LIMIT_BUCKETS = {}
 RATE_LIMIT_PRUNE_INTERVAL_SECONDS = 5 * 60
 RATE_LIMIT_LAST_PRUNE_AT = 0.0
 MAX_JSON_BODY_BYTES = 16 * 1024
+PGN_ANALYSIS_MAX_CHARS = 120000
+PGN_ANALYSIS_MAX_PLIES = 400
+PGN_ANALYSIS_MIN_DEPTH = 8
+PGN_ANALYSIS_MAX_DEPTH = 20
+STOCKFISH_API_URL = "https://chess-api.com/v1"
 LOGIN_FAILURE_DELAY_SECONDS = 0.35
 ACCOUNT_LOCKOUT_WINDOW_SECONDS = 15 * 60
 ACCOUNT_LOCKOUT_MAX_FAILURES = 12
@@ -62,6 +67,7 @@ AUTH_UPDATE_EMAIL_RE = re.compile(r"^/api/auth/profile/email/?$")
 AUTH_PASSWORD_RESET_REQUEST_RE = re.compile(r"^/api/auth/password-reset/request/?$")
 AUTH_PASSWORD_RESET_CONFIRM_RE = re.compile(r"^/api/auth/password-reset/confirm/?$")
 ADMIN_DAILY_REPORT_RE = re.compile(r"^/api/admin/daily-report/?$")
+ANALYSIS_PGN_EVAL_RE = re.compile(r"^/api/analysis/pgn-eval/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
 COMMON_WEAK_PASSWORDS = {
     "12345678",
@@ -488,6 +494,99 @@ def record_login_event(conn: sqlite3.Connection, username: str):
     )
 
 
+def extract_pgn_moves_text(pgn_text: str) -> str:
+    lines = [line.strip() for line in pgn_text.splitlines()]
+    move_lines = [line for line in lines if line and not line.startswith("[")]
+    return " ".join(move_lines).strip()
+
+
+def parse_san_moves(moves_text: str) -> List[str]:
+    result_tokens = {"1-0", "0-1", "1/2-1/2", "*"}
+    text = re.sub(r"\{[^}]*\}", " ", moves_text)
+    text = re.sub(r"\([^)]*\)", " ", text)
+    text = re.sub(r"\$\d+", " ", text)
+    tokens = re.split(r"\s+", text.strip())
+    moves: List[str] = []
+    for token in tokens:
+        token = token.strip()
+        if not token or token in result_tokens:
+            continue
+        if re.fullmatch(r"\d+\.(\.\.)?", token):
+            continue
+        token = re.sub(r"^\d+\.(\.\.)?", "", token).strip()
+        if not token or token in result_tokens:
+            continue
+        moves.append(token)
+    return moves
+
+
+def build_pgn_prefix(moves: List[str]) -> str:
+    parts: List[str] = []
+    move_no = 1
+    for i in range(0, len(moves), 2):
+        white = moves[i]
+        black = moves[i + 1] if i + 1 < len(moves) else None
+        if black:
+            parts.append(f"{move_no}. {white} {black}")
+        else:
+            parts.append(f"{move_no}. {white}")
+        move_no += 1
+    return " ".join(parts)
+
+
+def request_stockfish_eval(pgn_prefix: str, depth: int) -> Dict:
+    payload = {"input": pgn_prefix, "depth": depth}
+    req = Request(
+        STOCKFISH_API_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": USER_AGENT,
+        },
+        method="POST",
+    )
+    with urlopen(req, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def normalize_eval_score(data: Dict) -> str:
+    eval_value = data.get("eval")
+    centipawns = data.get("centipawns")
+    mate = data.get("mate")
+    if isinstance(eval_value, (int, float)):
+        return str(eval_value)
+    if isinstance(centipawns, int):
+        return f"{centipawns / 100:.2f}"
+    if isinstance(mate, int):
+        return f"mate {mate}"
+    return ""
+
+
+def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], int]:
+    moves_text = extract_pgn_moves_text(pgn_text)
+    san_moves = parse_san_moves(moves_text)[:PGN_ANALYSIS_MAX_PLIES]
+    rows: List[Dict[str, str]] = []
+    progressive: List[str] = []
+    failed_count = 0
+    for ply, san in enumerate(san_moves, start=1):
+        progressive.append(san)
+        pgn_prefix = build_pgn_prefix(progressive)
+        row = {
+            "move_number": str((ply + 1) // 2),
+            "side": "white" if ply % 2 == 1 else "black",
+            "move": san,
+            "eval_score": "",
+        }
+        try:
+            data = request_stockfish_eval(pgn_prefix, depth)
+            row["eval_score"] = normalize_eval_score(data)
+        except Exception:
+            failed_count += 1
+            row["eval_score"] = ""
+        rows.append(row)
+    return rows, failed_count
+
+
 def is_same_origin_request(handler: SimpleHTTPRequestHandler) -> bool:
     host = (handler.headers.get("Host") or "").strip().lower()
     if not host:
@@ -598,6 +697,9 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
         if ADMIN_DAILY_REPORT_RE.match(self.path):
             self._handle_daily_login_report()
+            return
+        if ANALYSIS_PGN_EVAL_RE.match(self.path):
+            self._handle_pgn_eval_analysis()
             return
 
         self._send_json(404, {"error": "not_found"})
@@ -984,6 +1086,49 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "unique_users": unique_users,
                 "guest_logins": guest_logins,
                 "recipient": DAILY_REPORT_RECIPIENT,
+            },
+        )
+
+    def _handle_pgn_eval_analysis(self):
+        try:
+            payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
+        except Exception:
+            self._send_json(400, {"error": "invalid_json"})
+            return
+
+        pgn_text = str(payload.get("pgn_text", "")).strip()
+        depth_raw = payload.get("depth", 12)
+        try:
+            depth = int(depth_raw)
+        except (TypeError, ValueError):
+            depth = 12
+        depth = max(PGN_ANALYSIS_MIN_DEPTH, min(PGN_ANALYSIS_MAX_DEPTH, depth))
+
+        if not pgn_text:
+            self._send_json(400, {"error": "pgn_required"})
+            return
+        if len(pgn_text) > PGN_ANALYSIS_MAX_CHARS:
+            self._send_json(400, {"error": "pgn_too_large", "max_chars": PGN_ANALYSIS_MAX_CHARS})
+            return
+
+        client_ip = get_client_ip(self)
+        retry_after = check_rate_limit("pgn_eval_analysis", client_ip, "-")
+        if retry_after:
+            self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
+            return
+
+        rows, failed_count = analyze_pgn_rows(pgn_text, depth)
+        self._send_json(
+            200,
+            {
+                "ok": True,
+                "depth": depth,
+                "rows": rows,
+                "rows_count": len(rows),
+                "failed_eval_count": failed_count,
             },
         )
 
