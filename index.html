@@ -105,10 +105,25 @@
             </div>
 
             <div class="actions">
-              <button type="button" disabled data-i18n="home_pgn_upload_btn">Upload PGN</button>
-              <button type="button" disabled data-i18n="home_pgn_analyze_btn">Run Stockfish Analysis</button>
+              <button id="pgn-load-btn" type="button" data-i18n="home_pgn_upload_btn">Load PGN</button>
+              <button id="pgn-analyze-btn" type="button" data-i18n="home_pgn_analyze_btn">Run Stockfish Analysis</button>
+              <button id="pgn-download-btn" type="button" disabled data-i18n="home_pgn_download_btn">Download CSV</button>
             </div>
-            <p class="hint-inline" data-i18n="home_pgn_coming_soon">UI preview only. Functionality will be added next.</p>
+            <p id="pgn-status" class="hint-inline" data-i18n="home_pgn_coming_soon">UI preview only. Functionality will be added next.</p>
+
+            <div id="pgn-result-wrap" class="table-wrap scrollable-rows hidden">
+              <table>
+                <thead>
+                  <tr>
+                    <th data-i18n="pgn_eval_move_number">Move #</th>
+                    <th data-i18n="pgn_eval_side">Side</th>
+                    <th data-i18n="pgn_eval_move">Move</th>
+                    <th data-i18n="pgn_eval_score">Eval Score</th>
+                  </tr>
+                </thead>
+                <tbody id="pgn-eval-body"></tbody>
+              </table>
+            </div>
           </section>
         </div>
       </section>

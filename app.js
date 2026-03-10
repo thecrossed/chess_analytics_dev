@@ -12,6 +12,15 @@ const gameTypeInputs = Array.from(document.querySelectorAll('input[name="game-ty
 const pgnModeInputs = Array.from(document.querySelectorAll('input[name="pgn-input-mode"]'));
 const pgnUploadRow = document.getElementById("pgn-upload-row");
 const pgnPasteRow = document.getElementById("pgn-paste-row");
+const pgnFileInput = document.getElementById("pgn-upload");
+const pgnTextInput = document.getElementById("pgn-text");
+const pgnDepthInput = document.getElementById("analysis-depth");
+const pgnLoadButton = document.getElementById("pgn-load-btn");
+const pgnAnalyzeButton = document.getElementById("pgn-analyze-btn");
+const pgnDownloadButton = document.getElementById("pgn-download-btn");
+const pgnStatus = document.getElementById("pgn-status");
+const pgnResultWrap = document.getElementById("pgn-result-wrap");
+const pgnEvalBody = document.getElementById("pgn-eval-body");
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 const users = new Set();
@@ -19,6 +28,8 @@ const USERNAME_RE = /^[A-Za-z0-9_-]{2,30}$/;
 const DEFAULT_USERNAME = "MagnusCarlsen";
 const MAX_VISIBLE_USERS = 20;
 const MAX_RANGE_DAYS = 120;
+let loadedPgnText = "";
+let pgnEvalRows = [];
 
 function renderUsers() {
   userList.innerHTML = "";
@@ -159,6 +170,64 @@ function syncPgnInputMode() {
   }
 }
 
+function setPgnStatus(text, isError = false) {
+  if (!pgnStatus) return;
+  pgnStatus.textContent = text;
+  pgnStatus.style.color = isError ? "#b42318" : "#475467";
+}
+
+function csvEscape(value) {
+  const raw = value == null ? "" : String(value);
+  return `"${raw.replace(/"/g, '""')}"`;
+}
+
+function getSelectedPgnMode() {
+  return pgnModeInputs.find((inputEl) => inputEl.checked)?.value || "upload";
+}
+
+async function readPgnInputText() {
+  const mode = getSelectedPgnMode();
+  if (mode === "paste") {
+    return (pgnTextInput?.value || "").trim();
+  }
+  const file = pgnFileInput?.files?.[0];
+  if (!file) return "";
+  return (await file.text()).trim();
+}
+
+function renderPgnRows(rows) {
+  if (!pgnEvalBody || !pgnResultWrap) return;
+  pgnEvalBody.innerHTML = "";
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+    [row.move_number, row.side, row.move, row.eval_score || "-"].forEach((value) => {
+      const td = document.createElement("td");
+      td.textContent = value == null || value === "" ? "-" : String(value);
+      tr.appendChild(td);
+    });
+    pgnEvalBody.appendChild(tr);
+  });
+  pgnResultWrap.classList.toggle("hidden", rows.length === 0);
+}
+
+function downloadPgnEvalCsv() {
+  if (pgnEvalRows.length === 0) return;
+  const header = ["move_number", "side", "move", "eval_score"];
+  const lines = [header.map(csvEscape).join(",")];
+  pgnEvalRows.forEach((row) => {
+    lines.push([row.move_number, row.side, row.move, row.eval_score || ""].map(csvEscape).join(","));
+  });
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "pgn-eval.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function autofillDefaultUsername() {
   if (!input.value.trim()) {
     input.value = DEFAULT_USERNAME;
@@ -297,6 +366,83 @@ if (pgnModeInputs.length > 0) {
     inputEl.addEventListener("change", syncPgnInputMode);
   });
   syncPgnInputMode();
+}
+
+if (pgnLoadButton) {
+  pgnLoadButton.addEventListener("click", async () => {
+    try {
+      const text = await readPgnInputText();
+      if (!text) {
+        setPgnStatus(t("home_pgn_no_input"), true);
+        return;
+      }
+      loadedPgnText = text;
+      setPgnStatus(t("home_pgn_loaded", { chars: loadedPgnText.length }));
+    } catch (error) {
+      setPgnStatus(t("home_pgn_load_failed", { error: error.message || "unknown error" }), true);
+    }
+  });
+}
+
+if (pgnAnalyzeButton) {
+  pgnAnalyzeButton.addEventListener("click", async () => {
+    try {
+      const fallbackText = await readPgnInputText();
+      const pgnText = (loadedPgnText || fallbackText || "").trim();
+      if (!pgnText) {
+        setPgnStatus(t("home_pgn_no_input"), true);
+        return;
+      }
+
+      const depthRaw = Number.parseInt(pgnDepthInput?.value || "12", 10);
+      const depth = Number.isFinite(depthRaw) ? Math.max(8, Math.min(20, depthRaw)) : 12;
+
+      pgnAnalyzeButton.disabled = true;
+      setPgnStatus(t("home_pgn_analyzing"));
+
+      const res = await fetch("/api/analysis/pgn-eval", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pgn_text: pgnText, depth })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data.error === "pgn_required") {
+          setPgnStatus(t("home_pgn_no_input"), true);
+        } else if (data.error === "pgn_too_large") {
+          setPgnStatus(t("home_pgn_too_large"), true);
+        } else if (data.error === "payload_too_large") {
+          setPgnStatus(t("home_pgn_too_large"), true);
+        } else if (data.error === "rate_limited") {
+          setPgnStatus(t("home_pgn_rate_limited"), true);
+        } else {
+          const detail = data.error ? ` (${data.error})` : "";
+          setPgnStatus(`${t("home_pgn_analyze_failed")} [${res.status}]${detail}`, true);
+        }
+        return;
+      }
+
+      pgnEvalRows = Array.isArray(data.rows) ? data.rows : [];
+      renderPgnRows(pgnEvalRows);
+      if (pgnDownloadButton) pgnDownloadButton.disabled = pgnEvalRows.length === 0;
+      setPgnStatus(
+        t("home_pgn_analysis_done", {
+          count: pgnEvalRows.length,
+          failed: Number(data.failed_eval_count || 0)
+        })
+      );
+    } catch (_error) {
+      setPgnStatus(t("home_pgn_analyze_failed"), true);
+    } finally {
+      pgnAnalyzeButton.disabled = false;
+    }
+  });
+}
+
+if (pgnDownloadButton) {
+  pgnDownloadButton.addEventListener("click", () => {
+    downloadPgnEvalCsv();
+  });
 }
 
 window.addEventListener("languagechange", () => {
