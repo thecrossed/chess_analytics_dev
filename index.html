@@ -72,25 +72,11 @@
             <h2 data-i18n="home_banner_pgn_title">Upload PGN + Stockfish Analysis</h2>
             <p class="hint" data-i18n="home_banner_pgn_hint">Upload a PGN file and run engine analysis for move-by-move scoring.</p>
 
-            <div class="row import-row pgn-mode-row">
-              <span data-i18n="home_pgn_input_mode_label">Input Mode</span>
-              <div class="pgn-mode-group">
-                <label>
-                  <input id="pgn-mode-upload" type="radio" name="pgn-input-mode" value="upload" checked />
-                  <span data-i18n="home_pgn_input_mode_upload">Upload File</span>
-                </label>
-                <label>
-                  <input id="pgn-mode-paste" type="radio" name="pgn-input-mode" value="paste" />
-                  <span data-i18n="home_pgn_input_mode_paste">Paste PGN</span>
-                </label>
-              </div>
-            </div>
-
-            <div id="pgn-upload-row" class="row import-row">
+            <div class="row import-row">
               <label for="pgn-upload" data-i18n="home_pgn_file_label">PGN File</label>
               <input id="pgn-upload" type="file" accept=".pgn,text/plain" />
             </div>
-            <div id="pgn-paste-row" class="row import-row hidden">
+            <div class="row import-row">
               <label for="pgn-text" data-i18n="home_pgn_paste_label">Paste PGN</label>
               <textarea
                 id="pgn-text"
@@ -105,25 +91,9 @@
             </div>
 
             <div class="actions">
-              <button id="pgn-load-btn" type="button" data-i18n="home_pgn_upload_btn">Load PGN</button>
               <button id="pgn-analyze-btn" type="button" data-i18n="home_pgn_analyze_btn">Run Stockfish Analysis</button>
-              <button id="pgn-download-btn" type="button" disabled data-i18n="home_pgn_download_btn">Download CSV</button>
             </div>
-            <p id="pgn-status" class="hint-inline" data-i18n="home_pgn_coming_soon">UI preview only. Functionality will be added next.</p>
-
-            <div id="pgn-result-wrap" class="table-wrap scrollable-rows hidden">
-              <table>
-                <thead>
-                  <tr>
-                    <th data-i18n="pgn_eval_move_number">Move #</th>
-                    <th data-i18n="pgn_eval_side">Side</th>
-                    <th data-i18n="pgn_eval_move">Move</th>
-                    <th data-i18n="pgn_eval_score">Eval Score</th>
-                  </tr>
-                </thead>
-                <tbody id="pgn-eval-body"></tbody>
-              </table>
-            </div>
+            <p id="pgn-status" class="hint-inline" data-i18n="home_pgn_auto_load_hint">PGN loads automatically from file or pasted text.</p>
           </section>
         </div>
       </section>
