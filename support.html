@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n-title="support_title">Support</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card" style="max-width: 700px;">
+        <div class="actions">
+          <small id="auth-user" class="hint-inline"></small>
+          <button id="logout-btn" type="button" data-i18n="nav_logout">Log Out</button>
+        </div>
+
+        <h1 data-i18n="support_title">Support</h1>
+        <p class="hint" data-i18n="support_hint">Leave a message (max 200 characters) and we will receive it by email.</p>
+        <div id="support-message" class="hint" aria-live="polite"></div>
+
+        <form id="support-form" class="stack-form">
+          <label for="support-text" data-i18n="support_message_label">Message</label>
+          <textarea
+            id="support-text"
+            rows="6"
+            maxlength="200"
+            required
+            placeholder="Type your message..."
+            data-i18n-placeholder="support_message_placeholder"
+          ></textarea>
+          <small id="support-counter" class="hint-inline">0/200</small>
+          <button id="support-send-btn" type="submit" data-i18n="support_send_button">Send Message</button>
+        </form>
+
+        <div class="small-links">
+          <a href="index.html" data-i18n="nav_back_home">Back to Home</a>
+          <a href="login.html" data-i18n="nav_back_login">Back to Login</a>
+        </div>
+      </section>
+    </main>
+
+    <script src="language.js"></script>
+    <script src="support.js" type="module"></script>
+  </body>
+</html>
