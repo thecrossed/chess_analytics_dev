@@ -356,6 +356,12 @@ hr {
   transition: width 180ms ease;
 }
 
+.progress-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

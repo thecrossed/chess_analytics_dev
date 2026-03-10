@@ -9,6 +9,7 @@ const modalEl = document.getElementById("analysis-progress-modal");
 const progressFillEl = document.getElementById("analysis-progress-fill");
 const progressMessageEl = document.getElementById("analysis-progress-message");
 const etaEl = document.getElementById("analysis-eta");
+const closeModalButton = document.getElementById("analysis-progress-close");
 
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
@@ -33,11 +34,19 @@ function setProgress(percent) {
 function showModal() {
   if (!modalEl) return;
   modalEl.classList.remove("hidden");
+  if (closeModalButton) {
+    closeModalButton.classList.add("hidden");
+  }
 }
 
 function hideModal() {
   if (!modalEl) return;
   modalEl.classList.add("hidden");
+}
+
+function showCloseModalButton() {
+  if (!closeModalButton) return;
+  closeModalButton.classList.remove("hidden");
 }
 
 function parseDraft() {
@@ -198,6 +207,13 @@ async function runAnalysis() {
         const detail = data.error ? ` (${data.error})` : "";
         setStatus(`${t("home_pgn_analyze_failed")} [${response.status}]${detail}`, true);
       }
+      if (progressMessageEl) {
+        progressMessageEl.textContent = t("home_pgn_analyze_failed");
+      }
+      if (etaEl) {
+        etaEl.textContent = t("pgn_analysis_eta_done");
+      }
+      showCloseModalButton();
       return;
     }
 
@@ -220,19 +236,30 @@ async function runAnalysis() {
     if (etaEl) {
       etaEl.textContent = t("pgn_analysis_eta_done");
     }
+    showCloseModalButton();
   } catch (_error) {
     setStatus(t("home_pgn_analyze_failed"), true);
+    if (progressMessageEl) {
+      progressMessageEl.textContent = t("home_pgn_analyze_failed");
+    }
+    if (etaEl) {
+      etaEl.textContent = t("pgn_analysis_eta_done");
+    }
+    showCloseModalButton();
   } finally {
     window.clearInterval(progressTimer);
-    window.setTimeout(() => {
-      hideModal();
-    }, 320);
   }
 }
 
 if (downloadButton) {
   downloadButton.addEventListener("click", () => {
     downloadCsv(currentRows);
+  });
+}
+
+if (closeModalButton) {
+  closeModalButton.addEventListener("click", () => {
+    hideModal();
   });
 }
 
