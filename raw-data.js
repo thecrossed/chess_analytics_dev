@@ -5,8 +5,6 @@ const rawNextPageButton = document.getElementById("raw-next-page");
 const rawPageInfo = document.getElementById("raw-page-info");
 const downloadRawCsvButton = document.getElementById("download-raw-csv");
 const backStatsLink = document.getElementById("back-stats-link");
-const authUser = document.getElementById("auth-user");
-const logoutButton = document.getElementById("logout-btn");
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 const params = new URLSearchParams(window.location.search);
@@ -419,16 +417,6 @@ function downloadRawCsv() {
   URL.revokeObjectURL(url);
 }
 
-async function ensureAuthenticated() {
-  const res = await fetch("/api/auth/me", { credentials: "same-origin" });
-  if (!res.ok) {
-    window.location.href = "login.html";
-    throw new Error("not_authenticated");
-  }
-  const data = await res.json();
-  if (authUser) authUser.textContent = t("auth_signed_in_as", { username: data.username });
-}
-
 if (downloadRawCsvButton) {
   downloadRawCsvButton.addEventListener("click", () => {
     if (rawExportRows.length === 0) return;
@@ -450,13 +438,6 @@ if (rawNextPageButton) {
     if (rawCurrentPage >= totalPages) return;
     rawCurrentPage += 1;
     renderRawPreview();
-  });
-}
-
-if (logoutButton) {
-  logoutButton.addEventListener("click", async () => {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
-    window.location.href = "login.html";
   });
 }
 
@@ -501,4 +482,4 @@ async function run() {
   }
 }
 
-ensureAuthenticated().then(() => run()).catch(() => {});
+run();
