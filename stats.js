@@ -4,8 +4,6 @@ const loading = document.getElementById("loading");
 const tableWrap = document.getElementById("stats-table-wrap");
 const viewRawLink = document.getElementById("view-raw-link");
 const downloadCsvButton = document.getElementById("download-csv");
-const authUser = document.getElementById("auth-user");
-const logoutButton = document.getElementById("logout-btn");
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 const params = new URLSearchParams(window.location.search);
@@ -86,18 +84,6 @@ if (selectedTypes.length === 0) {
 const exportRows = [];
 const MAX_VISIBLE_ROWS_BEFORE_SCROLL = 20;
 let renderedUsernameCount = 0;
-
-async function ensureAuthenticated() {
-  const res = await fetch("/api/auth/me", { credentials: "same-origin" });
-  if (!res.ok) {
-    window.location.href = "login.html";
-    throw new Error("not_authenticated");
-  }
-  const data = await res.json();
-  if (authUser) {
-    authUser.textContent = t("auth_signed_in_as", { username: data.username });
-  }
-}
 
 function formatDuration(ms) {
   if (typeof ms !== "number") {
@@ -289,10 +275,10 @@ function estimateDurationFromChessComPgn(pgn, timeControl) {
     const isWhitePly = i % 2 === 0;
     const current = clocks[i];
     const prev = isWhitePly ? prevWhite : prevBlack;
-    const spent = prev + tc.inc - current;
-    if (Number.isFinite(spent) && spent >= 0 && spent <= tc.base * 2) {
-      totalSpent += spent;
-    }
+    const spentWithIncIncluded = prev + tc.inc - current;
+    const spentWithIncExcluded = prev - current;
+    const candidates = [spentWithIncIncluded, spentWithIncExcluded].filter((value) => Number.isFinite(value) && value >= 0);
+    if (candidates.length > 0) totalSpent += Math.min(...candidates);
     if (isWhitePly) prevWhite = current;
     else prevBlack = current;
   }
@@ -523,13 +509,6 @@ if (downloadCsvButton) {
   });
 }
 
-if (logoutButton) {
-  logoutButton.addEventListener("click", async () => {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
-    window.location.href = "login.html";
-  });
-}
-
 if (viewRawLink) {
   viewRawLink.href = `raw-data.html?${params.toString()}`;
 }
@@ -580,4 +559,4 @@ async function run() {
   });
 }
 
-ensureAuthenticated().then(() => run()).catch(() => {});
+run();

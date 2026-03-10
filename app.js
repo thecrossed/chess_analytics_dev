@@ -9,8 +9,6 @@ const dateToInput = document.getElementById("date-to");
 const uploadCsvButton = document.getElementById("upload-csv");
 const csvFileInput = document.getElementById("csv-file");
 const gameTypeInputs = Array.from(document.querySelectorAll('input[name="game-type"]'));
-const authUser = document.getElementById("auth-user");
-const logoutButton = document.getElementById("logout-btn");
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 const users = new Set();
@@ -18,25 +16,6 @@ const USERNAME_RE = /^[A-Za-z0-9_-]{2,30}$/;
 const DEFAULT_USERNAME = "MagnusCarlsen";
 const MAX_VISIBLE_USERS = 20;
 const MAX_RANGE_DAYS = 120;
-
-async function ensureAuthenticated() {
-  const res = await fetch("/api/auth/me", { credentials: "same-origin" });
-  if (!res.ok) {
-    window.location.href = "login.html";
-    throw new Error("not_authenticated");
-  }
-  const data = await res.json();
-  if (authUser) {
-    authUser.textContent = t("auth_signed_in_as", { username: data.username });
-  }
-}
-
-if (logoutButton) {
-  logoutButton.addEventListener("click", async () => {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
-    window.location.href = "login.html";
-  });
-}
 
 function renderUsers() {
   userList.innerHTML = "";
@@ -300,7 +279,6 @@ buildPageButton.addEventListener("click", () => {
 });
 
 ensureDefaultDateRange();
-ensureAuthenticated().catch(() => {});
 
 window.addEventListener("languagechange", () => {
   renderUsers();
