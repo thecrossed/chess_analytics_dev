@@ -20,6 +20,10 @@ function setStatus(text, isError = false) {
   statusEl.style.color = isError ? "#b42318" : "#475467";
 }
 
+function showErrorPopup(message) {
+  window.alert(message);
+}
+
 function setProgress(percent) {
   if (!progressFillEl) return;
   const safe = Math.max(0, Math.min(100, percent));
@@ -182,6 +186,10 @@ async function runAnalysis() {
     if (!response.ok) {
       if (data.error === "pgn_required") {
         setStatus(t("home_pgn_no_input"), true);
+      } else if (data.error === "invalid_pgn_format") {
+        const message = t("home_pgn_invalid_format");
+        setStatus(message, true);
+        showErrorPopup(message);
       } else if (data.error === "pgn_too_large" || data.error === "payload_too_large") {
         setStatus(t("home_pgn_too_large"), true);
       } else if (data.error === "rate_limited") {

@@ -1113,6 +1113,12 @@ class AppHandler(SimpleHTTPRequestHandler):
         if len(pgn_text) > PGN_ANALYSIS_MAX_CHARS:
             self._send_json(400, {"error": "pgn_too_large", "max_chars": PGN_ANALYSIS_MAX_CHARS})
             return
+        # Basic format validation: if no SAN-like moves can be parsed, reject as invalid PGN.
+        moves_text = extract_pgn_moves_text(pgn_text)
+        parsed_moves = parse_san_moves(moves_text)
+        if len(parsed_moves) == 0:
+            self._send_json(400, {"error": "invalid_pgn_format"})
+            return
 
         client_ip = get_client_ip(self)
         retry_after = check_rate_limit("pgn_eval_analysis", client_ip, "-")
