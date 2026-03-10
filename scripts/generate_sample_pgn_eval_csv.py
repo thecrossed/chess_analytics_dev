@@ -111,6 +111,7 @@ def evaluate_all_moves(
         row: Dict[str, str] = {
             "move_number": str(move_number),
             "side": side,
+            "move": san,
             "eval_score": "",
         }
         try:
@@ -134,7 +135,7 @@ def evaluate_all_moves(
 
 
 def write_csv(output_path: Path, rows: List[Dict[str, str]]) -> None:
-    fieldnames = ["move_number", "side", "eval_score"]
+    fieldnames = ["move_number", "side", "move", "eval_score"]
     with output_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
