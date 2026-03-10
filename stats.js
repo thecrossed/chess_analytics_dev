@@ -289,10 +289,10 @@ function estimateDurationFromChessComPgn(pgn, timeControl) {
     const isWhitePly = i % 2 === 0;
     const current = clocks[i];
     const prev = isWhitePly ? prevWhite : prevBlack;
-    const spent = prev + tc.inc - current;
-    if (Number.isFinite(spent) && spent >= 0 && spent <= tc.base * 2) {
-      totalSpent += spent;
-    }
+    const spentWithIncIncluded = prev + tc.inc - current;
+    const spentWithIncExcluded = prev - current;
+    const candidates = [spentWithIncIncluded, spentWithIncExcluded].filter((value) => Number.isFinite(value) && value >= 0);
+    if (candidates.length > 0) totalSpent += Math.min(...candidates);
     if (isWhitePly) prevWhite = current;
     else prevBlack = current;
   }
