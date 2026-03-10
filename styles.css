@@ -326,6 +326,10 @@ hr {
   z-index: 2000;
 }
 
+.progress-modal.hidden {
+  display: none;
+}
+
 .progress-dialog {
   width: min(540px, 100%);
   border: 1px solid var(--line);
