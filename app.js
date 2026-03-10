@@ -411,10 +411,13 @@ if (pgnAnalyzeButton) {
           setPgnStatus(t("home_pgn_no_input"), true);
         } else if (data.error === "pgn_too_large") {
           setPgnStatus(t("home_pgn_too_large"), true);
+        } else if (data.error === "payload_too_large") {
+          setPgnStatus(t("home_pgn_too_large"), true);
         } else if (data.error === "rate_limited") {
           setPgnStatus(t("home_pgn_rate_limited"), true);
         } else {
-          setPgnStatus(t("home_pgn_analyze_failed"), true);
+          const detail = data.error ? ` (${data.error})` : "";
+          setPgnStatus(`${t("home_pgn_analyze_failed")} [${res.status}]${detail}`, true);
         }
         return;
       }
