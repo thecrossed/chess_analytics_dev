@@ -9,18 +9,13 @@ const dateToInput = document.getElementById("date-to");
 const uploadCsvButton = document.getElementById("upload-csv");
 const csvFileInput = document.getElementById("csv-file");
 const gameTypeInputs = Array.from(document.querySelectorAll('input[name="game-type"]'));
-const pgnModeInputs = Array.from(document.querySelectorAll('input[name="pgn-input-mode"]'));
-const pgnUploadRow = document.getElementById("pgn-upload-row");
-const pgnPasteRow = document.getElementById("pgn-paste-row");
+
 const pgnFileInput = document.getElementById("pgn-upload");
 const pgnTextInput = document.getElementById("pgn-text");
 const pgnDepthInput = document.getElementById("analysis-depth");
-const pgnLoadButton = document.getElementById("pgn-load-btn");
 const pgnAnalyzeButton = document.getElementById("pgn-analyze-btn");
-const pgnDownloadButton = document.getElementById("pgn-download-btn");
 const pgnStatus = document.getElementById("pgn-status");
-const pgnResultWrap = document.getElementById("pgn-result-wrap");
-const pgnEvalBody = document.getElementById("pgn-eval-body");
+
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 const users = new Set();
@@ -28,8 +23,9 @@ const USERNAME_RE = /^[A-Za-z0-9_-]{2,30}$/;
 const DEFAULT_USERNAME = "MagnusCarlsen";
 const MAX_VISIBLE_USERS = 20;
 const MAX_RANGE_DAYS = 120;
-let loadedPgnText = "";
-let pgnEvalRows = [];
+const PGN_ANALYSIS_DRAFT_KEY = "pgn_analysis_draft_v1";
+
+let pgnFileText = "";
 
 function renderUsers() {
   userList.innerHTML = "";
@@ -95,13 +91,11 @@ function addUsername(username) {
 }
 
 function parseCsvUsernames(csvText) {
-  const tokens = csvText
+  return csvText
     .split(/[\n\r,;]/)
     .map((token) => normalizeUsername(token))
     .filter(Boolean)
     .filter((token) => token.toLowerCase() !== "username");
-
-  return tokens;
 }
 
 function toDateInputValue(date) {
@@ -160,72 +154,85 @@ function getSelectedGameTypes() {
   return gameTypeInputs.filter((inputEl) => inputEl.checked).map((inputEl) => inputEl.value);
 }
 
-function syncPgnInputMode() {
-  const selected = pgnModeInputs.find((inputEl) => inputEl.checked)?.value || "upload";
-  if (pgnUploadRow) {
-    pgnUploadRow.classList.toggle("hidden", selected !== "upload");
-  }
-  if (pgnPasteRow) {
-    pgnPasteRow.classList.toggle("hidden", selected !== "paste");
-  }
-}
-
 function setPgnStatus(text, isError = false) {
   if (!pgnStatus) return;
   pgnStatus.textContent = text;
   pgnStatus.style.color = isError ? "#b42318" : "#475467";
 }
 
-function csvEscape(value) {
-  const raw = value == null ? "" : String(value);
-  return `"${raw.replace(/"/g, '""')}"`;
+function normalizePgnForCompare(value) {
+  return (value || "").replace(/\r\n/g, "\n").trim();
 }
 
-function getSelectedPgnMode() {
-  return pgnModeInputs.find((inputEl) => inputEl.checked)?.value || "upload";
-}
+function getPgnInputState() {
+  const fileText = normalizePgnForCompare(pgnFileText);
+  const pastedText = normalizePgnForCompare(pgnTextInput?.value || "");
 
-async function readPgnInputText() {
-  const mode = getSelectedPgnMode();
-  if (mode === "paste") {
-    return (pgnTextInput?.value || "").trim();
+  if (fileText && pastedText) {
+    if (fileText !== pastedText) {
+      return { conflict: true, text: "", source: "conflict", fileChars: fileText.length, pasteChars: pastedText.length };
+    }
+    return { conflict: false, text: fileText, source: "both", fileChars: fileText.length, pasteChars: pastedText.length };
   }
+
+  if (fileText) {
+    return { conflict: false, text: fileText, source: "file", fileChars: fileText.length, pasteChars: 0 };
+  }
+
+  if (pastedText) {
+    return { conflict: false, text: pastedText, source: "paste", fileChars: 0, pasteChars: pastedText.length };
+  }
+
+  return { conflict: false, text: "", source: "none", fileChars: 0, pasteChars: 0 };
+}
+
+function refreshPgnAutoStatus() {
+  const state = getPgnInputState();
+  if (state.conflict) {
+    setPgnStatus(t("home_pgn_conflict"), true);
+    return;
+  }
+  if (state.source === "file") {
+    setPgnStatus(t("home_pgn_ready_from_file", { chars: state.fileChars }));
+    return;
+  }
+  if (state.source === "paste") {
+    setPgnStatus(t("home_pgn_ready_from_paste", { chars: state.pasteChars }));
+    return;
+  }
+  if (state.source === "both") {
+    setPgnStatus(t("home_pgn_ready_from_both", { chars: state.fileChars }));
+    return;
+  }
+  setPgnStatus(t("home_pgn_auto_load_hint"));
+}
+
+function clampAnalysisDepth(rawValue) {
+  const parsed = Number.parseInt(rawValue, 10);
+  if (!Number.isFinite(parsed)) {
+    return 12;
+  }
+  return Math.max(8, Math.min(20, parsed));
+}
+
+function savePgnAnalysisDraft(payload) {
+  sessionStorage.setItem(PGN_ANALYSIS_DRAFT_KEY, JSON.stringify(payload));
+}
+
+async function handlePgnFileSelected() {
   const file = pgnFileInput?.files?.[0];
-  if (!file) return "";
-  return (await file.text()).trim();
-}
-
-function renderPgnRows(rows) {
-  if (!pgnEvalBody || !pgnResultWrap) return;
-  pgnEvalBody.innerHTML = "";
-  rows.forEach((row) => {
-    const tr = document.createElement("tr");
-    [row.move_number, row.side, row.move, row.eval_score || "-"].forEach((value) => {
-      const td = document.createElement("td");
-      td.textContent = value == null || value === "" ? "-" : String(value);
-      tr.appendChild(td);
-    });
-    pgnEvalBody.appendChild(tr);
-  });
-  pgnResultWrap.classList.toggle("hidden", rows.length === 0);
-}
-
-function downloadPgnEvalCsv() {
-  if (pgnEvalRows.length === 0) return;
-  const header = ["move_number", "side", "move", "eval_score"];
-  const lines = [header.map(csvEscape).join(",")];
-  pgnEvalRows.forEach((row) => {
-    lines.push([row.move_number, row.side, row.move, row.eval_score || ""].map(csvEscape).join(","));
-  });
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "pgn-eval.csv";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  if (!file) {
+    pgnFileText = "";
+    refreshPgnAutoStatus();
+    return;
+  }
+  try {
+    pgnFileText = (await file.text()) || "";
+    refreshPgnAutoStatus();
+  } catch (error) {
+    pgnFileText = "";
+    setPgnStatus(t("home_pgn_load_failed", { error: error?.message || "unknown error" }), true);
+  }
 }
 
 function autofillDefaultUsername() {
@@ -360,91 +367,53 @@ buildPageButton.addEventListener("click", () => {
   window.location.href = `stats.html?${params.toString()}`;
 });
 
-ensureDefaultDateRange();
-if (pgnModeInputs.length > 0) {
-  pgnModeInputs.forEach((inputEl) => {
-    inputEl.addEventListener("change", syncPgnInputMode);
+if (pgnFileInput) {
+  pgnFileInput.addEventListener("change", () => {
+    handlePgnFileSelected();
   });
-  syncPgnInputMode();
 }
 
-if (pgnLoadButton) {
-  pgnLoadButton.addEventListener("click", async () => {
-    try {
-      const text = await readPgnInputText();
-      if (!text) {
-        setPgnStatus(t("home_pgn_no_input"), true);
-        return;
-      }
-      loadedPgnText = text;
-      setPgnStatus(t("home_pgn_loaded", { chars: loadedPgnText.length }));
-    } catch (error) {
-      setPgnStatus(t("home_pgn_load_failed", { error: error.message || "unknown error" }), true);
-    }
+if (pgnTextInput) {
+  pgnTextInput.addEventListener("input", () => {
+    refreshPgnAutoStatus();
   });
 }
 
 if (pgnAnalyzeButton) {
   pgnAnalyzeButton.addEventListener("click", async () => {
-    try {
-      const fallbackText = await readPgnInputText();
-      const pgnText = (loadedPgnText || fallbackText || "").trim();
-      if (!pgnText) {
-        setPgnStatus(t("home_pgn_no_input"), true);
-        return;
-      }
-
-      const depthRaw = Number.parseInt(pgnDepthInput?.value || "12", 10);
-      const depth = Number.isFinite(depthRaw) ? Math.max(8, Math.min(20, depthRaw)) : 12;
-
-      pgnAnalyzeButton.disabled = true;
-      setPgnStatus(t("home_pgn_analyzing"));
-
-      const res = await fetch("/api/analysis/pgn-eval", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pgn_text: pgnText, depth })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        if (data.error === "pgn_required") {
-          setPgnStatus(t("home_pgn_no_input"), true);
-        } else if (data.error === "pgn_too_large") {
-          setPgnStatus(t("home_pgn_too_large"), true);
-        } else if (data.error === "payload_too_large") {
-          setPgnStatus(t("home_pgn_too_large"), true);
-        } else if (data.error === "rate_limited") {
-          setPgnStatus(t("home_pgn_rate_limited"), true);
-        } else {
-          const detail = data.error ? ` (${data.error})` : "";
-          setPgnStatus(`${t("home_pgn_analyze_failed")} [${res.status}]${detail}`, true);
-        }
-        return;
-      }
-
-      pgnEvalRows = Array.isArray(data.rows) ? data.rows : [];
-      renderPgnRows(pgnEvalRows);
-      if (pgnDownloadButton) pgnDownloadButton.disabled = pgnEvalRows.length === 0;
-      setPgnStatus(
-        t("home_pgn_analysis_done", {
-          count: pgnEvalRows.length,
-          failed: Number(data.failed_eval_count || 0)
-        })
-      );
-    } catch (_error) {
-      setPgnStatus(t("home_pgn_analyze_failed"), true);
-    } finally {
-      pgnAnalyzeButton.disabled = false;
+    const depth = clampAnalysisDepth(pgnDepthInput?.value || "12");
+    if (pgnDepthInput) {
+      pgnDepthInput.value = String(depth);
     }
+
+    if (pgnFileInput?.files?.[0] && !pgnFileText) {
+      await handlePgnFileSelected();
+    }
+
+    const state = getPgnInputState();
+    if (state.conflict) {
+      setPgnStatus(t("home_pgn_conflict"), true);
+      return;
+    }
+    if (!state.text) {
+      setPgnStatus(t("home_pgn_no_input"), true);
+      return;
+    }
+
+    savePgnAnalysisDraft({
+      pgn_text: state.text,
+      depth,
+      source: state.source,
+      saved_at_ms: Date.now()
+    });
+    window.location.href = "pgn-analysis.html";
   });
 }
 
-if (pgnDownloadButton) {
-  pgnDownloadButton.addEventListener("click", () => {
-    downloadPgnEvalCsv();
-  });
-}
+ensureDefaultDateRange();
+refreshPgnAutoStatus();
 
 window.addEventListener("languagechange", () => {
   renderUsers();
+  refreshPgnAutoStatus();
 });

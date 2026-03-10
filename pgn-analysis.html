@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n-title="pgn_analysis_title">Stockfish PGN Analysis</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card wide">
+        <h1 data-i18n="pgn_analysis_title">Stockfish PGN Analysis</h1>
+        <p class="hint" data-i18n="pgn_analysis_hint">We analyze your PGN move-by-move and show evaluation scores.</p>
+
+        <div class="analysis-page-actions">
+          <a class="button-link secondary-link" href="index.html" data-i18n="pgn_analysis_back_home">Back to Home</a>
+          <button id="analysis-download-btn" type="button" disabled data-i18n="pgn_analysis_download_csv">Download CSV</button>
+        </div>
+
+        <p id="analysis-status" class="hint-inline" data-i18n="pgn_analysis_starting">Preparing analysis...</p>
+
+        <div id="analysis-result-wrap" class="table-wrap hidden">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="pgn_eval_move_number">Move #</th>
+                <th data-i18n="pgn_eval_side">Side</th>
+                <th data-i18n="pgn_eval_move">Move</th>
+                <th data-i18n="pgn_eval_score">Eval Score</th>
+              </tr>
+            </thead>
+            <tbody id="analysis-result-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div id="analysis-progress-modal" class="progress-modal hidden" role="dialog" aria-modal="true" aria-live="polite">
+      <div class="progress-dialog">
+        <h2 data-i18n="pgn_analysis_progress_title">Analyzing PGN</h2>
+        <p id="analysis-progress-message" class="hint-inline" data-i18n="pgn_analysis_progress_running">Running Stockfish analysis...</p>
+        <div class="progress-bar" aria-hidden="true">
+          <div id="analysis-progress-fill" class="progress-fill"></div>
+        </div>
+        <p id="analysis-eta" class="hint-inline" data-i18n="pgn_analysis_eta">Estimated time remaining: --</p>
+      </div>
+    </div>
+
+    <script src="language.js"></script>
+    <script src="pgn-analysis.js" type="module"></script>
+  </body>
+</html>
