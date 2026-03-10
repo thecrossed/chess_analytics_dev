@@ -8,57 +8,108 @@
   </head>
   <body>
     <main class="shell">
-      <section class="card">
+      <section class="card wide home-shell">
         <h1 data-i18n="home_title">Chess Data Stats</h1>
         <p class="hint" data-i18n="home_hint">Add one or more usernames and choose a date range (max 120 days).</p>
-        <div class="row import-row">
-          <label for="platform" data-i18n="home_platform">Platform</label>
-          <select id="platform" name="platform">
-            <option value="lichess">Lichess</option>
-            <option value="chesscom" selected>Chess.com</option>
-          </select>
-        </div>
-        <div class="row import-row">
-          <label for="range-days" data-i18n="home_range">Range (days)</label>
-          <input id="range-days" name="range-days" type="number" min="1" max="120" step="1" value="30" />
-          <span class="hint-inline" data-i18n="home_default_mode">Default mode</span>
-        </div>
-        <details class="date-override">
-          <summary data-i18n="home_optional_exact_range">Optional: exact date range</summary>
-          <div class="row import-row">
-            <label for="date-from" data-i18n="home_from">From</label>
-            <input id="date-from" name="date-from" type="date" />
-          </div>
-          <div class="row import-row">
-            <label for="date-to" data-i18n="home_to">To</label>
-            <input id="date-to" name="date-to" type="date" />
-          </div>
-          <p class="hint-inline" data-i18n="home_date_override_hint">If both dates are set, they override Range.</p>
-        </details>
-        <div class="row import-row">
-          <span data-i18n="home_game_types">Game Types</span>
-          <div class="type-options">
-            <label><input type="checkbox" name="game-type" value="bullet" checked /> <span data-i18n="home_bullet">Bullet</span></label>
-            <label><input type="checkbox" name="game-type" value="blitz" checked /> <span data-i18n="home_blitz">Blitz</span></label>
-            <label><input type="checkbox" name="game-type" value="rapid" checked /> <span data-i18n="home_rapid">Rapid</span></label>
-          </div>
-        </div>
 
-        <form id="add-user-form" class="row">
-          <label for="username" class="sr-only">Lichess Username</label>
-          <input id="username" name="username" type="text" placeholder="e.g. MagnusCalsen" autocomplete="off" required />
-          <button type="submit" data-i18n="home_add">Add</button>
-        </form>
-        <div class="row import-row">
-          <button id="upload-csv" type="button" data-i18n="home_upload_csv">Upload CSV</button>
-          <input id="csv-file" type="file" accept=".csv,text/csv" class="sr-only" />
-          <span class="hint-inline" data-i18n="home_csv_hint">CSV: one username per line or comma-separated.</span>
-        </div>
+        <div class="home-grid">
+          <section class="feature-banner feature-banner-primary">
+            <h2 data-i18n="home_banner_fetch_title">Fetch Online Game Stats</h2>
+            <p class="hint" data-i18n="home_banner_fetch_hint">Pull games from Chess.com or Lichess and generate player stats.</p>
 
-        <ul id="user-list" class="user-list" aria-live="polite"></ul>
+            <div class="row import-row">
+              <label for="platform" data-i18n="home_platform">Platform</label>
+              <select id="platform" name="platform">
+                <option value="lichess">Lichess</option>
+                <option value="chesscom" selected>Chess.com</option>
+              </select>
+            </div>
+            <div class="row import-row">
+              <label for="range-days" data-i18n="home_range">Range (days)</label>
+              <input id="range-days" name="range-days" type="number" min="1" max="120" step="1" value="30" />
+              <span class="hint-inline" data-i18n="home_default_mode">Default mode</span>
+            </div>
+            <details class="date-override">
+              <summary data-i18n="home_optional_exact_range">Optional: exact date range</summary>
+              <div class="row import-row">
+                <label for="date-from" data-i18n="home_from">From</label>
+                <input id="date-from" name="date-from" type="date" />
+              </div>
+              <div class="row import-row">
+                <label for="date-to" data-i18n="home_to">To</label>
+                <input id="date-to" name="date-to" type="date" />
+              </div>
+              <p class="hint-inline" data-i18n="home_date_override_hint">If both dates are set, they override Range.</p>
+            </details>
+            <div class="row import-row">
+              <span data-i18n="home_game_types">Game Types</span>
+              <div class="type-options">
+                <label><input type="checkbox" name="game-type" value="bullet" checked /> <span data-i18n="home_bullet">Bullet</span></label>
+                <label><input type="checkbox" name="game-type" value="blitz" checked /> <span data-i18n="home_blitz">Blitz</span></label>
+                <label><input type="checkbox" name="game-type" value="rapid" checked /> <span data-i18n="home_rapid">Rapid</span></label>
+              </div>
+            </div>
 
-        <div class="actions">
-          <button id="build-page" type="button" data-i18n="home_generate">Generate Stats Page</button>
+            <form id="add-user-form" class="row">
+              <label for="username" class="sr-only">Lichess Username</label>
+              <input id="username" name="username" type="text" placeholder="e.g. MagnusCalsen" autocomplete="off" required />
+              <button type="submit" data-i18n="home_add">Add</button>
+            </form>
+            <div class="row import-row">
+              <button id="upload-csv" type="button" data-i18n="home_upload_csv">Upload CSV</button>
+              <input id="csv-file" type="file" accept=".csv,text/csv" class="sr-only" />
+              <span class="hint-inline" data-i18n="home_csv_hint">CSV: one username per line or comma-separated.</span>
+            </div>
+
+            <ul id="user-list" class="user-list" aria-live="polite"></ul>
+
+            <div class="actions">
+              <button id="build-page" type="button" data-i18n="home_generate">Generate Stats Page</button>
+            </div>
+          </section>
+
+          <section class="feature-banner feature-banner-secondary">
+            <h2 data-i18n="home_banner_pgn_title">Upload PGN + Stockfish Analysis</h2>
+            <p class="hint" data-i18n="home_banner_pgn_hint">Upload a PGN file and run engine analysis for move-by-move scoring.</p>
+
+            <div class="row import-row pgn-mode-row">
+              <span data-i18n="home_pgn_input_mode_label">Input Mode</span>
+              <div class="pgn-mode-group">
+                <label>
+                  <input id="pgn-mode-upload" type="radio" name="pgn-input-mode" value="upload" checked />
+                  <span data-i18n="home_pgn_input_mode_upload">Upload File</span>
+                </label>
+                <label>
+                  <input id="pgn-mode-paste" type="radio" name="pgn-input-mode" value="paste" />
+                  <span data-i18n="home_pgn_input_mode_paste">Paste PGN</span>
+                </label>
+              </div>
+            </div>
+
+            <div id="pgn-upload-row" class="row import-row">
+              <label for="pgn-upload" data-i18n="home_pgn_file_label">PGN File</label>
+              <input id="pgn-upload" type="file" accept=".pgn,text/plain" />
+            </div>
+            <div id="pgn-paste-row" class="row import-row hidden">
+              <label for="pgn-text" data-i18n="home_pgn_paste_label">Paste PGN</label>
+              <textarea
+                id="pgn-text"
+                rows="8"
+                data-i18n-placeholder="home_pgn_paste_placeholder"
+                placeholder="Paste PGN text here..."
+              ></textarea>
+            </div>
+            <div class="row import-row">
+              <label for="analysis-depth" data-i18n="home_pgn_depth_label">Analysis Depth</label>
+              <input id="analysis-depth" type="number" min="8" max="20" step="1" value="12" />
+            </div>
+
+            <div class="actions">
+              <button type="button" disabled data-i18n="home_pgn_upload_btn">Upload PGN</button>
+              <button type="button" disabled data-i18n="home_pgn_analyze_btn">Run Stockfish Analysis</button>
+            </div>
+            <p class="hint-inline" data-i18n="home_pgn_coming_soon">UI preview only. Functionality will be added next.</p>
+          </section>
         </div>
       </section>
     </main>

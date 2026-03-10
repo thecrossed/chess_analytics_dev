@@ -9,6 +9,9 @@ const dateToInput = document.getElementById("date-to");
 const uploadCsvButton = document.getElementById("upload-csv");
 const csvFileInput = document.getElementById("csv-file");
 const gameTypeInputs = Array.from(document.querySelectorAll('input[name="game-type"]'));
+const pgnModeInputs = Array.from(document.querySelectorAll('input[name="pgn-input-mode"]'));
+const pgnUploadRow = document.getElementById("pgn-upload-row");
+const pgnPasteRow = document.getElementById("pgn-paste-row");
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 const users = new Set();
@@ -146,6 +149,16 @@ function getSelectedGameTypes() {
   return gameTypeInputs.filter((inputEl) => inputEl.checked).map((inputEl) => inputEl.value);
 }
 
+function syncPgnInputMode() {
+  const selected = pgnModeInputs.find((inputEl) => inputEl.checked)?.value || "upload";
+  if (pgnUploadRow) {
+    pgnUploadRow.classList.toggle("hidden", selected !== "upload");
+  }
+  if (pgnPasteRow) {
+    pgnPasteRow.classList.toggle("hidden", selected !== "paste");
+  }
+}
+
 function autofillDefaultUsername() {
   if (!input.value.trim()) {
     input.value = DEFAULT_USERNAME;
@@ -279,6 +292,12 @@ buildPageButton.addEventListener("click", () => {
 });
 
 ensureDefaultDateRange();
+if (pgnModeInputs.length > 0) {
+  pgnModeInputs.forEach((inputEl) => {
+    inputEl.addEventListener("change", syncPgnInputMode);
+  });
+  syncPgnInputMode();
+}
 
 window.addEventListener("languagechange", () => {
   renderUsers();
