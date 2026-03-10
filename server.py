@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import hashlib
-import html
 import hmac
 import json
 import os
@@ -49,8 +48,6 @@ PASSWORD_RESET_PAGE_URL = os.environ.get("PASSWORD_RESET_PAGE_URL", "").strip()
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "").strip()
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 DEBUG_RESET_TOKEN_RESPONSE = os.environ.get("DEBUG_RESET_TOKEN_RESPONSE", "0") == "1"
-SUPPORT_TARGET_EMAIL = "chessalwaysfun@gmail.com"
-SUPPORT_MESSAGE_MAX_CHARS = 200
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -62,7 +59,6 @@ AUTH_GUEST_RE = re.compile(r"^/api/auth/guest/?$")
 AUTH_UPDATE_EMAIL_RE = re.compile(r"^/api/auth/profile/email/?$")
 AUTH_PASSWORD_RESET_REQUEST_RE = re.compile(r"^/api/auth/password-reset/request/?$")
 AUTH_PASSWORD_RESET_CONFIRM_RE = re.compile(r"^/api/auth/password-reset/confirm/?$")
-SUPPORT_MESSAGE_RE = re.compile(r"^/api/support/message/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
 COMMON_WEAK_PASSWORDS = {
     "12345678",
@@ -321,92 +317,6 @@ def send_password_reset_email(email: str, username: str, token: str) -> bool:
         return False
 
 
-def send_support_message_email(sender_username: str, message: str) -> bool:
-    subject = "ChessAnalytics support message"
-    text_body = (
-        "New support message received.\n\n"
-        f"User: {sender_username}\n"
-        f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')} UTC\n\n"
-        "Message:\n"
-        f"{message}"
-    )
-    safe_sender = html.escape(sender_username)
-    safe_message = html.escape(message).replace("\n", "<br/>")
-    html_body = (
-        "<p>New support message received.</p>"
-        f"<p><strong>User:</strong> {safe_sender}<br/>"
-        f"<strong>Time:</strong> {time.strftime('%Y-%m-%d %H:%M:%S')} UTC</p>"
-        f"<p><strong>Message:</strong><br/>{safe_message}</p>"
-    )
-
-    if not PASSWORD_RESET_FROM_EMAIL:
-        log_runtime("Support message email not sent: PASSWORD_RESET_FROM_EMAIL is missing.")
-        return False
-
-    if PASSWORD_RESET_PROVIDER == "sendgrid":
-        if not SENDGRID_API_KEY:
-            log_runtime("Support message email not sent: SENDGRID_API_KEY is missing.")
-            return False
-        payload = {
-            "personalizations": [{"to": [{"email": SUPPORT_TARGET_EMAIL}]}],
-            "from": {"email": PASSWORD_RESET_FROM_EMAIL},
-            "subject": subject,
-            "content": [
-                {"type": "text/plain", "value": text_body},
-                {"type": "text/html", "value": html_body},
-            ],
-        }
-        req = Request(
-            "https://api.sendgrid.com/v3/mail/send",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {SENDGRID_API_KEY}",
-                "Content-Type": "application/json",
-                "User-Agent": USER_AGENT,
-            },
-            method="POST",
-        )
-    elif PASSWORD_RESET_PROVIDER == "resend":
-        if not RESEND_API_KEY:
-            log_runtime("Support message email not sent: RESEND_API_KEY is missing.")
-            return False
-        payload = {
-            "from": PASSWORD_RESET_FROM_EMAIL,
-            "to": [SUPPORT_TARGET_EMAIL],
-            "subject": subject,
-            "text": text_body,
-            "html": html_body,
-        }
-        req = Request(
-            "https://api.resend.com/emails",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {RESEND_API_KEY}",
-                "Content-Type": "application/json",
-                "User-Agent": USER_AGENT,
-            },
-            method="POST",
-        )
-    else:
-        log_runtime("Support message email not sent: provider not set to sendgrid/resend.")
-        return False
-
-    try:
-        with urlopen(req, timeout=15) as response:
-            return 200 <= response.status < 300
-    except HTTPError as err:
-        details = ""
-        try:
-            details = err.read().decode("utf-8", errors="ignore")
-        except Exception:
-            details = ""
-        log_runtime(f"Support message email send failed: status={err.code}, body={details}")
-        return False
-    except Exception as exc:
-        log_runtime(f"Support message email send failed: {exc}")
-        return False
-
-
 def is_password_reset_service_configured() -> bool:
     if not PASSWORD_RESET_FROM_EMAIL:
         return False
@@ -637,9 +547,6 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
         if AUTH_PASSWORD_RESET_CONFIRM_RE.match(self.path):
             self._handle_password_reset_confirm()
-            return
-        if SUPPORT_MESSAGE_RE.match(self.path):
-            self._handle_support_message()
             return
 
         self._send_json(404, {"error": "not_found"})
@@ -964,47 +871,6 @@ class AppHandler(SimpleHTTPRequestHandler):
             conn.commit()
 
         clear_login_failures(username)
-        self._send_json(200, {"ok": True})
-
-    def _handle_support_message(self):
-        try:
-            payload = parse_json_body(self)
-        except PayloadTooLargeError:
-            self._send_json(413, {"error": "payload_too_large"})
-            return
-        except Exception:
-            self._send_json(400, {"error": "invalid_json"})
-            return
-
-        message = str(payload.get("message", "")).strip()
-        if not message:
-            self._send_json(400, {"error": "message_required"})
-            return
-        if len(message) > SUPPORT_MESSAGE_MAX_CHARS:
-            self._send_json(400, {"error": "message_too_long", "max_chars": SUPPORT_MESSAGE_MAX_CHARS})
-            return
-
-        user = self._require_user(optional=True)
-        sender_username = user["username"] if user else "anonymous"
-        client_ip = get_client_ip(self)
-        retry_after = check_rate_limit("support_message", client_ip, sender_username)
-        if retry_after:
-            self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
-            return
-
-        if not is_password_reset_service_configured():
-            self._send_json(503, {"error": "email_service_not_configured"})
-            return
-
-        email_sent = send_support_message_email(sender_username, message)
-        log_runtime(
-            "Support message result: "
-            + f"username={sender_username}, sent={email_sent}, length={len(message)}"
-        )
-        if not email_sent:
-            self._send_json(502, {"error": "email_send_failed"})
-            return
-
         self._send_json(200, {"ok": True})
 
     def _create_session(self, conn: sqlite3.Connection, user_id: int) -> str:
