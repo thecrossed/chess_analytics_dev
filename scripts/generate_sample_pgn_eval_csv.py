@@ -109,38 +109,23 @@ def evaluate_all_moves(
         side = "white" if ply % 2 == 1 else "black"
 
         row: Dict[str, str] = {
-            "ply": str(ply),
             "move_number": str(move_number),
             "side": side,
-            "san_move": san,
-            "pgn_prefix": pgn_prefix,
-            "eval": "",
-            "centipawns": "",
-            "mate": "",
-            "best_move_lan": "",
-            "best_move_san": "",
-            "fen": "",
-            "win_chance": "",
-            "api_type": "",
-            "error": "",
+            "eval_score": "",
         }
         try:
             data = call_stockfish_api(api_url, pgn_prefix, depth)
-            row["eval"] = str(data.get("eval", ""))
-            row["centipawns"] = str(data.get("centipawns", ""))
-            row["mate"] = str(data.get("mate", ""))
-            row["best_move_lan"] = str(data.get("move", ""))
-            row["best_move_san"] = str(data.get("san", ""))
-            row["fen"] = str(data.get("fen", ""))
-            row["win_chance"] = str(data.get("winChance", ""))
-            row["api_type"] = str(data.get("type", ""))
-        except HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="ignore")
-            row["error"] = f"http_{exc.code}:{body}"
-        except URLError as exc:
-            row["error"] = f"url_error:{exc.reason}"
-        except Exception as exc:  # pragma: no cover
-            row["error"] = f"unexpected:{exc}"
+            eval_value = data.get("eval")
+            centipawns = data.get("centipawns")
+            mate = data.get("mate")
+            if isinstance(eval_value, (int, float)):
+                row["eval_score"] = str(eval_value)
+            elif isinstance(centipawns, int):
+                row["eval_score"] = f"{centipawns / 100:.2f}"
+            elif isinstance(mate, int):
+                row["eval_score"] = f"mate {mate}"
+        except (HTTPError, URLError, Exception):
+            row["eval_score"] = ""
 
         rows.append(row)
         if sleep_seconds > 0:
@@ -149,22 +134,7 @@ def evaluate_all_moves(
 
 
 def write_csv(output_path: Path, rows: List[Dict[str, str]]) -> None:
-    fieldnames = [
-        "ply",
-        "move_number",
-        "side",
-        "san_move",
-        "pgn_prefix",
-        "eval",
-        "centipawns",
-        "mate",
-        "best_move_lan",
-        "best_move_san",
-        "fen",
-        "win_chance",
-        "api_type",
-        "error",
-    ]
+    fieldnames = ["move_number", "side", "eval_score"]
     with output_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
