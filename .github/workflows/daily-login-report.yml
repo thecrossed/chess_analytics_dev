@@ -1,0 +1,25 @@
+name: Daily Login Report
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily login report endpoint
+        env:
+          DAILY_REPORT_ENDPOINT: ${{ secrets.DAILY_REPORT_ENDPOINT }}
+          DAILY_REPORT_TOKEN: ${{ secrets.DAILY_REPORT_TOKEN }}
+        run: |
+          if [ -z "$DAILY_REPORT_ENDPOINT" ] || [ -z "$DAILY_REPORT_TOKEN" ]; then
+            echo "Missing DAILY_REPORT_ENDPOINT or DAILY_REPORT_TOKEN secret."
+            exit 1
+          fi
+
+          curl --fail --show-error --silent \
+            -X POST "$DAILY_REPORT_ENDPOINT" \
+            -H "X-Admin-Token: $DAILY_REPORT_TOKEN" \
+            -H "Content-Type: application/json"
