@@ -48,6 +48,8 @@ PASSWORD_RESET_PAGE_URL = os.environ.get("PASSWORD_RESET_PAGE_URL", "").strip()
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "").strip()
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 DEBUG_RESET_TOKEN_RESPONSE = os.environ.get("DEBUG_RESET_TOKEN_RESPONSE", "0") == "1"
+ADMIN_REPORT_TOKEN = os.environ.get("ADMIN_REPORT_TOKEN", "").strip()
+DAILY_REPORT_RECIPIENT = "chessalwaysfun@gmail.com"
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -59,6 +61,7 @@ AUTH_GUEST_RE = re.compile(r"^/api/auth/guest/?$")
 AUTH_UPDATE_EMAIL_RE = re.compile(r"^/api/auth/profile/email/?$")
 AUTH_PASSWORD_RESET_REQUEST_RE = re.compile(r"^/api/auth/password-reset/request/?$")
 AUTH_PASSWORD_RESET_CONFIRM_RE = re.compile(r"^/api/auth/password-reset/confirm/?$")
+ADMIN_DAILY_REPORT_RE = re.compile(r"^/api/admin/daily-report/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
 COMMON_WEAK_PASSWORDS = {
     "12345678",
@@ -139,10 +142,21 @@ def ensure_auth_schema(conn: sqlite3.Connection):
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS login_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            login_at INTEGER NOT NULL
+        )
+        """
+    )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_expires ON password_reset_tokens(expires_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_login_events_login_at ON login_events(login_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_login_events_username ON login_events(username)")
     conn.commit()
 
 
@@ -228,33 +242,17 @@ def build_password_reset_link(token: str) -> str:
     return f"{base}{separator}{urlencode({'reset_token': token})}"
 
 
-def send_password_reset_email(email: str, username: str, token: str) -> bool:
-    reset_link = build_password_reset_link(token)
-    subject = "ChessAnalytics password reset"
-    text_body = (
-        f"Hi {username},\n\n"
-        "A password reset was requested for your account.\n"
-        f"Reset link (valid {PASSWORD_RESET_TOKEN_TTL_SECONDS // 60} minutes):\n{reset_link}\n\n"
-        "If you did not request this, you can ignore this email."
-    )
-    html_body = (
-        f"<p>Hi {username},</p>"
-        "<p>A password reset was requested for your account.</p>"
-        f"<p><a href=\"{reset_link}\">Reset password</a> "
-        f"(valid {PASSWORD_RESET_TOKEN_TTL_SECONDS // 60} minutes)</p>"
-        "<p>If you did not request this, you can ignore this email.</p>"
-    )
-
+def send_email_via_provider(to_email: str, subject: str, text_body: str, html_body: str, context: str) -> bool:
     if not PASSWORD_RESET_FROM_EMAIL:
-        log_runtime("Password reset email not sent: PASSWORD_RESET_FROM_EMAIL is missing.")
+        log_runtime(f"{context} email not sent: PASSWORD_RESET_FROM_EMAIL is missing.")
         return False
 
     if PASSWORD_RESET_PROVIDER == "sendgrid":
         if not SENDGRID_API_KEY:
-            log_runtime("Password reset email not sent: SENDGRID_API_KEY is missing.")
+            log_runtime(f"{context} email not sent: SENDGRID_API_KEY is missing.")
             return False
         payload = {
-            "personalizations": [{"to": [{"email": email}]}],
+            "personalizations": [{"to": [{"email": to_email}]}],
             "from": {"email": PASSWORD_RESET_FROM_EMAIL},
             "subject": subject,
             "content": [
@@ -274,11 +272,11 @@ def send_password_reset_email(email: str, username: str, token: str) -> bool:
         )
     elif PASSWORD_RESET_PROVIDER == "resend":
         if not RESEND_API_KEY:
-            log_runtime("Password reset email not sent: RESEND_API_KEY is missing.")
+            log_runtime(f"{context} email not sent: RESEND_API_KEY is missing.")
             return False
         payload = {
             "from": PASSWORD_RESET_FROM_EMAIL,
-            "to": [email],
+            "to": [to_email],
             "subject": subject,
             "text": text_body,
             "html": html_body,
@@ -294,27 +292,70 @@ def send_password_reset_email(email: str, username: str, token: str) -> bool:
             method="POST",
         )
     else:
-        log_runtime(
-            "Password reset email not sent: PASSWORD_RESET_PROVIDER not set to sendgrid/resend."
-        )
+        log_runtime(f"{context} email not sent: PASSWORD_RESET_PROVIDER not set to sendgrid/resend.")
         return False
 
     try:
         with urlopen(req, timeout=15) as response:
-            if 200 <= response.status < 300:
-                return True
-            return False
+            return 200 <= response.status < 300
     except HTTPError as err:
         details = ""
         try:
             details = err.read().decode("utf-8", errors="ignore")
         except Exception:
             details = ""
-        log_runtime(f"Password reset email send failed: status={err.code}, body={details}")
+        log_runtime(f"{context} email send failed: status={err.code}, body={details}")
         return False
     except Exception as exc:
-        log_runtime(f"Password reset email send failed: {exc}")
+        log_runtime(f"{context} email send failed: {exc}")
         return False
+
+
+def send_password_reset_email(email: str, username: str, token: str) -> bool:
+    reset_link = build_password_reset_link(token)
+    subject = "ChessAnalytics password reset"
+    text_body = (
+        f"Hi {username},\n\n"
+        "A password reset was requested for your account.\n"
+        f"Reset link (valid {PASSWORD_RESET_TOKEN_TTL_SECONDS // 60} minutes):\n{reset_link}\n\n"
+        "If you did not request this, you can ignore this email."
+    )
+    html_body = (
+        f"<p>Hi {username},</p>"
+        "<p>A password reset was requested for your account.</p>"
+        f"<p><a href=\"{reset_link}\">Reset password</a> "
+        f"(valid {PASSWORD_RESET_TOKEN_TTL_SECONDS // 60} minutes)</p>"
+        "<p>If you did not request this, you can ignore this email.</p>"
+    )
+    return send_email_via_provider(email, subject, text_body, html_body, "Password reset")
+
+
+def send_daily_login_report_email(report_date: str, total_logins: int, unique_users: int, guest_logins: int) -> bool:
+    member_logins = total_logins - guest_logins
+    subject = f"ChessAnalytics daily login report - {report_date}"
+    text_body = (
+        f"Daily login report for {report_date} (UTC)\n\n"
+        f"Total logins: {total_logins}\n"
+        f"Unique usernames: {unique_users}\n"
+        f"Guest logins: {guest_logins}\n"
+        f"Member logins: {member_logins}\n"
+    )
+    html_body = (
+        f"<p>Daily login report for <strong>{report_date}</strong> (UTC)</p>"
+        "<ul>"
+        f"<li>Total logins: {total_logins}</li>"
+        f"<li>Unique usernames: {unique_users}</li>"
+        f"<li>Guest logins: {guest_logins}</li>"
+        f"<li>Member logins: {member_logins}</li>"
+        "</ul>"
+    )
+    return send_email_via_provider(
+        DAILY_REPORT_RECIPIENT,
+        subject,
+        text_body,
+        html_body,
+        "Daily login report",
+    )
 
 
 def is_password_reset_service_configured() -> bool:
@@ -440,6 +481,13 @@ def issue_password_reset_token(conn: sqlite3.Connection, user_id: int) -> str:
     return token
 
 
+def record_login_event(conn: sqlite3.Connection, username: str):
+    conn.execute(
+        "INSERT INTO login_events (username, login_at) VALUES (?, ?)",
+        ((username or "").strip().lower() or "-", int(time.time())),
+    )
+
+
 def is_same_origin_request(handler: SimpleHTTPRequestHandler) -> bool:
     host = (handler.headers.get("Host") or "").strip().lower()
     if not host:
@@ -547,6 +595,9 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
         if AUTH_PASSWORD_RESET_CONFIRM_RE.match(self.path):
             self._handle_password_reset_confirm()
+            return
+        if ADMIN_DAILY_REPORT_RE.match(self.path):
+            self._handle_daily_login_report()
             return
 
         self._send_json(404, {"error": "not_found"})
@@ -662,6 +713,8 @@ class AppHandler(SimpleHTTPRequestHandler):
                 )
 
             token = self._create_session(conn, user_id)
+            record_login_event(conn, db_username)
+            conn.commit()
 
         clear_login_failures(username)
         clear_rate_limit("login", client_ip, username)
@@ -686,6 +739,8 @@ class AppHandler(SimpleHTTPRequestHandler):
                 conn.commit()
 
             token = self._create_session(conn, guest_user_id)
+            record_login_event(conn, guest_username)
+            conn.commit()
 
         extra_headers = [("Set-Cookie", build_session_cookie(token, SESSION_TTL_SECONDS))]
         self._send_json(200, {"ok": True, "username": guest_username}, extra_headers=extra_headers)
@@ -873,6 +928,65 @@ class AppHandler(SimpleHTTPRequestHandler):
         clear_login_failures(username)
         self._send_json(200, {"ok": True})
 
+    def _handle_daily_login_report(self):
+        if not ADMIN_REPORT_TOKEN:
+            self._send_json(503, {"error": "admin_report_token_not_configured"})
+            return
+
+        provided_token = (self.headers.get("X-Admin-Token") or "").strip()
+        if not provided_token or not hmac.compare_digest(provided_token, ADMIN_REPORT_TOKEN):
+            self._send_json(401, {"error": "unauthorized"})
+            return
+
+        now = int(time.time())
+        today_start = now - (now % 86400)
+        yesterday_start = today_start - 86400
+        report_date = time.strftime("%Y-%m-%d", time.gmtime(yesterday_start))
+
+        with sqlite3.connect(DB_PATH) as conn:
+            ensure_auth_schema(conn)
+            total_logins = conn.execute(
+                "SELECT COUNT(*) FROM login_events WHERE login_at >= ? AND login_at < ?",
+                (yesterday_start, today_start),
+            ).fetchone()[0]
+            unique_users = conn.execute(
+                "SELECT COUNT(DISTINCT username) FROM login_events WHERE login_at >= ? AND login_at < ?",
+                (yesterday_start, today_start),
+            ).fetchone()[0]
+            guest_logins = conn.execute(
+                """
+                SELECT COUNT(*) FROM login_events
+                WHERE login_at >= ? AND login_at < ? AND username = 'guest'
+                """,
+                (yesterday_start, today_start),
+            ).fetchone()[0]
+
+        email_sent = send_daily_login_report_email(
+            report_date=report_date,
+            total_logins=total_logins,
+            unique_users=unique_users,
+            guest_logins=guest_logins,
+        )
+        log_runtime(
+            "Daily login report result: "
+            + f"date={report_date}, total={total_logins}, unique={unique_users}, guest={guest_logins}, sent={email_sent}"
+        )
+        if not email_sent:
+            self._send_json(502, {"error": "email_send_failed"})
+            return
+
+        self._send_json(
+            200,
+            {
+                "ok": True,
+                "date": report_date,
+                "total_logins": total_logins,
+                "unique_users": unique_users,
+                "guest_logins": guest_logins,
+                "recipient": DAILY_REPORT_RECIPIENT,
+            },
+        )
+
     def _create_session(self, conn: sqlite3.Connection, user_id: int) -> str:
         token = secrets.token_urlsafe(32)
         expires_at = int(time.time()) + SESSION_TTL_SECONDS
@@ -972,6 +1086,11 @@ def main():
         + f"from_set={bool(PASSWORD_RESET_FROM_EMAIL)}, "
         + f"page_url_set={bool(PASSWORD_RESET_PAGE_URL)}, "
         + f"debug_token_response={DEBUG_RESET_TOKEN_RESPONSE}"
+    )
+    log_runtime(
+        "Daily report config: "
+        + f"admin_token_set={bool(ADMIN_REPORT_TOKEN)}, "
+        + f"recipient={DAILY_REPORT_RECIPIENT}"
     )
     log_runtime(
         "Railway env: "
