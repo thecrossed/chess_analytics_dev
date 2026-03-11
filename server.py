@@ -70,6 +70,7 @@ AUTH_PASSWORD_RESET_REQUEST_RE = re.compile(r"^/api/auth/password-reset/request/
 AUTH_PASSWORD_RESET_CONFIRM_RE = re.compile(r"^/api/auth/password-reset/confirm/?$")
 ADMIN_DAILY_REPORT_RE = re.compile(r"^/api/admin/daily-report/?$")
 ANALYSIS_PGN_EVAL_RE = re.compile(r"^/api/analysis/pgn-eval/?$")
+BUTTON_CLICK_RE = re.compile(r"^/api/metrics/button-click/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
 COMMON_WEAK_PASSWORDS = {
     "12345678",
@@ -215,6 +216,18 @@ def ensure_auth_schema_sqlite(conn: sqlite3.Connection):
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS button_click_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            page_path TEXT NOT NULL,
+            button_id TEXT NOT NULL,
+            button_label TEXT NOT NULL,
+            client_ip TEXT NOT NULL,
+            clicked_at INTEGER NOT NULL
+        )
+        """
+    )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id)")
@@ -223,6 +236,8 @@ def ensure_auth_schema_sqlite(conn: sqlite3.Connection):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_login_events_username ON login_events(username)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_viewed_at ON page_views(viewed_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_client_ip ON page_views(client_ip)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_clicked_at ON button_click_events(clicked_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_button_id ON button_click_events(button_id)")
     conn.commit()
 
 
@@ -281,6 +296,18 @@ def ensure_auth_schema_postgres(conn):
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS button_click_events (
+            id BIGSERIAL PRIMARY KEY,
+            page_path TEXT NOT NULL,
+            button_id TEXT NOT NULL,
+            button_label TEXT NOT NULL,
+            client_ip TEXT NOT NULL,
+            clicked_at BIGINT NOT NULL
+        )
+        """
+    )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id)")
@@ -289,6 +316,8 @@ def ensure_auth_schema_postgres(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_login_events_username ON login_events(username)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_viewed_at ON page_views(viewed_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_client_ip ON page_views(client_ip)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_clicked_at ON button_click_events(clicked_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_button_id ON button_click_events(button_id)")
     conn.commit()
 
 
@@ -465,36 +494,30 @@ def send_password_reset_email(email: str, username: str, token: str) -> bool:
 def send_hourly_report_email(
     window_start_utc: str,
     window_end_utc: str,
-    total_logins: int,
-    unique_users: int,
-    guest_logins: int,
     total_page_views: int,
     unique_visitors: int,
+    button_clicks: List[Tuple[str, int]],
 ) -> bool:
-    member_logins = total_logins - guest_logins
-    subject = f"ChessAnalytics hourly report - {window_start_utc} to {window_end_utc} UTC"
+    subject = f"ChessAnalytics hourly button report - {window_start_utc} to {window_end_utc} UTC"
+    button_lines = "\n".join([f"- {button}: {count}" for button, count in button_clicks]) or "- no button clicks"
+    button_html = "".join([f"<li>{button}: {count}</li>" for button, count in button_clicks]) or "<li>no button clicks</li>"
     text_body = (
-        f"Hourly report (UTC)\n"
+        f"Hourly button report (UTC)\n"
         f"Window: {window_start_utc} to {window_end_utc}\n\n"
         f"Total page views: {total_page_views}\n"
         f"Unique visitors (by IP): {unique_visitors}\n"
-        "\n"
-        f"Total logins: {total_logins}\n"
-        f"Unique usernames: {unique_users}\n"
-        f"Guest logins: {guest_logins}\n"
-        f"Member logins: {member_logins}\n"
+        "\nButton clicks:\n"
+        f"{button_lines}\n"
     )
     html_body = (
-        "<p>Hourly report (UTC)</p>"
+        "<p>Hourly button report (UTC)</p>"
         f"<p>Window: <strong>{window_start_utc}</strong> to <strong>{window_end_utc}</strong></p>"
         "<ul>"
         f"<li>Total page views: {total_page_views}</li>"
         f"<li>Unique visitors (by IP): {unique_visitors}</li>"
-        f"<li>Total logins: {total_logins}</li>"
-        f"<li>Unique usernames: {unique_users}</li>"
-        f"<li>Guest logins: {guest_logins}</li>"
-        f"<li>Member logins: {member_logins}</li>"
         "</ul>"
+        "<p>Button clicks:</p>"
+        f"<ul>{button_html}</ul>"
     )
     return send_email_via_provider(
         DAILY_REPORT_RECIPIENT,
@@ -652,6 +675,20 @@ def record_page_view(conn: sqlite3.Connection, path: str, client_ip: str):
     conn.execute(
         "INSERT INTO page_views (path, client_ip, viewed_at) VALUES (?, ?, ?)",
         (parsed_path, normalized_ip, int(time.time())),
+    )
+
+
+def record_button_click_event(conn, page_path: str, button_id: str, button_label: str, client_ip: str):
+    normalized_path = (urlparse(page_path).path or "").strip() or "/"
+    normalized_id = (button_id or "").strip()[:120] or "-"
+    normalized_label = (button_label or "").strip()[:200] or "-"
+    normalized_ip = (client_ip or "").strip() or "-"
+    conn.execute(
+        """
+        INSERT INTO button_click_events (page_path, button_id, button_label, client_ip, clicked_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (normalized_path, normalized_id, normalized_label, normalized_ip, int(time.time())),
     )
 
 
@@ -872,8 +909,46 @@ class AppHandler(SimpleHTTPRequestHandler):
         if ANALYSIS_PGN_EVAL_RE.match(self.path):
             self._handle_pgn_eval_analysis()
             return
+        if BUTTON_CLICK_RE.match(self.path):
+            self._handle_button_click_event()
+            return
 
         self._send_json(404, {"error": "not_found"})
+
+    def _handle_button_click_event(self):
+        try:
+            payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
+        except Exception:
+            self._send_json(400, {"error": "invalid_json"})
+            return
+
+        page_path = str(payload.get("page_path", "")).strip() or "/"
+        button_id = str(payload.get("button_id", "")).strip()
+        button_label = str(payload.get("button_label", "")).strip()
+        if not button_id and not button_label:
+            self._send_json(400, {"error": "button_id_or_label_required"})
+            return
+
+        try:
+            with connect_db() as conn:
+                ensure_auth_schema(conn)
+                record_button_click_event(
+                    conn=conn,
+                    page_path=page_path,
+                    button_id=button_id,
+                    button_label=button_label,
+                    client_ip=get_client_ip(self),
+                )
+                conn.commit()
+        except Exception as exc:
+            log_runtime(f"Button click tracking failed: {exc}")
+            self._send_json(500, {"error": "button_click_track_failed"})
+            return
+
+        self._send_json(200, {"ok": True})
 
     def _handle_register(self):
         try:
@@ -1219,21 +1294,6 @@ class AppHandler(SimpleHTTPRequestHandler):
 
         with connect_db() as conn:
             ensure_auth_schema(conn)
-            total_logins = conn.execute(
-                "SELECT COUNT(*) FROM login_events WHERE login_at >= ? AND login_at < ?",
-                (window_start, window_end),
-            ).fetchone()[0]
-            unique_users = conn.execute(
-                "SELECT COUNT(DISTINCT username) FROM login_events WHERE login_at >= ? AND login_at < ?",
-                (window_start, window_end),
-            ).fetchone()[0]
-            guest_logins = conn.execute(
-                """
-                SELECT COUNT(*) FROM login_events
-                WHERE login_at >= ? AND login_at < ? AND username = 'guest'
-                """,
-                (window_start, window_end),
-            ).fetchone()[0]
             total_page_views = conn.execute(
                 "SELECT COUNT(*) FROM page_views WHERE viewed_at >= ? AND viewed_at < ?",
                 (window_start, window_end),
@@ -1242,22 +1302,36 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "SELECT COUNT(DISTINCT client_ip) FROM page_views WHERE viewed_at >= ? AND viewed_at < ?",
                 (window_start, window_end),
             ).fetchone()[0]
+            button_click_rows = conn.execute(
+                """
+                SELECT
+                    CASE
+                        WHEN button_id IS NOT NULL AND button_id != '-' AND button_id != ''
+                            THEN button_id
+                        ELSE button_label
+                    END AS button_key,
+                    COUNT(*) AS cnt
+                FROM button_click_events
+                WHERE clicked_at >= ? AND clicked_at < ?
+                GROUP BY button_key
+                ORDER BY cnt DESC, button_key ASC
+                """,
+                (window_start, window_end),
+            ).fetchall()
+            button_clicks = [(str(row[0] or "-"), int(row[1] or 0)) for row in button_click_rows]
 
         email_sent = send_hourly_report_email(
             window_start_utc=window_start_utc,
             window_end_utc=window_end_utc,
-            total_logins=total_logins,
-            unique_users=unique_users,
-            guest_logins=guest_logins,
             total_page_views=total_page_views,
             unique_visitors=unique_visitors,
+            button_clicks=button_clicks,
         )
         log_runtime(
             "Hourly report result: "
             + f"window_start_utc={window_start_utc}, window_end_utc={window_end_utc}, "
-            + f"total_logins={total_logins}, unique_users={unique_users}, "
-            + f"guest_logins={guest_logins}, page_views={total_page_views}, "
-            + f"unique_visitors={unique_visitors}, sent={email_sent}"
+            + f"page_views={total_page_views}, unique_visitors={unique_visitors}, "
+            + f"button_click_keys={len(button_clicks)}, sent={email_sent}"
         )
         if not email_sent:
             self._send_json(502, {"error": "email_send_failed"})
@@ -1269,11 +1343,9 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "ok": True,
                 "window_start_utc": window_start_utc,
                 "window_end_utc": window_end_utc,
-                "total_logins": total_logins,
-                "unique_users": unique_users,
-                "guest_logins": guest_logins,
                 "total_page_views": total_page_views,
                 "unique_visitors": unique_visitors,
+                "button_clicks": [{"button": button, "count": count} for button, count in button_clicks],
                 "recipient": DAILY_REPORT_RECIPIENT,
             },
         )

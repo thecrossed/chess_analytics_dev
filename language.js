@@ -843,6 +843,51 @@ const currentLanguage = getStoredLanguage();
 applyTranslations(currentLanguage);
 injectLanguageSelector(currentLanguage);
 
+function trackButtonClicks() {
+  if (window.__buttonClickTrackerAttached) return;
+  window.__buttonClickTrackerAttached = true;
+
+  const isTrackableButton = (el) => {
+    if (!el) return false;
+    if (el.tagName === "BUTTON") return true;
+    if (el.tagName === "INPUT") {
+      const type = (el.getAttribute("type") || "").toLowerCase();
+      return type === "button" || type === "submit";
+    }
+    if (el.tagName === "A" && el.classList.contains("button-link")) return true;
+    return false;
+  };
+
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+    const button = target.closest("button, input[type='button'], input[type='submit'], a.button-link");
+    if (!button || !isTrackableButton(button)) return;
+
+    const buttonId =
+      button.id ||
+      button.getAttribute("data-i18n") ||
+      button.getAttribute("name") ||
+      button.getAttribute("aria-label") ||
+      "";
+    const buttonLabel = (button.textContent || button.getAttribute("value") || "").trim().slice(0, 200);
+    const pagePath = window.location.pathname || "/";
+
+    fetch("/api/metrics/button-click", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        page_path: pagePath,
+        button_id: buttonId,
+        button_label: buttonLabel
+      })
+    }).catch(() => {});
+  });
+}
+
+trackButtonClicks();
+
 window.i18n = {
   getLanguage: getStoredLanguage,
   t(key, params) {
