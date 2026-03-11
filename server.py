@@ -157,12 +157,24 @@ def ensure_auth_schema(conn: sqlite3.Connection):
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS page_views (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            path TEXT NOT NULL,
+            client_ip TEXT NOT NULL,
+            viewed_at INTEGER NOT NULL
+        )
+        """
+    )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_expires ON password_reset_tokens(expires_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_login_events_login_at ON login_events(login_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_login_events_username ON login_events(username)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_viewed_at ON page_views(viewed_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_client_ip ON page_views(client_ip)")
     conn.commit()
 
 
@@ -336,11 +348,21 @@ def send_password_reset_email(email: str, username: str, token: str) -> bool:
     return send_email_via_provider(email, subject, text_body, html_body, "Password reset")
 
 
-def send_daily_login_report_email(report_date: str, total_logins: int, unique_users: int, guest_logins: int) -> bool:
+def send_daily_login_report_email(
+    report_date: str,
+    total_logins: int,
+    unique_users: int,
+    guest_logins: int,
+    total_page_views: int,
+    unique_visitors: int,
+) -> bool:
     member_logins = total_logins - guest_logins
     subject = f"ChessAnalytics daily login report - {report_date}"
     text_body = (
         f"Daily login report for {report_date} (UTC)\n\n"
+        f"Total page views: {total_page_views}\n"
+        f"Unique visitors (by IP): {unique_visitors}\n"
+        "\n"
         f"Total logins: {total_logins}\n"
         f"Unique usernames: {unique_users}\n"
         f"Guest logins: {guest_logins}\n"
@@ -349,6 +371,8 @@ def send_daily_login_report_email(report_date: str, total_logins: int, unique_us
     html_body = (
         f"<p>Daily login report for <strong>{report_date}</strong> (UTC)</p>"
         "<ul>"
+        f"<li>Total page views: {total_page_views}</li>"
+        f"<li>Unique visitors (by IP): {unique_visitors}</li>"
         f"<li>Total logins: {total_logins}</li>"
         f"<li>Unique usernames: {unique_users}</li>"
         f"<li>Guest logins: {guest_logins}</li>"
@@ -491,6 +515,26 @@ def record_login_event(conn: sqlite3.Connection, username: str):
     conn.execute(
         "INSERT INTO login_events (username, login_at) VALUES (?, ?)",
         ((username or "").strip().lower() or "-", int(time.time())),
+    )
+
+
+def should_track_page_view(path: str) -> bool:
+    parsed_path = (urlparse(path).path or "").strip()
+    if not parsed_path:
+        return False
+    if parsed_path.startswith("/api/") or parsed_path == "/health":
+        return False
+    if parsed_path == "/":
+        return True
+    return parsed_path.endswith(".html")
+
+
+def record_page_view(conn: sqlite3.Connection, path: str, client_ip: str):
+    parsed_path = (urlparse(path).path or "").strip() or "/"
+    normalized_ip = (client_ip or "").strip() or "-"
+    conn.execute(
+        "INSERT INTO page_views (path, client_ip, viewed_at) VALUES (?, ?, ?)",
+        (parsed_path, normalized_ip, int(time.time())),
     )
 
 
@@ -666,6 +710,16 @@ class AppHandler(SimpleHTTPRequestHandler):
             upstream = f"https://api.chess.com/pub/player/{username}/games/{year}/{month:02d}"
             self._proxy_json(upstream)
             return
+
+        if should_track_page_view(self.path):
+            try:
+                client_ip = get_client_ip(self)
+                with sqlite3.connect(DB_PATH) as conn:
+                    ensure_auth_schema(conn)
+                    record_page_view(conn, self.path, client_ip)
+                    conn.commit()
+            except Exception as exc:
+                log_runtime(f"Page view tracking failed: {exc}")
 
         super().do_GET()
 
@@ -1062,16 +1116,28 @@ class AppHandler(SimpleHTTPRequestHandler):
                 """,
                 (yesterday_start, today_start),
             ).fetchone()[0]
+            total_page_views = conn.execute(
+                "SELECT COUNT(*) FROM page_views WHERE viewed_at >= ? AND viewed_at < ?",
+                (yesterday_start, today_start),
+            ).fetchone()[0]
+            unique_visitors = conn.execute(
+                "SELECT COUNT(DISTINCT client_ip) FROM page_views WHERE viewed_at >= ? AND viewed_at < ?",
+                (yesterday_start, today_start),
+            ).fetchone()[0]
 
         email_sent = send_daily_login_report_email(
             report_date=report_date,
             total_logins=total_logins,
             unique_users=unique_users,
             guest_logins=guest_logins,
+            total_page_views=total_page_views,
+            unique_visitors=unique_visitors,
         )
         log_runtime(
             "Daily login report result: "
-            + f"date={report_date}, total={total_logins}, unique={unique_users}, guest={guest_logins}, sent={email_sent}"
+            + f"date={report_date}, total_logins={total_logins}, unique_users={unique_users}, "
+            + f"guest_logins={guest_logins}, page_views={total_page_views}, "
+            + f"unique_visitors={unique_visitors}, sent={email_sent}"
         )
         if not email_sent:
             self._send_json(502, {"error": "email_send_failed"})
@@ -1085,6 +1151,8 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "total_logins": total_logins,
                 "unique_users": unique_users,
                 "guest_logins": guest_logins,
+                "total_page_views": total_page_views,
+                "unique_visitors": unique_visitors,
                 "recipient": DAILY_REPORT_RECIPIENT,
             },
         )
