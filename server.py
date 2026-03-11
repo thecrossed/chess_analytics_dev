@@ -11,7 +11,7 @@ import threading
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
@@ -22,7 +22,9 @@ USER_AGENT = "ChessAnalytics/1.0 (contact: chessalwaysfun@gmail.com)"
 SESSION_COOKIE = "chess_analytics_session"
 SESSION_TTL_SECONDS = 7 * 24 * 60 * 60
 ALLOW_MULTIPLE_SESSIONS_PER_USER = False
-DB_PATH = "auth.db"
+DB_PATH = os.environ.get("DB_PATH", "auth.db").strip() or "auth.db"
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+DB_BACKEND = "postgres" if DATABASE_URL else "sqlite"
 RATE_LIMIT_WINDOW_SECONDS = 10 * 60
 RATE_LIMIT_MAX_ATTEMPTS = 8
 RATE_LIMIT_LOCK = threading.Lock()
@@ -83,6 +85,11 @@ COMMON_WEAK_PASSWORDS = {
 }
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+try:
+    import psycopg  # type: ignore
+except Exception:
+    psycopg = None
+
 
 class PayloadTooLargeError(Exception):
     pass
@@ -103,11 +110,52 @@ def get_instance_id() -> str:
 
 
 def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
+    with connect_db() as conn:
         ensure_auth_schema(conn)
 
 
-def ensure_auth_schema(conn: sqlite3.Connection):
+class PostgresCompatConnection:
+    def __init__(self, raw_conn):
+        self.raw_conn = raw_conn
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            if exc_type is None:
+                self.raw_conn.commit()
+            else:
+                self.raw_conn.rollback()
+        finally:
+            self.raw_conn.close()
+        return False
+
+    def execute(self, sql: str, params: Tuple[Any, ...] = ()):
+        cur = self.raw_conn.cursor()
+        cur.execute(sql.replace("?", "%s"), params)
+        return cur
+
+    def commit(self):
+        self.raw_conn.commit()
+
+
+def connect_db():
+    if DB_BACKEND == "postgres":
+        if not psycopg:
+            raise RuntimeError("DATABASE_URL is set but psycopg is not installed.")
+        raw_conn = psycopg.connect(DATABASE_URL)
+        return PostgresCompatConnection(raw_conn)
+    return sqlite3.connect(DB_PATH)
+
+
+def ensure_auth_schema(conn):
+    if DB_BACKEND == "postgres":
+        return ensure_auth_schema_postgres(conn)
+    return ensure_auth_schema_sqlite(conn)
+
+
+def ensure_auth_schema_sqlite(conn: sqlite3.Connection):
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -164,6 +212,72 @@ def ensure_auth_schema(conn: sqlite3.Connection):
             path TEXT NOT NULL,
             client_ip TEXT NOT NULL,
             viewed_at INTEGER NOT NULL
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_expires ON password_reset_tokens(expires_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_login_events_login_at ON login_events(login_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_login_events_username ON login_events(username)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_viewed_at ON page_views(viewed_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_client_ip ON page_views(client_ip)")
+    conn.commit()
+
+
+def ensure_auth_schema_postgres(conn):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id BIGSERIAL PRIMARY KEY,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            iterations INTEGER NOT NULL DEFAULT 120000,
+            created_at BIGINT NOT NULL
+        )
+        """
+    )
+    conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT")
+    conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS iterations INTEGER NOT NULL DEFAULT 120000")
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sessions (
+            token TEXT PRIMARY KEY,
+            user_id BIGINT NOT NULL REFERENCES users(id),
+            expires_at BIGINT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            token TEXT PRIMARY KEY,
+            user_id BIGINT NOT NULL REFERENCES users(id),
+            expires_at BIGINT NOT NULL,
+            used_at BIGINT,
+            created_at BIGINT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS login_events (
+            id BIGSERIAL PRIMARY KEY,
+            username TEXT NOT NULL,
+            login_at BIGINT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS page_views (
+            id BIGSERIAL PRIMARY KEY,
+            path TEXT NOT NULL,
+            client_ip TEXT NOT NULL,
+            viewed_at BIGINT NOT NULL
         )
         """
     )
@@ -714,7 +828,7 @@ class AppHandler(SimpleHTTPRequestHandler):
         if should_track_page_view(self.path):
             try:
                 client_ip = get_client_ip(self)
-                with sqlite3.connect(DB_PATH) as conn:
+                with connect_db() as conn:
                     ensure_auth_schema(conn)
                     record_page_view(conn, self.path, client_ip)
                     conn.commit()
@@ -793,14 +907,14 @@ class AppHandler(SimpleHTTPRequestHandler):
 
         password_hash, salt, iterations = make_password_hash(password)
         try:
-            with sqlite3.connect(DB_PATH) as conn:
+            with connect_db() as conn:
                 conn.execute(
                     "INSERT INTO users (username, email, password_hash, salt, iterations, created_at) VALUES (?, ?, ?, ?, ?, ?)",
                     (username, email, password_hash, salt, iterations, int(time.time())),
                 )
                 conn.commit()
-        except sqlite3.IntegrityError:
-            with sqlite3.connect(DB_PATH) as conn:
+        except Exception:
+            with connect_db() as conn:
                 row = conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone()
                 if row:
                     self._send_json(409, {"error": "username_exists"})
@@ -837,7 +951,7 @@ class AppHandler(SimpleHTTPRequestHandler):
             self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
             return
 
-        with sqlite3.connect(DB_PATH) as conn:
+        with connect_db() as conn:
             ensure_auth_schema(conn)
             row = conn.execute(
                 "SELECT id, username, password_hash, salt, iterations FROM users WHERE username = ?",
@@ -879,7 +993,7 @@ class AppHandler(SimpleHTTPRequestHandler):
 
     def _handle_guest_login(self):
         guest_username = "guest"
-        with sqlite3.connect(DB_PATH) as conn:
+        with connect_db() as conn:
             ensure_auth_schema(conn)
             row = conn.execute("SELECT id FROM users WHERE username = ?", (guest_username,)).fetchone()
             if row:
@@ -904,7 +1018,7 @@ class AppHandler(SimpleHTTPRequestHandler):
     def _handle_logout(self):
         token = parse_session_token_from_headers(self.headers)
         if token:
-            with sqlite3.connect(DB_PATH) as conn:
+            with connect_db() as conn:
                 ensure_auth_schema(conn)
                 conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
                 conn.commit()
@@ -939,7 +1053,7 @@ class AppHandler(SimpleHTTPRequestHandler):
             response_payload["message"] = "Password reset email service is not configured."
 
         delivery_detail = "not_attempted"
-        with sqlite3.connect(DB_PATH) as conn:
+        with connect_db() as conn:
             ensure_auth_schema(conn)
             row = conn.execute("SELECT id, username, email FROM users WHERE username = ?", (username,)).fetchone()
             if row:
@@ -1009,11 +1123,11 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
 
         try:
-            with sqlite3.connect(DB_PATH) as conn:
+            with connect_db() as conn:
                 ensure_auth_schema(conn)
                 conn.execute("UPDATE users SET email = ? WHERE id = ?", (email, user["id"]))
                 conn.commit()
-        except sqlite3.IntegrityError:
+        except Exception:
             self._send_json(409, {"error": "email_exists"})
             return
 
@@ -1047,7 +1161,7 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
 
         now = int(time.time())
-        with sqlite3.connect(DB_PATH) as conn:
+        with connect_db() as conn:
             ensure_auth_schema(conn)
             row = conn.execute(
                 """
@@ -1099,7 +1213,7 @@ class AppHandler(SimpleHTTPRequestHandler):
         yesterday_start = today_start - 86400
         report_date = time.strftime("%Y-%m-%d", time.gmtime(yesterday_start))
 
-        with sqlite3.connect(DB_PATH) as conn:
+        with connect_db() as conn:
             ensure_auth_schema(conn)
             total_logins = conn.execute(
                 "SELECT COUNT(*) FROM login_events WHERE login_at >= ? AND login_at < ?",
@@ -1221,7 +1335,7 @@ class AppHandler(SimpleHTTPRequestHandler):
         if not token:
             return None if optional else None
 
-        with sqlite3.connect(DB_PATH) as conn:
+        with connect_db() as conn:
             ensure_auth_schema(conn)
             row = conn.execute(
                 """
@@ -1299,6 +1413,10 @@ def main():
     log_runtime(f"Starting server. instance_id={instance_id}")
     log_runtime(f"Serving on http://{HOST}:{PORT}")
     log_runtime(f"Chess.com proxy User-Agent: {USER_AGENT}")
+    if DB_BACKEND == "postgres":
+        log_runtime("Database backend: postgres (DATABASE_URL)")
+    else:
+        log_runtime(f"Database backend: sqlite ({DB_PATH})")
     log_runtime(
         "Password reset email config: "
         + f"provider={PASSWORD_RESET_PROVIDER or '-'}, "
