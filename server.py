@@ -462,8 +462,9 @@ def send_password_reset_email(email: str, username: str, token: str) -> bool:
     return send_email_via_provider(email, subject, text_body, html_body, "Password reset")
 
 
-def send_daily_login_report_email(
-    report_date: str,
+def send_hourly_report_email(
+    window_start_utc: str,
+    window_end_utc: str,
     total_logins: int,
     unique_users: int,
     guest_logins: int,
@@ -471,9 +472,10 @@ def send_daily_login_report_email(
     unique_visitors: int,
 ) -> bool:
     member_logins = total_logins - guest_logins
-    subject = f"ChessAnalytics daily login report - {report_date}"
+    subject = f"ChessAnalytics hourly report - {window_start_utc} to {window_end_utc} UTC"
     text_body = (
-        f"Daily login report for {report_date} (UTC)\n\n"
+        f"Hourly report (UTC)\n"
+        f"Window: {window_start_utc} to {window_end_utc}\n\n"
         f"Total page views: {total_page_views}\n"
         f"Unique visitors (by IP): {unique_visitors}\n"
         "\n"
@@ -483,7 +485,8 @@ def send_daily_login_report_email(
         f"Member logins: {member_logins}\n"
     )
     html_body = (
-        f"<p>Daily login report for <strong>{report_date}</strong> (UTC)</p>"
+        "<p>Hourly report (UTC)</p>"
+        f"<p>Window: <strong>{window_start_utc}</strong> to <strong>{window_end_utc}</strong></p>"
         "<ul>"
         f"<li>Total page views: {total_page_views}</li>"
         f"<li>Unique visitors (by IP): {unique_visitors}</li>"
@@ -498,7 +501,7 @@ def send_daily_login_report_email(
         subject,
         text_body,
         html_body,
-        "Daily login report",
+        "Hourly report",
     )
 
 
@@ -1209,38 +1212,40 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
 
         now = int(time.time())
-        today_start = now - (now % 86400)
-        yesterday_start = today_start - 86400
-        report_date = time.strftime("%Y-%m-%d", time.gmtime(yesterday_start))
+        window_end = now
+        window_start = now - 3600
+        window_start_utc = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(window_start))
+        window_end_utc = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(window_end))
 
         with connect_db() as conn:
             ensure_auth_schema(conn)
             total_logins = conn.execute(
                 "SELECT COUNT(*) FROM login_events WHERE login_at >= ? AND login_at < ?",
-                (yesterday_start, today_start),
+                (window_start, window_end),
             ).fetchone()[0]
             unique_users = conn.execute(
                 "SELECT COUNT(DISTINCT username) FROM login_events WHERE login_at >= ? AND login_at < ?",
-                (yesterday_start, today_start),
+                (window_start, window_end),
             ).fetchone()[0]
             guest_logins = conn.execute(
                 """
                 SELECT COUNT(*) FROM login_events
                 WHERE login_at >= ? AND login_at < ? AND username = 'guest'
                 """,
-                (yesterday_start, today_start),
+                (window_start, window_end),
             ).fetchone()[0]
             total_page_views = conn.execute(
                 "SELECT COUNT(*) FROM page_views WHERE viewed_at >= ? AND viewed_at < ?",
-                (yesterday_start, today_start),
+                (window_start, window_end),
             ).fetchone()[0]
             unique_visitors = conn.execute(
                 "SELECT COUNT(DISTINCT client_ip) FROM page_views WHERE viewed_at >= ? AND viewed_at < ?",
-                (yesterday_start, today_start),
+                (window_start, window_end),
             ).fetchone()[0]
 
-        email_sent = send_daily_login_report_email(
-            report_date=report_date,
+        email_sent = send_hourly_report_email(
+            window_start_utc=window_start_utc,
+            window_end_utc=window_end_utc,
             total_logins=total_logins,
             unique_users=unique_users,
             guest_logins=guest_logins,
@@ -1248,8 +1253,9 @@ class AppHandler(SimpleHTTPRequestHandler):
             unique_visitors=unique_visitors,
         )
         log_runtime(
-            "Daily login report result: "
-            + f"date={report_date}, total_logins={total_logins}, unique_users={unique_users}, "
+            "Hourly report result: "
+            + f"window_start_utc={window_start_utc}, window_end_utc={window_end_utc}, "
+            + f"total_logins={total_logins}, unique_users={unique_users}, "
             + f"guest_logins={guest_logins}, page_views={total_page_views}, "
             + f"unique_visitors={unique_visitors}, sent={email_sent}"
         )
@@ -1261,7 +1267,8 @@ class AppHandler(SimpleHTTPRequestHandler):
             200,
             {
                 "ok": True,
-                "date": report_date,
+                "window_start_utc": window_start_utc,
+                "window_end_utc": window_end_utc,
                 "total_logins": total_logins,
                 "unique_users": unique_users,
                 "guest_logins": guest_logins,

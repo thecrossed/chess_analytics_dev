@@ -1,15 +1,15 @@
-name: Daily Login Report
+name: Hourly Traffic Report
 
 on:
   schedule:
-    - cron: "0 8 * * *"
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 jobs:
   send-report:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger daily login report endpoint
+      - name: Trigger hourly report endpoint
         env:
           DAILY_REPORT_ENDPOINT: ${{ secrets.DAILY_REPORT_ENDPOINT }}
           DAILY_REPORT_TOKEN: ${{ secrets.DAILY_REPORT_TOKEN }}
