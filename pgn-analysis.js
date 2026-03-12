@@ -212,7 +212,7 @@ async function runAnalysis() {
     }
     setProgress(progressValue);
 
-    const remaining = Math.max(1, Math.ceil(expectedSeconds - elapsed));
+    const remaining = Math.max(0, Math.ceil(expectedSeconds - elapsed));
     if (etaEl) {
       etaEl.textContent = formatEtaSeconds(remaining);
     }
