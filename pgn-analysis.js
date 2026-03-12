@@ -17,6 +17,7 @@ const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 let currentRows = [];
 let currentAbortController = null;
 let analysisCancelledByUser = false;
+let analysisSlowHintShown = false;
 
 function setStatus(text, isError = false) {
   if (!statusEl) return;
@@ -202,14 +203,16 @@ async function runAnalysis() {
     }
   }, 250);
 
-  let didTimeout = false;
-  const timeoutMs = Math.max(45_000, expectedSeconds * 3_000);
-  const requestTimeout = window.setTimeout(() => {
-    didTimeout = true;
-    if (currentAbortController) {
-      currentAbortController.abort();
+  // Soft timeout only: show a hint when analysis is slower than expected,
+  // but do not abort automatically.
+  analysisSlowHintShown = false;
+  const slowHintTimeoutMs = Math.max(20_000, expectedSeconds * 2_000);
+  const slowHintTimer = window.setTimeout(() => {
+    analysisSlowHintShown = true;
+    if (progressMessageEl) {
+      progressMessageEl.textContent = `${t("pgn_analysis_progress_running")} (${t("pgn_analysis_slow_hint")})`;
     }
-  }, timeoutMs);
+  }, slowHintTimeoutMs);
 
   try {
     currentAbortController = new AbortController();
@@ -269,18 +272,6 @@ async function runAnalysis() {
     hideCancelModalButton();
     showCloseModalButton();
   } catch (error) {
-    if (didTimeout) {
-      setStatus(`${t("home_pgn_analyze_failed")} (timeout)`, true);
-      if (progressMessageEl) {
-        progressMessageEl.textContent = t("home_pgn_analyze_failed");
-      }
-      if (etaEl) {
-        etaEl.textContent = t("pgn_analysis_eta_done");
-      }
-      hideCancelModalButton();
-      showCloseModalButton();
-      return;
-    }
     if (analysisCancelledByUser || (error && error.name === "AbortError")) {
       setStatus(t("pgn_analysis_cancelled"), false);
       if (progressMessageEl) {
@@ -303,7 +294,7 @@ async function runAnalysis() {
     hideCancelModalButton();
     showCloseModalButton();
   } finally {
-    window.clearTimeout(requestTimeout);
+    window.clearTimeout(slowHintTimer);
     window.clearInterval(progressTimer);
     currentAbortController = null;
   }
@@ -335,6 +326,9 @@ if (cancelModalButton) {
 window.addEventListener("languagechange", () => {
   if (etaEl && !modalEl.classList.contains("hidden")) {
     etaEl.textContent = t("pgn_analysis_eta");
+  }
+  if (progressMessageEl && !modalEl.classList.contains("hidden") && analysisSlowHintShown) {
+    progressMessageEl.textContent = `${t("pgn_analysis_progress_running")} (${t("pgn_analysis_slow_hint")})`;
   }
 });
 
