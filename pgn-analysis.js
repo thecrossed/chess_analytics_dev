@@ -113,8 +113,9 @@ function estimatePlies(pgnText) {
 }
 
 function estimateDurationSeconds(plies, depth) {
-  const baseline = plies * (0.22 + depth * 0.01);
-  return Math.max(4, Math.min(180, Math.round(baseline)));
+  // Conservative estimate to reduce premature "0s remaining" on slower networks.
+  const baseline = plies * (0.35 + depth * 0.02);
+  return Math.max(8, Math.min(300, Math.round(baseline)));
 }
 
 function formatEtaSeconds(seconds) {
@@ -187,14 +188,28 @@ async function runAnalysis() {
   const progressTimer = window.setInterval(() => {
     const elapsed = (Date.now() - startedAt) / 1000;
     const ratio = Math.min(1, elapsed / Math.max(1, expectedSeconds));
-    progressValue = Math.min(92, 2 + Math.round(ratio * 90));
+    if (ratio < 1) {
+      progressValue = Math.min(92, 2 + Math.round(ratio * 90));
+    } else {
+      // Keep moving slowly while backend is still processing.
+      progressValue = Math.min(98, progressValue + 1);
+    }
     setProgress(progressValue);
 
-    const remaining = Math.max(0, expectedSeconds - elapsed);
+    const remaining = Math.max(1, Math.ceil(expectedSeconds - elapsed));
     if (etaEl) {
       etaEl.textContent = formatEtaSeconds(remaining);
     }
   }, 250);
+
+  let didTimeout = false;
+  const timeoutMs = Math.max(45_000, expectedSeconds * 3_000);
+  const requestTimeout = window.setTimeout(() => {
+    didTimeout = true;
+    if (currentAbortController) {
+      currentAbortController.abort();
+    }
+  }, timeoutMs);
 
   try {
     currentAbortController = new AbortController();
@@ -254,6 +269,18 @@ async function runAnalysis() {
     hideCancelModalButton();
     showCloseModalButton();
   } catch (error) {
+    if (didTimeout) {
+      setStatus(`${t("home_pgn_analyze_failed")} (timeout)`, true);
+      if (progressMessageEl) {
+        progressMessageEl.textContent = t("home_pgn_analyze_failed");
+      }
+      if (etaEl) {
+        etaEl.textContent = t("pgn_analysis_eta_done");
+      }
+      hideCancelModalButton();
+      showCloseModalButton();
+      return;
+    }
     if (analysisCancelledByUser || (error && error.name === "AbortError")) {
       setStatus(t("pgn_analysis_cancelled"), false);
       if (progressMessageEl) {
@@ -276,6 +303,7 @@ async function runAnalysis() {
     hideCancelModalButton();
     showCloseModalButton();
   } finally {
+    window.clearTimeout(requestTimeout);
     window.clearInterval(progressTimer);
     currentAbortController = null;
   }
