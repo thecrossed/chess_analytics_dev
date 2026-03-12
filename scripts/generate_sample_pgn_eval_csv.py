@@ -94,6 +94,40 @@ def call_stockfish_api(api_url: str, input_text: str, depth: int) -> Dict:
         return json.loads(response.read().decode("utf-8"))
 
 
+def normalize_eval_score(data: Dict) -> str:
+    eval_value = data.get("eval")
+    centipawns = data.get("centipawns")
+    mate = data.get("mate")
+    if isinstance(eval_value, (int, float)):
+        return str(eval_value)
+    if isinstance(centipawns, int):
+        return f"{centipawns / 100:.2f}"
+    if isinstance(mate, int):
+        return f"mate {mate}"
+    return ""
+
+
+def extract_bestmove(data: Dict) -> str:
+    for key in ("move", "bestmove", "bestMove", "best_move", "bestmove_uci", "bestMoveUci", "best_move_uci", "uci"):
+        value = data.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    line = data.get("line")
+    if isinstance(line, str) and line.strip():
+        return line.split(" ")[0].strip()
+    return ""
+
+
+def extract_bestmove_eval_score(data: Dict) -> str:
+    for key in ("continuationArrEval", "bestmove_eval", "bestMoveEval", "best_move_eval", "best_eval"):
+        value = data.get(key)
+        if isinstance(value, (int, float)):
+            return str(value)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return normalize_eval_score(data)
+
+
 def evaluate_all_moves(
     san_moves: List[str],
     api_url: str,
@@ -118,7 +152,18 @@ def evaluate_all_moves(
             )
         except Exception:
             initial_position_data = None
+    if not initial_position_data or not extract_bestmove(initial_position_data):
+        try:
+            initial_position_data = call_stockfish_api(
+                api_url=api_url,
+                input_text="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                depth=depth,
+            )
+        except Exception:
+            pass
     previous_played_data = None
+    forced_first_bestmove = extract_bestmove(initial_position_data or {})
+    forced_first_bestmove_eval = extract_bestmove_eval_score(initial_position_data or {})
 
     for ply, san in enumerate(san_moves, start=1):
         move_number = (ply + 1) // 2
@@ -135,40 +180,21 @@ def evaluate_all_moves(
 
         pre_move_data = previous_played_data if previous_played_data is not None else initial_position_data
         if isinstance(pre_move_data, dict):
-            best_move = pre_move_data.get("move")
-            if not isinstance(best_move, str):
-                line = pre_move_data.get("line")
-                if isinstance(line, str):
-                    best_move = line.split(" ")[0].strip() if line.strip() else ""
-            best_eval_value = pre_move_data.get("continuationArrEval")
-            pre_eval_value = pre_move_data.get("eval")
-            pre_centipawns = pre_move_data.get("centipawns")
-            pre_mate = pre_move_data.get("mate")
+            row["bestmove"] = extract_bestmove(pre_move_data)
+            row["bestmove_eval"] = extract_bestmove_eval_score(pre_move_data)
 
-            if isinstance(best_move, str):
-                row["bestmove"] = best_move
-            if isinstance(best_eval_value, (int, float)):
-                row["bestmove_eval"] = str(best_eval_value)
-            elif isinstance(pre_eval_value, (int, float)):
-                row["bestmove_eval"] = str(pre_eval_value)
-            elif isinstance(pre_centipawns, int):
-                row["bestmove_eval"] = f"{pre_centipawns / 100:.2f}"
-            elif isinstance(pre_mate, int):
-                row["bestmove_eval"] = f"mate {pre_mate}"
+        # Hard rule: first move bestmove/bestmove_eval always comes from start position.
+        if ply == 1:
+            if forced_first_bestmove:
+                row["bestmove"] = forced_first_bestmove
+            if forced_first_bestmove_eval:
+                row["bestmove_eval"] = forced_first_bestmove_eval
 
         progressive.append(san)
         pgn_prefix = build_pgn_prefix(progressive)
         try:
             data = call_stockfish_api(api_url, pgn_prefix, depth)
-            eval_value = data.get("eval")
-            centipawns = data.get("centipawns")
-            mate = data.get("mate")
-            if isinstance(eval_value, (int, float)):
-                row["eval_score"] = str(eval_value)
-            elif isinstance(centipawns, int):
-                row["eval_score"] = f"{centipawns / 100:.2f}"
-            elif isinstance(mate, int):
-                row["eval_score"] = f"mate {mate}"
+            row["eval_score"] = normalize_eval_score(data)
             previous_played_data = data
         except (HTTPError, URLError, Exception):
             row["eval_score"] = ""
