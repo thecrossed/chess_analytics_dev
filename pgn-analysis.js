@@ -10,10 +10,13 @@ const progressFillEl = document.getElementById("analysis-progress-fill");
 const progressMessageEl = document.getElementById("analysis-progress-message");
 const etaEl = document.getElementById("analysis-eta");
 const closeModalButton = document.getElementById("analysis-progress-close");
+const cancelModalButton = document.getElementById("analysis-progress-cancel");
 
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 let currentRows = [];
+let currentAbortController = null;
+let analysisCancelledByUser = false;
 
 function setStatus(text, isError = false) {
   if (!statusEl) return;
@@ -37,6 +40,10 @@ function showModal() {
   if (closeModalButton) {
     closeModalButton.classList.add("hidden");
   }
+  if (cancelModalButton) {
+    cancelModalButton.classList.remove("hidden");
+    cancelModalButton.disabled = false;
+  }
 }
 
 function hideModal() {
@@ -47,6 +54,11 @@ function hideModal() {
 function showCloseModalButton() {
   if (!closeModalButton) return;
   closeModalButton.classList.remove("hidden");
+}
+
+function hideCancelModalButton() {
+  if (!cancelModalButton) return;
+  cancelModalButton.classList.add("hidden");
 }
 
 function parseDraft() {
@@ -160,6 +172,7 @@ async function runAnalysis() {
   }
 
   showModal();
+  analysisCancelledByUser = false;
   setStatus(t("pgn_analysis_starting"));
   if (progressMessageEl) {
     progressMessageEl.textContent = t("pgn_analysis_progress_running");
@@ -184,10 +197,12 @@ async function runAnalysis() {
   }, 250);
 
   try {
+    currentAbortController = new AbortController();
     const response = await fetch("/api/analysis/pgn-eval", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pgn_text: draft.pgn_text, depth: draft.depth })
+      body: JSON.stringify({ pgn_text: draft.pgn_text, depth: draft.depth }),
+      signal: currentAbortController.signal
     });
 
     const data = await response.json().catch(() => ({}));
@@ -236,8 +251,21 @@ async function runAnalysis() {
     if (etaEl) {
       etaEl.textContent = t("pgn_analysis_eta_done");
     }
+    hideCancelModalButton();
     showCloseModalButton();
-  } catch (_error) {
+  } catch (error) {
+    if (analysisCancelledByUser || (error && error.name === "AbortError")) {
+      setStatus(t("pgn_analysis_cancelled"), false);
+      if (progressMessageEl) {
+        progressMessageEl.textContent = t("pgn_analysis_cancelled");
+      }
+      if (etaEl) {
+        etaEl.textContent = t("pgn_analysis_eta_done");
+      }
+      hideCancelModalButton();
+      showCloseModalButton();
+      return;
+    }
     setStatus(t("home_pgn_analyze_failed"), true);
     if (progressMessageEl) {
       progressMessageEl.textContent = t("home_pgn_analyze_failed");
@@ -245,9 +273,11 @@ async function runAnalysis() {
     if (etaEl) {
       etaEl.textContent = t("pgn_analysis_eta_done");
     }
+    hideCancelModalButton();
     showCloseModalButton();
   } finally {
     window.clearInterval(progressTimer);
+    currentAbortController = null;
   }
 }
 
@@ -260,6 +290,17 @@ if (downloadButton) {
 if (closeModalButton) {
   closeModalButton.addEventListener("click", () => {
     hideModal();
+  });
+}
+
+if (cancelModalButton) {
+  cancelModalButton.addEventListener("click", () => {
+    analysisCancelledByUser = true;
+    if (currentAbortController) {
+      currentAbortController.abort();
+    }
+    hideModal();
+    setStatus(t("pgn_analysis_cancelled"), false);
   });
 }
 
