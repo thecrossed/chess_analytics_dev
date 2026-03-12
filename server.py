@@ -760,6 +760,16 @@ def normalize_eval_score(data: Dict) -> str:
     return ""
 
 
+def extract_bestmove_eval_score(data: Dict) -> str:
+    for key in ("bestmove_eval", "bestMoveEval", "best_move_eval", "best_eval"):
+        value = data.get(key)
+        if isinstance(value, (int, float)):
+            return str(value)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
 def extract_bestmove_san(data: Dict) -> str:
     def first_move_from_text(text: str) -> str:
         cleaned = (text or "").strip()
@@ -830,38 +840,19 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
             "bestmove": "",
             "bestmove_eval": "",
         }
-        # Best move is computed on the position BEFORE the current move.
-        pre_move_prefix = build_pgn_prefix(progressive)
-        bestmove_san = ""
-        try:
-            pre_move_data = request_stockfish_eval(pre_move_prefix, depth)
-            bestmove_san = extract_bestmove_san(pre_move_data)
-            row["bestmove"] = bestmove_san
-        except Exception:
-            row["bestmove"] = ""
-
-        # Actual eval score remains the eval AFTER the played move.
-        played_prefix = build_pgn_prefix(progressive + [san])
+        # Direct mode: use Stockfish API response on the current played position only.
+        progressive.append(san)
+        played_prefix = build_pgn_prefix(progressive)
         try:
             played_data = request_stockfish_eval(played_prefix, depth)
             row["eval_score"] = normalize_eval_score(played_data)
+            row["bestmove"] = extract_bestmove_san(played_data)
+            row["bestmove_eval"] = extract_bestmove_eval_score(played_data)
         except Exception:
             failed_count += 1
             row["eval_score"] = ""
-
-        if bestmove_san:
-            if bestmove_san == san and row["eval_score"]:
-                row["bestmove_eval"] = row["eval_score"]
-            else:
-                try:
-                    bestmove_position_moves = progressive + [bestmove_san]
-                    bestmove_prefix = build_pgn_prefix(bestmove_position_moves)
-                    bestmove_data = request_stockfish_eval(bestmove_prefix, depth)
-                    row["bestmove_eval"] = normalize_eval_score(bestmove_data)
-                except Exception:
-                    row["bestmove_eval"] = ""
-
-        progressive.append(san)
+            row["bestmove"] = ""
+            row["bestmove_eval"] = ""
         rows.append(row)
     return rows, failed_count
 
