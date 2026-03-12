@@ -80,9 +80,9 @@ function parseDraft() {
 }
 
 function clampDepth(value) {
-  const parsed = Number.parseInt(String(value ?? 12), 10);
+  const parsed = Number.parseInt(String(value ?? 18), 10);
   if (!Number.isFinite(parsed)) {
-    return 12;
+    return 18;
   }
   return Math.max(8, Math.min(20, parsed));
 }

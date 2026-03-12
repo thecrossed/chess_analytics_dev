@@ -210,7 +210,7 @@ function refreshPgnAutoStatus() {
 function clampAnalysisDepth(rawValue) {
   const parsed = Number.parseInt(rawValue, 10);
   if (!Number.isFinite(parsed)) {
-    return 12;
+    return 18;
   }
   return Math.max(8, Math.min(20, parsed));
 }
@@ -381,7 +381,7 @@ if (pgnTextInput) {
 
 if (pgnAnalyzeButton) {
   pgnAnalyzeButton.addEventListener("click", async () => {
-    const depth = clampAnalysisDepth(pgnDepthInput?.value || "12");
+    const depth = clampAnalysisDepth(pgnDepthInput?.value || "18");
     if (pgnDepthInput) {
       pgnDepthInput.value = String(depth);
     }

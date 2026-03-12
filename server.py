@@ -1433,11 +1433,11 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
 
         pgn_text = str(payload.get("pgn_text", "")).strip()
-        depth_raw = payload.get("depth", 12)
+        depth_raw = payload.get("depth", 18)
         try:
             depth = int(depth_raw)
         except (TypeError, ValueError):
-            depth = 12
+            depth = 18
         depth = max(PGN_ANALYSIS_MIN_DEPTH, min(PGN_ANALYSIS_MAX_DEPTH, depth))
 
         if not pgn_text:
