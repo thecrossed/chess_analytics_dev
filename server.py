@@ -5,6 +5,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import signal
 import sqlite3
 import threading
@@ -37,6 +38,16 @@ PGN_ANALYSIS_MAX_PLIES = 400
 PGN_ANALYSIS_MIN_DEPTH = 8
 PGN_ANALYSIS_MAX_DEPTH = 20
 STOCKFISH_API_URL = "https://chess-api.com/v1"
+PGN_ENGINE_MODE = os.environ.get("PGN_ENGINE_MODE", "auto").strip().lower() or "auto"
+LOCAL_STOCKFISH_PATH = os.environ.get("LOCAL_STOCKFISH_PATH", "stockfish").strip() or "stockfish"
+try:
+    LOCAL_STOCKFISH_THREADS = max(1, int(os.environ.get("LOCAL_STOCKFISH_THREADS", "2")))
+except Exception:
+    LOCAL_STOCKFISH_THREADS = 2
+try:
+    LOCAL_STOCKFISH_HASH_MB = max(16, int(os.environ.get("LOCAL_STOCKFISH_HASH_MB", "128")))
+except Exception:
+    LOCAL_STOCKFISH_HASH_MB = 128
 LOGIN_FAILURE_DELAY_SECONDS = 0.35
 ACCOUNT_LOCKOUT_WINDOW_SECONDS = 15 * 60
 ACCOUNT_LOCKOUT_MAX_FAILURES = 12
@@ -90,6 +101,12 @@ try:
     import psycopg  # type: ignore
 except Exception:
     psycopg = None
+
+try:
+    import chess  # type: ignore
+    import chess.engine  # type: ignore
+except Exception:
+    chess = None
 
 
 class PayloadTooLargeError(Exception):
@@ -747,6 +764,108 @@ def request_stockfish_eval(pgn_prefix: str, depth: int) -> Dict:
         return json.loads(response.read().decode("utf-8"))
 
 
+def can_use_local_stockfish() -> bool:
+    if PGN_ENGINE_MODE == "api":
+        return False
+    if chess is None:
+        return False
+    if os.path.isabs(LOCAL_STOCKFISH_PATH):
+        return os.path.exists(LOCAL_STOCKFISH_PATH)
+    return shutil.which(LOCAL_STOCKFISH_PATH) is not None
+
+
+def score_to_eval_string(score_obj) -> str:
+    if not score_obj or chess is None:
+        return ""
+    # Normalize to White POV for stable interpretation across plies.
+    white_score = score_obj.white()
+    mate = white_score.mate()
+    if isinstance(mate, int):
+        return f"mate {mate}"
+    cp = white_score.score()
+    if isinstance(cp, int):
+        return f"{cp / 100:.2f}"
+    return ""
+
+
+def analyze_with_local_stockfish(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], int]:
+    if chess is None:
+        raise RuntimeError("python-chess is not available")
+
+    moves_text = extract_pgn_moves_text(pgn_text)
+    san_moves = parse_san_moves(moves_text)[:PGN_ANALYSIS_MAX_PLIES]
+    rows: List[Dict[str, str]] = []
+    failed_count = 0
+
+    start_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    fen_match = re.search(r'^\[FEN\s+"([^"]+)"\]\s*$', pgn_text, re.MULTILINE)
+    if fen_match and fen_match.group(1).strip():
+        start_fen = fen_match.group(1).strip()
+    board = chess.Board(start_fen)
+    limit = chess.engine.Limit(depth=depth)
+
+    with chess.engine.SimpleEngine.popen_uci(LOCAL_STOCKFISH_PATH) as engine:
+        engine.configure({"Threads": LOCAL_STOCKFISH_THREADS, "Hash": LOCAL_STOCKFISH_HASH_MB})
+
+        pre_info: Optional[Dict[str, Any]] = None
+        try:
+            pre_info = engine.analyse(board, limit)
+        except Exception:
+            pre_info = None
+
+        for ply, san in enumerate(san_moves, start=1):
+            row = {
+                "move_number": str((ply + 1) // 2),
+                "side": "white" if ply % 2 == 1 else "black",
+                "move": san,
+                "eval_score": "",
+                "bestmove": "",
+                "bestmove_eval": "",
+            }
+
+            if pre_info:
+                pv = pre_info.get("pv")
+                if isinstance(pv, list) and len(pv) > 0:
+                    best_move = pv[0]
+                    try:
+                        row["bestmove"] = best_move.uci()
+                    except Exception:
+                        row["bestmove"] = ""
+                row["bestmove_eval"] = score_to_eval_string(pre_info.get("score"))
+
+            # Hard rule: first row always uses start position recommendation.
+            if ply == 1 and pre_info:
+                pv = pre_info.get("pv")
+                if isinstance(pv, list) and len(pv) > 0:
+                    try:
+                        row["bestmove"] = pv[0].uci()
+                    except Exception:
+                        pass
+                first_eval = score_to_eval_string(pre_info.get("score"))
+                if first_eval:
+                    row["bestmove_eval"] = first_eval
+
+            try:
+                board.push_san(san)
+            except Exception:
+                failed_count += 1
+                rows.append(row)
+                pre_info = None
+                continue
+
+            try:
+                post_info = engine.analyse(board, limit)
+                row["eval_score"] = score_to_eval_string(post_info.get("score"))
+                pre_info = post_info
+            except Exception:
+                failed_count += 1
+                row["eval_score"] = ""
+                pre_info = None
+            rows.append(row)
+
+    return rows, failed_count
+
+
 def normalize_eval_score(data: Dict) -> str:
     eval_value = data.get("eval")
     centipawns = data.get("centipawns")
@@ -868,6 +987,12 @@ def extract_bestmove_san(data: Dict) -> str:
 
 
 def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], int]:
+    if can_use_local_stockfish():
+        try:
+            return analyze_with_local_stockfish(pgn_text, depth)
+        except Exception as exc:
+            log_runtime(f"Local Stockfish analysis failed; falling back to API. error={exc}")
+
     moves_text = extract_pgn_moves_text(pgn_text)
     san_moves = parse_san_moves(moves_text)[:PGN_ANALYSIS_MAX_PLIES]
     rows: List[Dict[str, str]] = []
@@ -1638,6 +1763,14 @@ def main():
     log_runtime(f"Starting server. instance_id={instance_id}")
     log_runtime(f"Serving on http://{HOST}:{PORT}")
     log_runtime(f"Chess.com proxy User-Agent: {USER_AGENT}")
+    log_runtime(
+        "PGN engine config: "
+        + f"mode={PGN_ENGINE_MODE}, "
+        + f"local_available={can_use_local_stockfish()}, "
+        + f"path={LOCAL_STOCKFISH_PATH}, "
+        + f"threads={LOCAL_STOCKFISH_THREADS}, "
+        + f"hash_mb={LOCAL_STOCKFISH_HASH_MB}"
+    )
     if DB_BACKEND == "postgres":
         log_runtime("Database backend: postgres (DATABASE_URL)")
     else:
