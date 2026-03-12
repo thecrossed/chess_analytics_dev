@@ -863,6 +863,12 @@ function trackButtonClicks() {
     if (!target) return;
     const button = target.closest("button, input[type='button'], input[type='submit'], a.button-link");
     if (!button || !isTrackableButton(button)) return;
+    if (button.getAttribute("data-track") === "false") return;
+    const canTrackAnalytics =
+      window.cookieConsent &&
+      typeof window.cookieConsent.canUse === "function" &&
+      window.cookieConsent.canUse("analytics");
+    if (!canTrackAnalytics) return;
 
     const buttonId =
       button.id ||
