@@ -10,11 +10,12 @@ import signal
 import sqlite3
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 HOST = "0.0.0.0"
@@ -508,18 +509,48 @@ def send_password_reset_email(email: str, username: str, token: str) -> bool:
     return send_email_via_provider(email, subject, text_body, html_body, "Password reset")
 
 
-def send_hourly_report_email(
+def get_report_window(period: str, now_ts: int) -> Tuple[int, int]:
+    period = (period or "hourly").strip().lower()
+    if period == "hourly":
+        return now_ts - 3600, now_ts
+
+    now_utc = datetime.fromtimestamp(now_ts, tz=timezone.utc)
+    today_start = datetime(now_utc.year, now_utc.month, now_utc.day, tzinfo=timezone.utc)
+    if period == "daily":
+        end = int(today_start.timestamp())
+        start = end - 86400
+        return start, end
+
+    if period == "weekly":
+        # Weekly report covers the previous complete UTC week (Mon-Sun).
+        current_week_start = today_start - timedelta(days=today_start.weekday())
+        end = int(current_week_start.timestamp())
+        start = end - (7 * 86400)
+        return start, end
+
+    return now_ts - 3600, now_ts
+
+
+def send_traffic_report_email(
+    period: str,
     window_start_utc: str,
     window_end_utc: str,
     total_page_views: int,
     unique_visitors: int,
     button_clicks: List[Tuple[str, int]],
 ) -> bool:
-    subject = f"ChessAnalytics hourly button report - {window_start_utc} to {window_end_utc} UTC"
+    period_label_map = {
+        "hourly": "hourly",
+        "daily": "daily",
+        "weekly": "weekly",
+    }
+    period_label = period_label_map.get(period, "hourly")
+    pretty_label = period_label.capitalize()
+    subject = f"ChessAnalytics {period_label} button report - {window_start_utc} to {window_end_utc} UTC"
     button_lines = "\n".join([f"- {button}: {count}" for button, count in button_clicks]) or "- no button clicks"
     button_html = "".join([f"<li>{button}: {count}</li>" for button, count in button_clicks]) or "<li>no button clicks</li>"
     text_body = (
-        f"Hourly button report (UTC)\n"
+        f"{pretty_label} button report (UTC)\n"
         f"Window: {window_start_utc} to {window_end_utc}\n\n"
         f"Total page views: {total_page_views}\n"
         f"Unique visitors (by IP): {unique_visitors}\n"
@@ -527,7 +558,7 @@ def send_hourly_report_email(
         f"{button_lines}\n"
     )
     html_body = (
-        "<p>Hourly button report (UTC)</p>"
+        f"<p>{pretty_label} button report (UTC)</p>"
         f"<p>Window: <strong>{window_start_utc}</strong> to <strong>{window_end_utc}</strong></p>"
         "<ul>"
         f"<li>Total page views: {total_page_views}</li>"
@@ -541,7 +572,7 @@ def send_hourly_report_email(
         subject,
         text_body,
         html_body,
-        "Hourly report",
+        f"{pretty_label} report",
     )
 
 
@@ -1557,9 +1588,35 @@ class AppHandler(SimpleHTTPRequestHandler):
             self._send_json(401, {"error": "unauthorized"})
             return
 
+        parsed = urlparse(self.path)
+        query = parse_qs(parsed.query or "")
+        period = (query.get("period", [""])[0] or "").strip().lower()
+
+        content_length = 0
+        try:
+            content_length = int(self.headers.get("Content-Length", "0") or "0")
+        except Exception:
+            content_length = 0
+        if content_length > 0:
+            try:
+                payload = parse_json_body(self)
+            except PayloadTooLargeError:
+                self._send_json(413, {"error": "payload_too_large"})
+                return
+            except Exception:
+                self._send_json(400, {"error": "invalid_json"})
+                return
+            if not period:
+                period = str(payload.get("period", "")).strip().lower()
+
+        if not period:
+            period = "hourly"
+        if period not in {"hourly", "daily", "weekly"}:
+            self._send_json(400, {"error": "invalid_period", "allowed": ["hourly", "daily", "weekly"]})
+            return
+
         now = int(time.time())
-        window_end = now
-        window_start = now - 3600
+        window_start, window_end = get_report_window(period, now)
         window_start_utc = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(window_start))
         window_end_utc = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(window_end))
 
@@ -1591,7 +1648,8 @@ class AppHandler(SimpleHTTPRequestHandler):
             ).fetchall()
             button_clicks = [(str(row[0] or "-"), int(row[1] or 0)) for row in button_click_rows]
 
-        email_sent = send_hourly_report_email(
+        email_sent = send_traffic_report_email(
+            period=period,
             window_start_utc=window_start_utc,
             window_end_utc=window_end_utc,
             total_page_views=total_page_views,
@@ -1599,7 +1657,8 @@ class AppHandler(SimpleHTTPRequestHandler):
             button_clicks=button_clicks,
         )
         log_runtime(
-            "Hourly report result: "
+            "Traffic report result: "
+            + f"period={period}, "
             + f"window_start_utc={window_start_utc}, window_end_utc={window_end_utc}, "
             + f"page_views={total_page_views}, unique_visitors={unique_visitors}, "
             + f"button_click_keys={len(button_clicks)}, sent={email_sent}"
@@ -1612,6 +1671,7 @@ class AppHandler(SimpleHTTPRequestHandler):
             200,
             {
                 "ok": True,
+                "period": period,
                 "window_start_utc": window_start_utc,
                 "window_end_utc": window_end_utc,
                 "total_page_views": total_page_views,
