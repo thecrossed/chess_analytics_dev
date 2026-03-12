@@ -890,6 +890,8 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
         except Exception:
             pass
     previous_played_data: Optional[Dict] = None
+    forced_first_bestmove = extract_bestmove_san(initial_position_data or {})
+    forced_first_bestmove_eval = extract_bestmove_eval_score(initial_position_data or {})
 
     for ply, san in enumerate(san_moves, start=1):
         row = {
@@ -905,6 +907,14 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
         if pre_move_data:
             row["bestmove"] = extract_bestmove_san(pre_move_data)
             row["bestmove_eval"] = extract_bestmove_eval_score(pre_move_data)
+
+        # Always use the engine recommendation from the initial position
+        # for the very first played move of each game.
+        if ply == 1:
+            if forced_first_bestmove:
+                row["bestmove"] = forced_first_bestmove
+            if forced_first_bestmove_eval:
+                row["bestmove_eval"] = forced_first_bestmove_eval
 
         # Current-move evaluation is from the position after this move is played.
         progressive.append(san)
