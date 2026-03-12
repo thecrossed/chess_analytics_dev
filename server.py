@@ -774,6 +774,9 @@ def extract_bestmove_eval_score(data: Dict) -> str:
 
 
 def extract_bestmove_san(data: Dict) -> str:
+    def normalize_token(token: str) -> str:
+        return token.strip() if isinstance(token, str) else ""
+
     def first_move_from_text(text: str) -> str:
         cleaned = (text or "").strip()
         if not cleaned:
@@ -793,15 +796,38 @@ def extract_bestmove_san(data: Dict) -> str:
             return token
         return ""
 
+    def extract_from_move_object(obj: Dict) -> str:
+        if not isinstance(obj, dict):
+            return ""
+        for key in ("san", "move", "uci", "bestmove", "bestMove", "best_move", "bestmove_uci", "bestMoveUci", "best_move_uci"):
+            value = obj.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        src = obj.get("from")
+        dst = obj.get("to")
+        promo = obj.get("promotion")
+        if isinstance(src, str) and isinstance(dst, str) and len(src) >= 2 and len(dst) >= 2:
+            uci = f"{src.strip()}{dst.strip()}"
+            if isinstance(promo, str) and promo.strip():
+                uci += promo.strip().lower()[:1]
+            return uci
+        return ""
+
     for key in (
         "continuation",
         "pv",
         "principal_variation",
         "line",
+        "continuationArr",
+        "continuation_arr",
         "moves",
         "bestmove_san",
         "bestMoveSan",
         "best_move_san",
+        "bestmove_uci",
+        "bestMoveUci",
+        "best_move_uci",
+        "uci",
         "bestmove",
         "bestMove",
         "best_move",
@@ -811,20 +837,33 @@ def extract_bestmove_san(data: Dict) -> str:
             first = first_move_from_text(value)
             if first:
                 return first
+        if isinstance(value, list):
+            for item in value:
+                if isinstance(item, str):
+                    token = first_move_from_text(item)
+                    if token:
+                        return token
+                elif isinstance(item, dict):
+                    token = extract_from_move_object(item)
+                    if token:
+                        return token
+        if isinstance(value, dict):
+            token = extract_from_move_object(value)
+            if token:
+                return token
 
-    bestmove_obj = data.get("bestmove")
-    if isinstance(bestmove_obj, dict):
-        for key in ("san", "move", "uci"):
-            value = bestmove_obj.get(key)
-            if isinstance(value, str) and value.strip():
-                return value.strip()
+    for compound in ("bestmove", "bestMove", "best_move", "move", "best"):
+        obj = data.get(compound)
+        if isinstance(obj, dict):
+            token = extract_from_move_object(obj)
+            if token:
+                return token
 
-    move_obj = data.get("move")
-    if isinstance(move_obj, dict):
-        for key in ("san", "move", "uci"):
-            value = move_obj.get(key)
-            if isinstance(value, str) and value.strip():
-                return value.strip()
+    src = normalize_token(data.get("from"))  # type: ignore[arg-type]
+    dst = normalize_token(data.get("to"))  # type: ignore[arg-type]
+    promo = normalize_token(data.get("promotion"))  # type: ignore[arg-type]
+    if src and dst:
+        return f"{src}{dst}{promo[:1].lower() if promo else ''}"
     return ""
 
 
