@@ -627,6 +627,14 @@ def get_client_ip(handler: SimpleHTTPRequestHandler) -> str:
     return handler.client_address[0] if handler.client_address else "unknown"
 
 
+def get_country_code_from_headers(handler: SimpleHTTPRequestHandler) -> str:
+    # Cloudflare provides ISO country code in CF-IPCountry for proxied requests.
+    value = (handler.headers.get("CF-IPCountry") or "").strip().upper()
+    if re.fullmatch(r"[A-Z]{2}", value):
+        return value
+    return ""
+
+
 def _get_geoip_reader():
     global GEOIP_READER
     if not GEOIP_DB_PATH:
@@ -792,22 +800,33 @@ def should_track_page_view(path: str) -> bool:
     return parsed_path.endswith(".html")
 
 
-def record_page_view(conn: sqlite3.Connection, path: str, client_ip: str):
+def record_page_view(conn: sqlite3.Connection, path: str, client_ip: str, country_code_hint: str = ""):
     parsed_path = (urlparse(path).path or "").strip() or "/"
     normalized_ip = (client_ip or "").strip() or "-"
-    country_code = resolve_country_code(normalized_ip)
+    country_code = (country_code_hint or "").strip().upper()
+    if not re.fullmatch(r"[A-Z]{2}", country_code):
+        country_code = resolve_country_code(normalized_ip)
     conn.execute(
         "INSERT INTO page_views (path, client_ip, country_code, viewed_at) VALUES (?, ?, ?, ?)",
         (parsed_path, normalized_ip, country_code, int(time.time())),
     )
 
 
-def record_button_click_event(conn, page_path: str, button_id: str, button_label: str, client_ip: str):
+def record_button_click_event(
+    conn,
+    page_path: str,
+    button_id: str,
+    button_label: str,
+    client_ip: str,
+    country_code_hint: str = "",
+):
     normalized_path = (urlparse(page_path).path or "").strip() or "/"
     normalized_id = (button_id or "").strip()[:120] or "-"
     normalized_label = (button_label or "").strip()[:200] or "-"
     normalized_ip = (client_ip or "").strip() or "-"
-    country_code = resolve_country_code(normalized_ip)
+    country_code = (country_code_hint or "").strip().upper()
+    if not re.fullmatch(r"[A-Z]{2}", country_code):
+        country_code = resolve_country_code(normalized_ip)
     conn.execute(
         """
         INSERT INTO button_click_events (page_path, button_id, button_label, client_ip, country_code, clicked_at)
@@ -1247,9 +1266,10 @@ class AppHandler(SimpleHTTPRequestHandler):
         if should_track_page_view(self.path):
             try:
                 client_ip = get_client_ip(self)
+                country_code = get_country_code_from_headers(self)
                 with connect_db() as conn:
                     ensure_auth_schema(conn)
-                    record_page_view(conn, self.path, client_ip)
+                    record_page_view(conn, self.path, client_ip, country_code_hint=country_code)
                     conn.commit()
             except Exception as exc:
                 log_runtime(f"Page view tracking failed: {exc}")
@@ -1312,6 +1332,8 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
 
         try:
+            client_ip = get_client_ip(self)
+            country_code = get_country_code_from_headers(self)
             with connect_db() as conn:
                 ensure_auth_schema(conn)
                 record_button_click_event(
@@ -1319,7 +1341,8 @@ class AppHandler(SimpleHTTPRequestHandler):
                     page_path=page_path,
                     button_id=button_id,
                     button_label=button_label,
-                    client_ip=get_client_ip(self),
+                    client_ip=client_ip,
+                    country_code_hint=country_code,
                 )
                 conn.commit()
         except Exception as exc:
@@ -1929,7 +1952,8 @@ def main():
     )
     log_runtime(
         "GeoIP config: "
-        + f"db_path_set={bool(GEOIP_DB_PATH)}"
+        + f"db_path_set={bool(GEOIP_DB_PATH)}, "
+        + "header_priority=CF-IPCountry"
     )
     if DB_BACKEND == "postgres":
         log_runtime("Database backend: postgres (DATABASE_URL)")
