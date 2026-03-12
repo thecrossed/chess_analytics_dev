@@ -1,0 +1,12 @@
+.git
+.github
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+auth.db
+.DS_Store
+local-pgn-test-output.csv
+pgn-output.csv
