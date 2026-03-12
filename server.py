@@ -767,7 +767,10 @@ def extract_bestmove_eval_score(data: Dict) -> str:
             return str(value)
         if isinstance(value, str) and value.strip():
             return value.strip()
-    return ""
+    # Fallback to generic position eval fields when dedicated best-move eval
+    # is not provided by the upstream API.
+    fallback = normalize_eval_score(data)
+    return fallback if fallback else ""
 
 
 def extract_bestmove_san(data: Dict) -> str:
@@ -839,10 +842,14 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
     try:
         initial_position_data = request_stockfish_eval("", depth)
     except Exception:
+        initial_position_data = None
+    # Some API variants accept empty input but do not return a best move.
+    # In that case, retry explicitly with start-position FEN.
+    if not initial_position_data or not extract_bestmove_san(initial_position_data):
         try:
             initial_position_data = request_stockfish_eval(startpos_fen, depth)
         except Exception:
-            initial_position_data = None
+            pass
     previous_played_data: Optional[Dict] = None
 
     for ply, san in enumerate(san_moves, start=1):
