@@ -84,6 +84,7 @@ AUTH_PASSWORD_RESET_REQUEST_RE = re.compile(r"^/api/auth/password-reset/request/
 AUTH_PASSWORD_RESET_CONFIRM_RE = re.compile(r"^/api/auth/password-reset/confirm/?$")
 ADMIN_DAILY_REPORT_RE = re.compile(r"^/api/admin/daily-report/?$")
 ADMIN_COUNTRY_BACKFILL_RE = re.compile(r"^/api/admin/backfill-country/?$")
+ADMIN_UNIQUE_IPS_RE = re.compile(r"^/api/admin/unique-ips/?$")
 ANALYSIS_PGN_EVAL_RE = re.compile(r"^/api/analysis/pgn-eval/?$")
 BUTTON_CLICK_RE = re.compile(r"^/api/metrics/button-click/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
@@ -1309,6 +1310,9 @@ class AppHandler(SimpleHTTPRequestHandler):
         if ADMIN_COUNTRY_BACKFILL_RE.match(self.path):
             self._handle_country_backfill()
             return
+        if ADMIN_UNIQUE_IPS_RE.match(self.path):
+            self._handle_unique_ips_report()
+            return
         if ANALYSIS_PGN_EVAL_RE.match(self.path):
             self._handle_pgn_eval_analysis()
             return
@@ -1896,6 +1900,116 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "scanned": total_scanned,
                 "updated": total_updated,
                 "by_table": per_table,
+            },
+        )
+
+    def _handle_unique_ips_report(self):
+        if not ADMIN_REPORT_TOKEN:
+            self._send_json(503, {"error": "admin_report_token_not_configured"})
+            return
+
+        provided_token = (self.headers.get("X-Admin-Token") or "").strip()
+        if not provided_token or not hmac.compare_digest(provided_token, ADMIN_REPORT_TOKEN):
+            self._send_json(401, {"error": "unauthorized"})
+            return
+
+        parsed = urlparse(self.path)
+        query = parse_qs(parsed.query or "")
+
+        date_text = (query.get("date_utc", [""])[0] or "").strip()
+        limit_text = (query.get("limit", [""])[0] or "").strip()
+        table_mode = (query.get("table", ["page_views"])[0] or "page_views").strip().lower()
+
+        content_length = 0
+        try:
+            content_length = int(self.headers.get("Content-Length", "0") or "0")
+        except Exception:
+            content_length = 0
+        if content_length > 0:
+            try:
+                payload = parse_json_body(self)
+            except PayloadTooLargeError:
+                self._send_json(413, {"error": "payload_too_large"})
+                return
+            except Exception:
+                self._send_json(400, {"error": "invalid_json"})
+                return
+            if not date_text:
+                date_text = str(payload.get("date_utc", "")).strip()
+            if not limit_text:
+                limit_text = str(payload.get("limit", "")).strip()
+            table_mode = str(payload.get("table", table_mode)).strip().lower() or table_mode
+
+        if table_mode not in {"page_views", "button_click_events"}:
+            self._send_json(400, {"error": "invalid_table", "allowed": ["page_views", "button_click_events"]})
+            return
+
+        try:
+            limit = int(limit_text) if limit_text else 1000
+        except Exception:
+            limit = 1000
+        limit = max(1, min(5000, limit))
+
+        if date_text:
+            try:
+                day = datetime.strptime(date_text, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except Exception:
+                self._send_json(400, {"error": "invalid_date_utc", "expected_format": "YYYY-MM-DD"})
+                return
+        else:
+            now = datetime.now(timezone.utc)
+            day = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+
+        start_ts = int(day.timestamp())
+        end_ts = start_ts + 86400
+        date_utc = day.strftime("%Y-%m-%d")
+
+        timestamp_col = "viewed_at" if table_mode == "page_views" else "clicked_at"
+
+        with connect_db() as conn:
+            ensure_auth_schema(conn)
+            rows = conn.execute(
+                f"""
+                SELECT
+                    client_ip,
+                    COUNT(*) AS hits,
+                    MIN({timestamp_col}) AS first_ts,
+                    MAX({timestamp_col}) AS last_ts,
+                    COALESCE(MAX(NULLIF(country_code, '')), '-') AS country_code
+                FROM {table_mode}
+                WHERE {timestamp_col} >= ? AND {timestamp_col} < ?
+                GROUP BY client_ip
+                ORDER BY hits DESC, client_ip ASC
+                LIMIT ?
+                """,
+                (start_ts, end_ts, limit),
+            ).fetchall()
+
+        items = []
+        for row in rows:
+            client_ip = str(row[0] or "-")
+            hits = int(row[1] or 0)
+            first_ts = int(row[2] or 0)
+            last_ts = int(row[3] or 0)
+            country_code = str(row[4] or "-")
+            items.append(
+                {
+                    "client_ip": client_ip,
+                    "hits": hits,
+                    "country_code": country_code,
+                    "first_seen_utc": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(first_ts)),
+                    "last_seen_utc": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(last_ts)),
+                }
+            )
+
+        self._send_json(
+            200,
+            {
+                "ok": True,
+                "date_utc": date_utc,
+                "table": table_mode,
+                "count": len(items),
+                "items": items,
             },
         )
 
