@@ -115,7 +115,7 @@ function renderRows(rows) {
   resultBody.innerHTML = "";
   rows.forEach((row) => {
     const tr = document.createElement("tr");
-    [row.move_number, row.side, row.move, row.eval_score || "-", row.bestmove || "-", row.bestmove_eval || "-", row.wdl || "-"].forEach((value) => {
+    [row.move_number, row.side, row.move, row.eval_score || "-", row.bestmove || "-", row.bestmove_eval || "-"].forEach((value) => {
       const td = document.createElement("td");
       td.textContent = value == null || value === "" ? "-" : String(value);
       tr.appendChild(td);
@@ -132,14 +132,10 @@ function csvEscape(value) {
 
 function downloadCsv(rows) {
   if (!rows.length) return;
-  const header = ["move_number", "side", "move", "eval_score", "bestmove", "bestmove_eval", "wdl"];
+  const header = ["move_number", "side", "move", "eval_score", "bestmove", "bestmove_eval"];
   const lines = [header.map(csvEscape).join(",")];
   rows.forEach((row) => {
-    lines.push(
-      [row.move_number, row.side, row.move, row.eval_score || "", row.bestmove || "", row.bestmove_eval || "", row.wdl || ""]
-        .map(csvEscape)
-        .join(",")
-    );
+    lines.push([row.move_number, row.side, row.move, row.eval_score || "", row.bestmove || "", row.bestmove_eval || ""].map(csvEscape).join(","));
   });
   const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
