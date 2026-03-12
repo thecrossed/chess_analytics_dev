@@ -760,6 +760,44 @@ def normalize_eval_score(data: Dict) -> str:
     return ""
 
 
+def extract_bestmove_san(data: Dict) -> str:
+    for key in ("bestmove_san", "best_move_san", "bestmove", "best_move", "move"):
+        value = data.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+
+    continuation = data.get("continuation")
+    if isinstance(continuation, str) and continuation.strip():
+        tokens = parse_san_moves(continuation.strip())
+        if tokens:
+            return tokens[0]
+    return ""
+
+
+def normalize_wdl(data: Dict) -> str:
+    wdl = data.get("wdl")
+    if isinstance(wdl, dict):
+        w = wdl.get("w", wdl.get("win"))
+        d = wdl.get("d", wdl.get("draw"))
+        l = wdl.get("l", wdl.get("loss"))
+        if all(isinstance(v, (int, float)) for v in (w, d, l)):
+            return f"{int(w)}/{int(d)}/{int(l)}"
+    if isinstance(wdl, (list, tuple)) and len(wdl) >= 3:
+        try:
+            return f"{int(wdl[0])}/{int(wdl[1])}/{int(wdl[2])}"
+        except Exception:
+            return ""
+    if isinstance(wdl, str):
+        return wdl.strip()
+
+    win_chance = data.get("winChance")
+    draw_chance = data.get("drawChance")
+    loss_chance = data.get("lossChance")
+    if all(isinstance(v, (int, float)) for v in (win_chance, draw_chance, loss_chance)):
+        return f"{float(win_chance):.1f}/{float(draw_chance):.1f}/{float(loss_chance):.1f}"
+    return ""
+
+
 def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], int]:
     moves_text = extract_pgn_moves_text(pgn_text)
     san_moves = parse_san_moves(moves_text)[:PGN_ANALYSIS_MAX_PLIES]
@@ -774,13 +812,31 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
             "side": "white" if ply % 2 == 1 else "black",
             "move": san,
             "eval_score": "",
+            "bestmove": "",
+            "bestmove_eval": "",
+            "wdl": "",
         }
         try:
             data = request_stockfish_eval(pgn_prefix, depth)
             row["eval_score"] = normalize_eval_score(data)
+            row["wdl"] = normalize_wdl(data)
+            bestmove_san = extract_bestmove_san(data)
+            row["bestmove"] = bestmove_san
+
+            if bestmove_san:
+                try:
+                    bestmove_position_moves = progressive + [bestmove_san]
+                    bestmove_prefix = build_pgn_prefix(bestmove_position_moves)
+                    bestmove_data = request_stockfish_eval(bestmove_prefix, depth)
+                    row["bestmove_eval"] = normalize_eval_score(bestmove_data)
+                except Exception:
+                    row["bestmove_eval"] = ""
         except Exception:
             failed_count += 1
             row["eval_score"] = ""
+            row["bestmove"] = ""
+            row["bestmove_eval"] = ""
+            row["wdl"] = ""
         rows.append(row)
     return rows, failed_count
 
