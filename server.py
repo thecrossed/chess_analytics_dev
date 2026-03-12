@@ -761,16 +761,57 @@ def normalize_eval_score(data: Dict) -> str:
 
 
 def extract_bestmove_san(data: Dict) -> str:
-    continuation = data.get("continuation")
-    if isinstance(continuation, str) and continuation.strip():
-        tokens = parse_san_moves(continuation.strip())
+    def first_move_from_text(text: str) -> str:
+        cleaned = (text or "").strip()
+        if not cleaned:
+            return ""
+        tokens = parse_san_moves(cleaned)
         if tokens:
             return tokens[0]
+        parts = re.split(r"\s+", cleaned)
+        for part in parts:
+            token = part.strip()
+            if not token:
+                continue
+            if re.fullmatch(r"\d+\.(\.\.)?", token):
+                continue
+            if token in {"1-0", "0-1", "1/2-1/2", "*"}:
+                continue
+            return token
+        return ""
 
-    for key in ("bestmove_san", "best_move_san", "bestmove", "best_move"):
+    for key in (
+        "continuation",
+        "pv",
+        "principal_variation",
+        "line",
+        "moves",
+        "bestmove_san",
+        "bestMoveSan",
+        "best_move_san",
+        "bestmove",
+        "bestMove",
+        "best_move",
+    ):
         value = data.get(key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
+        if isinstance(value, str):
+            first = first_move_from_text(value)
+            if first:
+                return first
+
+    bestmove_obj = data.get("bestmove")
+    if isinstance(bestmove_obj, dict):
+        for key in ("san", "move", "uci"):
+            value = bestmove_obj.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+
+    move_obj = data.get("move")
+    if isinstance(move_obj, dict):
+        for key in ("san", "move", "uci"):
+            value = move_obj.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
     return ""
 
 
