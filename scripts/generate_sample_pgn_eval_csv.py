@@ -107,17 +107,6 @@ def normalize_eval_score(data: Dict) -> str:
     return ""
 
 
-def extract_bestmove(data: Dict) -> str:
-    for key in ("move", "bestmove", "bestMove", "best_move", "bestmove_uci", "bestMoveUci", "best_move_uci", "uci"):
-        value = data.get(key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    line = data.get("line")
-    if isinstance(line, str) and line.strip():
-        return line.split(" ")[0].strip()
-    return ""
-
-
 def extract_bestmove_eval_score(data: Dict) -> str:
     for key in ("continuationArrEval", "bestmove_eval", "bestMoveEval", "best_move_eval", "best_eval"):
         value = data.get(key)
@@ -126,6 +115,110 @@ def extract_bestmove_eval_score(data: Dict) -> str:
         if isinstance(value, str) and value.strip():
             return value.strip()
     return normalize_eval_score(data)
+
+
+def extract_bestmove(data: Dict) -> str:
+    def normalize_token(token: str) -> str:
+        return token.strip() if isinstance(token, str) else ""
+
+    def first_move_from_text(text: str) -> str:
+        cleaned = (text or "").strip()
+        if not cleaned:
+            return ""
+        tokens = parse_san_moves(cleaned)
+        if tokens:
+            return tokens[0]
+        parts = re.split(r"\s+", cleaned)
+        for part in parts:
+            token = part.strip()
+            if not token:
+                continue
+            if re.fullmatch(r"\d+\.(\.\.)?", token):
+                continue
+            if token in {"1-0", "0-1", "1/2-1/2", "*"}:
+                continue
+            return token
+        return ""
+
+    def extract_from_move_object(obj: Dict) -> str:
+        if not isinstance(obj, dict):
+            return ""
+        for key in (
+            "san",
+            "move",
+            "uci",
+            "bestmove",
+            "bestMove",
+            "best_move",
+            "bestmove_uci",
+            "bestMoveUci",
+            "best_move_uci",
+        ):
+            value = obj.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        src = obj.get("from")
+        dst = obj.get("to")
+        promo = obj.get("promotion")
+        if isinstance(src, str) and isinstance(dst, str) and len(src) >= 2 and len(dst) >= 2:
+            uci = f"{src.strip()}{dst.strip()}"
+            if isinstance(promo, str) and promo.strip():
+                uci += promo.strip().lower()[:1]
+            return uci
+        return ""
+
+    for key in (
+        "continuation",
+        "pv",
+        "principal_variation",
+        "line",
+        "continuationArr",
+        "continuation_arr",
+        "moves",
+        "bestmove_san",
+        "bestMoveSan",
+        "best_move_san",
+        "bestmove_uci",
+        "bestMoveUci",
+        "best_move_uci",
+        "uci",
+        "bestmove",
+        "bestMove",
+        "best_move",
+    ):
+        value = data.get(key)
+        if isinstance(value, str):
+            first = first_move_from_text(value)
+            if first:
+                return first
+        if isinstance(value, list):
+            for item in value:
+                if isinstance(item, str):
+                    token = first_move_from_text(item)
+                    if token:
+                        return token
+                elif isinstance(item, dict):
+                    token = extract_from_move_object(item)
+                    if token:
+                        return token
+        if isinstance(value, dict):
+            token = extract_from_move_object(value)
+            if token:
+                return token
+
+    for compound in ("bestmove", "bestMove", "best_move", "move", "best"):
+        obj = data.get(compound)
+        if isinstance(obj, dict):
+            token = extract_from_move_object(obj)
+            if token:
+                return token
+
+    src = normalize_token(data.get("from"))  # type: ignore[arg-type]
+    dst = normalize_token(data.get("to"))  # type: ignore[arg-type]
+    promo = normalize_token(data.get("promotion"))  # type: ignore[arg-type]
+    if src and dst:
+        return f"{src}{dst}{promo[:1].lower() if promo else ''}"
+    return ""
 
 
 def evaluate_all_moves(
