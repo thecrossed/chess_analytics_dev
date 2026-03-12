@@ -761,16 +761,16 @@ def normalize_eval_score(data: Dict) -> str:
 
 
 def extract_bestmove_san(data: Dict) -> str:
-    for key in ("bestmove_san", "best_move_san", "bestmove", "best_move", "move"):
-        value = data.get(key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-
     continuation = data.get("continuation")
     if isinstance(continuation, str) and continuation.strip():
         tokens = parse_san_moves(continuation.strip())
         if tokens:
             return tokens[0]
+
+    for key in ("bestmove_san", "best_move_san", "bestmove", "best_move"):
+        value = data.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
     return ""
 
 
@@ -781,8 +781,6 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
     progressive: List[str] = []
     failed_count = 0
     for ply, san in enumerate(san_moves, start=1):
-        progressive.append(san)
-        pgn_prefix = build_pgn_prefix(progressive)
         row = {
             "move_number": str((ply + 1) // 2),
             "side": "white" if ply % 2 == 1 else "black",
