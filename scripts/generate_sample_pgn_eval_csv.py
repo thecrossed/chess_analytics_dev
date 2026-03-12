@@ -21,7 +21,7 @@ from urllib.request import Request, urlopen
 DEFAULT_INPUT = Path("sample-pgn.md")
 DEFAULT_OUTPUT = Path("sample-pgn-eval.csv")
 DEFAULT_API_URL = "https://chess-api.com/v1"
-DEFAULT_DEPTH = 12
+DEFAULT_DEPTH = 18
 DEFAULT_SLEEP_SECONDS = 0.2
 USER_AGENT = "ChessAnalytics/1.0 (contact: chessalwaysfun@gmail.com)"
 
@@ -102,9 +102,25 @@ def evaluate_all_moves(
 ) -> List[Dict[str, str]]:
     rows: List[Dict[str, str]] = []
     progressive: List[str] = []
+    initial_position_data = None
+    try:
+        initial_position_data = call_stockfish_api(
+            api_url=api_url,
+            input_text="",
+            depth=depth,
+        )
+    except Exception:
+        try:
+            initial_position_data = call_stockfish_api(
+                api_url=api_url,
+                input_text="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                depth=depth,
+            )
+        except Exception:
+            initial_position_data = None
+    previous_played_data = None
+
     for ply, san in enumerate(san_moves, start=1):
-        progressive.append(san)
-        pgn_prefix = build_pgn_prefix(progressive)
         move_number = (ply + 1) // 2
         side = "white" if ply % 2 == 1 else "black"
 
@@ -113,7 +129,35 @@ def evaluate_all_moves(
             "side": side,
             "move": san,
             "eval_score": "",
+            "bestmove": "",
+            "bestmove_eval": "",
         }
+
+        pre_move_data = previous_played_data if previous_played_data is not None else initial_position_data
+        if isinstance(pre_move_data, dict):
+            best_move = pre_move_data.get("move")
+            if not isinstance(best_move, str):
+                line = pre_move_data.get("line")
+                if isinstance(line, str):
+                    best_move = line.split(" ")[0].strip() if line.strip() else ""
+            best_eval_value = pre_move_data.get("continuationArrEval")
+            pre_eval_value = pre_move_data.get("eval")
+            pre_centipawns = pre_move_data.get("centipawns")
+            pre_mate = pre_move_data.get("mate")
+
+            if isinstance(best_move, str):
+                row["bestmove"] = best_move
+            if isinstance(best_eval_value, (int, float)):
+                row["bestmove_eval"] = str(best_eval_value)
+            elif isinstance(pre_eval_value, (int, float)):
+                row["bestmove_eval"] = str(pre_eval_value)
+            elif isinstance(pre_centipawns, int):
+                row["bestmove_eval"] = f"{pre_centipawns / 100:.2f}"
+            elif isinstance(pre_mate, int):
+                row["bestmove_eval"] = f"mate {pre_mate}"
+
+        progressive.append(san)
+        pgn_prefix = build_pgn_prefix(progressive)
         try:
             data = call_stockfish_api(api_url, pgn_prefix, depth)
             eval_value = data.get("eval")
@@ -125,8 +169,10 @@ def evaluate_all_moves(
                 row["eval_score"] = f"{centipawns / 100:.2f}"
             elif isinstance(mate, int):
                 row["eval_score"] = f"mate {mate}"
+            previous_played_data = data
         except (HTTPError, URLError, Exception):
             row["eval_score"] = ""
+            previous_played_data = None
 
         rows.append(row)
         if sleep_seconds > 0:
@@ -135,7 +181,14 @@ def evaluate_all_moves(
 
 
 def write_csv(output_path: Path, rows: List[Dict[str, str]]) -> None:
-    fieldnames = ["move_number", "side", "move", "eval_score"]
+    fieldnames = [
+        "move_number",
+        "side",
+        "move",
+        "eval_score",
+        "bestmove",
+        "bestmove_eval",
+    ]
     with output_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
