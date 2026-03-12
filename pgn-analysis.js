@@ -19,6 +19,20 @@ let currentAbortController = null;
 let analysisCancelledByUser = false;
 let analysisSlowHintShown = false;
 
+function dedupeRows(rows) {
+  const seen = new Set();
+  const output = [];
+  rows.forEach((row) => {
+    const key = `${row?.move_number ?? ""}|${row?.side ?? ""}|${row?.move ?? ""}`;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    output.push(row);
+  });
+  return output;
+}
+
 function setStatus(text, isError = false) {
   if (!statusEl) return;
   statusEl.textContent = text;
@@ -250,7 +264,7 @@ async function runAnalysis() {
       return;
     }
 
-    currentRows = Array.isArray(data.rows) ? data.rows : [];
+    currentRows = dedupeRows(Array.isArray(data.rows) ? data.rows : []);
     renderRows(currentRows);
     if (downloadButton) {
       downloadButton.disabled = currentRows.length === 0;
