@@ -128,9 +128,10 @@ function estimatePlies(pgnText) {
 }
 
 function estimateDurationSeconds(plies, depth) {
-  // Conservative estimate to reduce premature "0s remaining" on slower networks.
-  const baseline = plies * (0.35 + depth * 0.02);
-  return Math.max(8, Math.min(300, Math.round(baseline)));
+  // Local-engine-oriented estimate. Keep it closer to observed runtime on
+  // Railway with bundled Stockfish while still conservative.
+  const baseline = plies * (0.12 + depth * 0.006);
+  return Math.max(6, Math.min(180, Math.round(baseline)));
 }
 
 function formatEtaSeconds(seconds) {
