@@ -366,6 +366,80 @@ hr {
   justify-content: flex-end;
 }
 
+.cookie-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2100;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.16);
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.cookie-banner-text {
+  max-width: 820px;
+}
+
+.cookie-banner-text p {
+  margin: 6px 0 0;
+  color: var(--subtle);
+}
+
+.cookie-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  background: rgba(2, 6, 23, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.cookie-modal.hidden {
+  display: none;
+}
+
+.cookie-modal-card {
+  width: min(520px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px;
+}
+
+.cookie-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cookie-grid label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cookie-settings-open {
+  position: fixed;
+  left: 10px;
+  bottom: 10px;
+  z-index: 2050;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--subtle);
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
