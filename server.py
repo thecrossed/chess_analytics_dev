@@ -831,6 +831,20 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
     rows: List[Dict[str, str]] = []
     progressive: List[str] = []
     failed_count = 0
+    # For each row:
+    # - bestmove fields come from the position before the played move.
+    # - eval_score comes from the position after the played move.
+    initial_position_data: Optional[Dict] = None
+    startpos_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    try:
+        initial_position_data = request_stockfish_eval("", depth)
+    except Exception:
+        try:
+            initial_position_data = request_stockfish_eval(startpos_fen, depth)
+        except Exception:
+            initial_position_data = None
+    previous_played_data: Optional[Dict] = None
+
     for ply, san in enumerate(san_moves, start=1):
         row = {
             "move_number": str((ply + 1) // 2),
@@ -840,19 +854,23 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
             "bestmove": "",
             "bestmove_eval": "",
         }
-        # Direct mode: use Stockfish API response on the current played position only.
+
+        pre_move_data = previous_played_data if previous_played_data is not None else initial_position_data
+        if pre_move_data:
+            row["bestmove"] = extract_bestmove_san(pre_move_data)
+            row["bestmove_eval"] = extract_bestmove_eval_score(pre_move_data)
+
+        # Current-move evaluation is from the position after this move is played.
         progressive.append(san)
         played_prefix = build_pgn_prefix(progressive)
         try:
             played_data = request_stockfish_eval(played_prefix, depth)
             row["eval_score"] = normalize_eval_score(played_data)
-            row["bestmove"] = extract_bestmove_san(played_data)
-            row["bestmove_eval"] = extract_bestmove_eval_score(played_data)
+            previous_played_data = played_data
         except Exception:
             failed_count += 1
             row["eval_score"] = ""
-            row["bestmove"] = ""
-            row["bestmove_eval"] = ""
+            previous_played_data = None
         rows.append(row)
     return rows, failed_count
 
