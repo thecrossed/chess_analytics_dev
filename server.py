@@ -10,6 +10,7 @@ import signal
 import sqlite3
 import threading
 import time
+import ipaddress
 from datetime import datetime, timedelta, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
@@ -69,6 +70,7 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 DEBUG_RESET_TOKEN_RESPONSE = os.environ.get("DEBUG_RESET_TOKEN_RESPONSE", "0") == "1"
 ADMIN_REPORT_TOKEN = os.environ.get("ADMIN_REPORT_TOKEN", "").strip()
 DAILY_REPORT_RECIPIENT = "chessalwaysfun@gmail.com"
+GEOIP_DB_PATH = os.environ.get("GEOIP_DB_PATH", "").strip()
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -108,6 +110,14 @@ try:
     import chess.engine  # type: ignore
 except Exception:
     chess = None
+
+try:
+    import geoip2.database  # type: ignore
+except Exception:
+    geoip2 = None  # type: ignore
+
+GEOIP_READER = None
+GEOIP_LOCK = threading.Lock()
 
 
 class PayloadTooLargeError(Exception):
@@ -230,6 +240,7 @@ def ensure_auth_schema_sqlite(conn: sqlite3.Connection):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             path TEXT NOT NULL,
             client_ip TEXT NOT NULL,
+            country_code TEXT NOT NULL DEFAULT '-',
             viewed_at INTEGER NOT NULL
         )
         """
@@ -242,10 +253,17 @@ def ensure_auth_schema_sqlite(conn: sqlite3.Connection):
             button_id TEXT NOT NULL,
             button_label TEXT NOT NULL,
             client_ip TEXT NOT NULL,
+            country_code TEXT NOT NULL DEFAULT '-',
             clicked_at INTEGER NOT NULL
         )
         """
     )
+    page_view_columns = [row[1] for row in conn.execute("PRAGMA table_info(page_views)").fetchall()]
+    if "country_code" not in page_view_columns:
+        conn.execute("ALTER TABLE page_views ADD COLUMN country_code TEXT NOT NULL DEFAULT '-'")
+    button_columns = [row[1] for row in conn.execute("PRAGMA table_info(button_click_events)").fetchall()]
+    if "country_code" not in button_columns:
+        conn.execute("ALTER TABLE button_click_events ADD COLUMN country_code TEXT NOT NULL DEFAULT '-'")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id)")
@@ -254,8 +272,10 @@ def ensure_auth_schema_sqlite(conn: sqlite3.Connection):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_login_events_username ON login_events(username)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_viewed_at ON page_views(viewed_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_client_ip ON page_views(client_ip)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_country_code ON page_views(country_code)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_clicked_at ON button_click_events(clicked_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_button_id ON button_click_events(button_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_country_code ON button_click_events(country_code)")
     conn.commit()
 
 
@@ -310,6 +330,7 @@ def ensure_auth_schema_postgres(conn):
             id BIGSERIAL PRIMARY KEY,
             path TEXT NOT NULL,
             client_ip TEXT NOT NULL,
+            country_code TEXT NOT NULL DEFAULT '-',
             viewed_at BIGINT NOT NULL
         )
         """
@@ -322,10 +343,13 @@ def ensure_auth_schema_postgres(conn):
             button_id TEXT NOT NULL,
             button_label TEXT NOT NULL,
             client_ip TEXT NOT NULL,
+            country_code TEXT NOT NULL DEFAULT '-',
             clicked_at BIGINT NOT NULL
         )
         """
     )
+    conn.execute("ALTER TABLE page_views ADD COLUMN IF NOT EXISTS country_code TEXT NOT NULL DEFAULT '-'")
+    conn.execute("ALTER TABLE button_click_events ADD COLUMN IF NOT EXISTS country_code TEXT NOT NULL DEFAULT '-'")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id)")
@@ -334,8 +358,10 @@ def ensure_auth_schema_postgres(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_login_events_username ON login_events(username)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_viewed_at ON page_views(viewed_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_client_ip ON page_views(client_ip)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_page_views_country_code ON page_views(country_code)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_clicked_at ON button_click_events(clicked_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_button_id ON button_click_events(button_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_country_code ON button_click_events(country_code)")
     conn.commit()
 
 
@@ -538,6 +564,7 @@ def send_traffic_report_email(
     total_page_views: int,
     unique_visitors: int,
     button_clicks: List[Tuple[str, int]],
+    country_views: List[Tuple[str, int]],
 ) -> bool:
     period_label_map = {
         "hourly": "hourly",
@@ -549,11 +576,15 @@ def send_traffic_report_email(
     subject = f"ChessAnalytics {period_label} button report - {window_start_utc} to {window_end_utc} UTC"
     button_lines = "\n".join([f"- {button}: {count}" for button, count in button_clicks]) or "- no button clicks"
     button_html = "".join([f"<li>{button}: {count}</li>" for button, count in button_clicks]) or "<li>no button clicks</li>"
+    country_lines = "\n".join([f"- {country}: {count}" for country, count in country_views]) or "- no country data"
+    country_html = "".join([f"<li>{country}: {count}</li>" for country, count in country_views]) or "<li>no country data</li>"
     text_body = (
         f"{pretty_label} button report (UTC)\n"
         f"Window: {window_start_utc} to {window_end_utc}\n\n"
         f"Total page views: {total_page_views}\n"
         f"Unique visitors (by IP): {unique_visitors}\n"
+        "\nTop countries (page views):\n"
+        f"{country_lines}\n"
         "\nButton clicks:\n"
         f"{button_lines}\n"
     )
@@ -564,6 +595,8 @@ def send_traffic_report_email(
         f"<li>Total page views: {total_page_views}</li>"
         f"<li>Unique visitors (by IP): {unique_visitors}</li>"
         "</ul>"
+        "<p>Top countries (page views):</p>"
+        f"<ul>{country_html}</ul>"
         "<p>Button clicks:</p>"
         f"<ul>{button_html}</ul>"
     )
@@ -592,6 +625,48 @@ def get_client_ip(handler: SimpleHTTPRequestHandler) -> str:
     if forwarded_for:
         return forwarded_for.split(",")[0].strip()
     return handler.client_address[0] if handler.client_address else "unknown"
+
+
+def _get_geoip_reader():
+    global GEOIP_READER
+    if not GEOIP_DB_PATH:
+        return None
+    if GEOIP_READER is not None:
+        return GEOIP_READER
+    if 'geoip2' not in globals() or geoip2 is None:  # type: ignore[name-defined]
+        return None
+    with GEOIP_LOCK:
+        if GEOIP_READER is not None:
+            return GEOIP_READER
+        try:
+            GEOIP_READER = geoip2.database.Reader(GEOIP_DB_PATH)  # type: ignore[union-attr]
+            return GEOIP_READER
+        except Exception as exc:
+            log_runtime(f"GeoIP disabled: failed to open DB at {GEOIP_DB_PATH}. error={exc}")
+            GEOIP_READER = None
+            return None
+
+
+def resolve_country_code(client_ip: str) -> str:
+    ip_text = (client_ip or "").strip()
+    if not ip_text or ip_text == "-":
+        return "-"
+    try:
+        ip_obj = ipaddress.ip_address(ip_text)
+        if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_reserved or ip_obj.is_link_local:
+            return "-"
+    except Exception:
+        return "-"
+
+    reader = _get_geoip_reader()
+    if reader is None:
+        return "-"
+    try:
+        response = reader.country(ip_text)
+        code = (response.country.iso_code or "").strip().upper()
+        return code if code else "-"
+    except Exception:
+        return "-"
 
 
 def check_rate_limit(action: str, client_ip: str, username: str) -> Optional[int]:
@@ -720,9 +795,10 @@ def should_track_page_view(path: str) -> bool:
 def record_page_view(conn: sqlite3.Connection, path: str, client_ip: str):
     parsed_path = (urlparse(path).path or "").strip() or "/"
     normalized_ip = (client_ip or "").strip() or "-"
+    country_code = resolve_country_code(normalized_ip)
     conn.execute(
-        "INSERT INTO page_views (path, client_ip, viewed_at) VALUES (?, ?, ?)",
-        (parsed_path, normalized_ip, int(time.time())),
+        "INSERT INTO page_views (path, client_ip, country_code, viewed_at) VALUES (?, ?, ?, ?)",
+        (parsed_path, normalized_ip, country_code, int(time.time())),
     )
 
 
@@ -731,12 +807,13 @@ def record_button_click_event(conn, page_path: str, button_id: str, button_label
     normalized_id = (button_id or "").strip()[:120] or "-"
     normalized_label = (button_label or "").strip()[:200] or "-"
     normalized_ip = (client_ip or "").strip() or "-"
+    country_code = resolve_country_code(normalized_ip)
     conn.execute(
         """
-        INSERT INTO button_click_events (page_path, button_id, button_label, client_ip, clicked_at)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO button_click_events (page_path, button_id, button_label, client_ip, country_code, clicked_at)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (normalized_path, normalized_id, normalized_label, normalized_ip, int(time.time())),
+        (normalized_path, normalized_id, normalized_label, normalized_ip, country_code, int(time.time())),
     )
 
 
@@ -1630,6 +1707,23 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "SELECT COUNT(DISTINCT client_ip) FROM page_views WHERE viewed_at >= ? AND viewed_at < ?",
                 (window_start, window_end),
             ).fetchone()[0]
+            country_rows = conn.execute(
+                """
+                SELECT
+                    CASE
+                        WHEN country_code IS NULL OR country_code = '' THEN '-'
+                        ELSE country_code
+                    END AS country,
+                    COUNT(*) AS cnt
+                FROM page_views
+                WHERE viewed_at >= ? AND viewed_at < ?
+                GROUP BY country
+                ORDER BY cnt DESC, country ASC
+                LIMIT 10
+                """,
+                (window_start, window_end),
+            ).fetchall()
+            country_views = [(str(row[0] or "-"), int(row[1] or 0)) for row in country_rows]
             button_click_rows = conn.execute(
                 """
                 SELECT
@@ -1655,13 +1749,14 @@ class AppHandler(SimpleHTTPRequestHandler):
             total_page_views=total_page_views,
             unique_visitors=unique_visitors,
             button_clicks=button_clicks,
+            country_views=country_views,
         )
         log_runtime(
             "Traffic report result: "
             + f"period={period}, "
             + f"window_start_utc={window_start_utc}, window_end_utc={window_end_utc}, "
             + f"page_views={total_page_views}, unique_visitors={unique_visitors}, "
-            + f"button_click_keys={len(button_clicks)}, sent={email_sent}"
+            + f"country_keys={len(country_views)}, button_click_keys={len(button_clicks)}, sent={email_sent}"
         )
         if not email_sent:
             self._send_json(502, {"error": "email_send_failed"})
@@ -1676,6 +1771,7 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "window_end_utc": window_end_utc,
                 "total_page_views": total_page_views,
                 "unique_visitors": unique_visitors,
+                "country_views": [{"country": country, "count": count} for country, count in country_views],
                 "button_clicks": [{"button": button, "count": count} for button, count in button_clicks],
                 "recipient": DAILY_REPORT_RECIPIENT,
             },
@@ -1830,6 +1926,10 @@ def main():
         + f"path={LOCAL_STOCKFISH_PATH}, "
         + f"threads={LOCAL_STOCKFISH_THREADS}, "
         + f"hash_mb={LOCAL_STOCKFISH_HASH_MB}"
+    )
+    log_runtime(
+        "GeoIP config: "
+        + f"db_path_set={bool(GEOIP_DB_PATH)}"
     )
     if DB_BACKEND == "postgres":
         log_runtime("Database backend: postgres (DATABASE_URL)")
