@@ -83,6 +83,7 @@ AUTH_UPDATE_EMAIL_RE = re.compile(r"^/api/auth/profile/email/?$")
 AUTH_PASSWORD_RESET_REQUEST_RE = re.compile(r"^/api/auth/password-reset/request/?$")
 AUTH_PASSWORD_RESET_CONFIRM_RE = re.compile(r"^/api/auth/password-reset/confirm/?$")
 ADMIN_DAILY_REPORT_RE = re.compile(r"^/api/admin/daily-report/?$")
+ADMIN_COUNTRY_BACKFILL_RE = re.compile(r"^/api/admin/backfill-country/?$")
 ANALYSIS_PGN_EVAL_RE = re.compile(r"^/api/analysis/pgn-eval/?$")
 BUTTON_CLICK_RE = re.compile(r"^/api/metrics/button-click/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
@@ -1305,6 +1306,9 @@ class AppHandler(SimpleHTTPRequestHandler):
         if ADMIN_DAILY_REPORT_RE.match(self.path):
             self._handle_daily_login_report()
             return
+        if ADMIN_COUNTRY_BACKFILL_RE.match(self.path):
+            self._handle_country_backfill()
+            return
         if ANALYSIS_PGN_EVAL_RE.match(self.path):
             self._handle_pgn_eval_analysis()
             return
@@ -1797,6 +1801,101 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "country_views": [{"country": country, "count": count} for country, count in country_views],
                 "button_clicks": [{"button": button, "count": count} for button, count in button_clicks],
                 "recipient": DAILY_REPORT_RECIPIENT,
+            },
+        )
+
+    def _handle_country_backfill(self):
+        if not ADMIN_REPORT_TOKEN:
+            self._send_json(503, {"error": "admin_report_token_not_configured"})
+            return
+
+        provided_token = (self.headers.get("X-Admin-Token") or "").strip()
+        if not provided_token or not hmac.compare_digest(provided_token, ADMIN_REPORT_TOKEN):
+            self._send_json(401, {"error": "unauthorized"})
+            return
+
+        try:
+            payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
+        except Exception:
+            self._send_json(400, {"error": "invalid_json"})
+            return
+
+        limit_raw = payload.get("limit", 20000)
+        try:
+            limit = max(1, min(200000, int(limit_raw)))
+        except Exception:
+            limit = 20000
+
+        table_mode = str(payload.get("table", "all")).strip().lower()
+        valid_modes = {"all", "page_views", "button_click_events"}
+        if table_mode not in valid_modes:
+            self._send_json(400, {"error": "invalid_table", "allowed": sorted(valid_modes)})
+            return
+
+        tables: List[str] = []
+        if table_mode in {"all", "page_views"}:
+            tables.append("page_views")
+        if table_mode in {"all", "button_click_events"}:
+            tables.append("button_click_events")
+
+        total_updated = 0
+        total_scanned = 0
+        ip_cache: Dict[str, str] = {}
+        per_table: Dict[str, Dict[str, int]] = {}
+
+        with connect_db() as conn:
+            ensure_auth_schema(conn)
+            for table_name in tables:
+                rows = conn.execute(
+                    f"""
+                    SELECT id, client_ip
+                    FROM {table_name}
+                    WHERE country_code IS NULL OR country_code = '' OR country_code = '-'
+                    ORDER BY id ASC
+                    LIMIT ?
+                    """,
+                    (limit,),
+                ).fetchall()
+
+                scanned = len(rows)
+                updated = 0
+                for row in rows:
+                    row_id = row[0]
+                    client_ip = str(row[1] or "").strip()
+                    if client_ip in ip_cache:
+                        code = ip_cache[client_ip]
+                    else:
+                        code = resolve_country_code(client_ip)
+                        ip_cache[client_ip] = code
+                    if not code or code == "-":
+                        continue
+                    conn.execute(
+                        f"UPDATE {table_name} SET country_code = ? WHERE id = ?",
+                        (code, row_id),
+                    )
+                    updated += 1
+
+                per_table[table_name] = {"scanned": scanned, "updated": updated}
+                total_scanned += scanned
+                total_updated += updated
+
+            conn.commit()
+
+        log_runtime(
+            "Country backfill result: "
+            + f"tables={','.join(tables)}, scanned={total_scanned}, updated={total_updated}"
+        )
+        self._send_json(
+            200,
+            {
+                "ok": True,
+                "tables": tables,
+                "scanned": total_scanned,
+                "updated": total_updated,
+                "by_table": per_table,
             },
         )
 
