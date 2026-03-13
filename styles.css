@@ -57,44 +57,6 @@ body {
   margin: 8px 0 18px;
 }
 
-.learn-strip {
-  margin: 0 0 16px;
-}
-
-.learn-strip h2 {
-  margin: 0 0 8px;
-  font-size: 18px;
-}
-
-.learn-card {
-  display: block;
-  text-decoration: none;
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fcfdff;
-  padding: 12px 14px;
-  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
-}
-
-.learn-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(16, 24, 40, 0.1);
-  border-color: #b7c7df;
-}
-
-.learn-card-title {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.learn-card-desc {
-  display: block;
-  font-size: 13px;
-  color: var(--subtle);
-}
-
 .entry-choice-banner {
   display: flex;
   flex-direction: column;
