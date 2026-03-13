@@ -466,6 +466,19 @@ td {
   white-space: nowrap;
 }
 
+.raw-select-header,
+.raw-select-cell {
+  width: 42px;
+  min-width: 42px;
+  text-align: center;
+}
+
+.raw-select-header input,
+.raw-select-cell input {
+  width: 16px;
+  height: 16px;
+}
+
 td small {
   color: var(--subtle);
 }
