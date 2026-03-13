@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How to Analyze PGN with Stockfish | Chess Data Stats</title>
+    <meta
+      name="description"
+      content="Learn a practical step-by-step method to analyze PGN games with Stockfish, read eval scores, compare best moves, and improve your chess decisions."
+    />
+    <link rel="canonical" href="https://chess-data.com/guides/how-to-analyze-pgn.html" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="How to Analyze PGN with Stockfish | Chess Data Stats" />
+    <meta
+      property="og:description"
+      content="A practical guide to analyze PGN with Stockfish, understand eval score shifts, and prioritize your training."
+    />
+    <meta property="og:url" content="https://chess-data.com/guides/how-to-analyze-pgn.html" />
+    <meta property="og:site_name" content="Chess Data Stats" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="How to Analyze PGN with Stockfish | Chess Data Stats" />
+    <meta
+      name="twitter:description"
+      content="A practical guide to analyze PGN with Stockfish, understand eval score shifts, and prioritize your training."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "How to Analyze PGN with Stockfish",
+        "description": "Learn a practical step-by-step method to analyze PGN games with Stockfish and improve decision-making.",
+        "author": { "@type": "Organization", "name": "Chess Data Stats" },
+        "publisher": { "@type": "Organization", "name": "Chess Data Stats" },
+        "mainEntityOfPage": "https://chess-data.com/guides/how-to-analyze-pgn.html"
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What depth should I use for PGN analysis?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "For fast review, depth 12-15 is usually enough. For deeper critical positions, use depth 18-20."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Why does best move matter more than raw eval?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Best move comparison shows if you missed a stronger continuation. It is often more actionable than a single eval number."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How should I prioritize mistakes?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Start with moves that create the largest eval drop, then group them by recurring themes like king safety, tactics, or endgame technique."
+            }
+          }
+        ]
+      }
+    </script>
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card wide">
+        <h1>How to Analyze PGN with Stockfish</h1>
+        <p class="hint">
+          This workflow helps you turn engine output into training decisions, not just numbers.
+        </p>
+
+        <h2>1. Prepare the PGN</h2>
+        <p>
+          Use a complete PGN with move list and result. If possible, include headers like event date and player names
+          so your future review stays organized.
+        </p>
+
+        <h2>2. Run analysis at practical depth</h2>
+        <p>
+          Start around depth 12-15 for full-game scan. Re-run only critical moves at depth 18-20. This gives you
+          speed first and precision where it matters.
+        </p>
+
+        <h2>3. Read eval trend, not isolated numbers</h2>
+        <p>
+          Track where evaluation changes sharply after a move. Big jumps often indicate tactical misses, blunders, or
+          strategic turning points.
+        </p>
+
+        <h2>4. Compare played move vs best move</h2>
+        <p>
+          Use <code>bestmove</code> and <code>bestmove_eval</code> to understand what stronger alternative existed in
+          the same position. This is where concrete improvement comes from.
+        </p>
+
+        <h2>5. Build a short training list</h2>
+        <p>
+          After each game, keep 3-5 key mistakes and label them by theme: opening plan, tactical calculation, time
+          management, or endgame conversion.
+        </p>
+
+        <h2>Quick links</h2>
+        <div class="actions">
+          <a class="button-link" href="../pgn-analysis.html">Run PGN Analysis</a>
+          <a class="button-link" href="../stats.html">Game Stats</a>
+          <a class="button-link" href="../raw-data.html">Raw Data Preview</a>
+          <a class="button-link" href="../index.html">Back to Home</a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
