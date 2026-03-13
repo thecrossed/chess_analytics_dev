@@ -317,11 +317,15 @@ hr {
 }
 
 .raw-shell {
-  place-items: start center;
+  display: block;
+  min-height: 100vh;
+  padding: clamp(12px, 2.6vw, 28px);
 }
 
 .raw-card {
   width: min(1240px, 100%);
+  margin-left: 0;
+  margin-right: auto;
 }
 
 .raw-table-wrap {
