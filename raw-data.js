@@ -426,7 +426,12 @@ function renderRawPreview() {
   if (rawPageInfo) rawPageInfo.textContent = `Page ${rawCurrentPage}/${totalPages}`;
   syncSelectAllState();
   refreshDownloadState();
-  if (rawTableWrap) rawTableWrap.scrollLeft = 0;
+  if (rawTableWrap) {
+    rawTableWrap.scrollLeft = 0;
+    requestAnimationFrame(() => {
+      rawTableWrap.scrollLeft = 0;
+    });
+  }
 }
 
 function downloadRawCsv() {
@@ -515,6 +520,10 @@ if (rawNextPageButton) {
 
 if (backStatsLink) {
   backStatsLink.href = `stats.html?${params.toString()}`;
+}
+
+if (rawTableWrap) {
+  rawTableWrap.scrollLeft = 0;
 }
 
 async function run() {
