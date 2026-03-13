@@ -13,11 +13,11 @@
         <p class="hint">I want to</p>
 
         <div id="home-entry-chooser" class="home-entry-chooser">
-          <button id="choose-fetch-entry" type="button" class="entry-choice-banner">
+          <button id="choose-fetch-entry" type="button" class="entry-choice-banner" data-track-id="home_entry_fetch">
             <span class="entry-choice-title">Fetch Game Data</span>
             <span class="entry-choice-desc">Pull online games and build player stats tables.</span>
           </button>
-          <button id="choose-pgn-entry" type="button" class="entry-choice-banner">
+          <button id="choose-pgn-entry" type="button" class="entry-choice-banner" data-track-id="home_entry_pgn">
             <span class="entry-choice-title">Upload PGN</span>
             <span class="entry-choice-desc">Paste or upload PGN and run Stockfish analysis.</span>
           </button>
@@ -26,7 +26,7 @@
         <div class="home-grid">
           <section id="fetch-entry-section" class="feature-banner feature-banner-primary hidden">
             <div class="entry-back-row">
-              <button id="back-to-entry-from-fetch" type="button" class="secondary-link">Back</button>
+              <button id="back-to-entry-from-fetch" type="button" class="secondary-link" data-track="false">Back</button>
             </div>
             <h2 data-i18n="home_banner_fetch_title">Fetch Online Game Stats</h2>
             <p class="hint" data-i18n="home_banner_fetch_hint">Pull games from Chess.com or Lichess and generate player stats.</p>
@@ -84,7 +84,7 @@
 
           <section id="pgn-entry-section" class="feature-banner feature-banner-secondary hidden">
             <div class="entry-back-row">
-              <button id="back-to-entry-from-pgn" type="button" class="secondary-link">Back</button>
+              <button id="back-to-entry-from-pgn" type="button" class="secondary-link" data-track="false">Back</button>
             </div>
             <h2 data-i18n="home_banner_pgn_title">Upload PGN + Stockfish Analysis</h2>
             <p class="hint" data-i18n="home_banner_pgn_hint">Upload a PGN file and run engine analysis for move-by-move scoring.</p>
