@@ -34,6 +34,28 @@ const PGN_ANALYSIS_DRAFT_KEY = "pgn_analysis_draft_v1";
 
 let pgnFileText = "";
 
+function canTrackAnalytics() {
+  return (
+    window.cookieConsent &&
+    typeof window.cookieConsent.canUse === "function" &&
+    window.cookieConsent.canUse("analytics")
+  );
+}
+
+function trackInputEvent(eventType, payload) {
+  if (!canTrackAnalytics()) return;
+  fetch("/api/metrics/input-event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    keepalive: true,
+    body: JSON.stringify({
+      event_type: eventType,
+      page_path: window.location.pathname || "/",
+      ...payload
+    })
+  }).catch(() => {});
+}
+
 function setHomeMode(mode) {
   const showFetch = mode === "fetch";
   const showPgn = mode === "pgn";
@@ -316,6 +338,8 @@ form.addEventListener("submit", (event) => {
     return;
   }
 
+  trackInputEvent("username_submitted", { value_text: username.toLowerCase(), meta: { source: "manual" } });
+
   input.value = "";
   renderUsers();
 });
@@ -335,17 +359,23 @@ csvFileInput.addEventListener("change", async (event) => {
     const usernames = parseCsvUsernames(csvText);
     let addedCount = 0;
     let invalidCount = 0;
+    const addedUsernames = [];
 
     usernames.forEach((name) => {
       const sizeBefore = users.size;
       if (addUsername(name)) {
         if (users.size > sizeBefore) {
           addedCount += 1;
+          addedUsernames.push(name.toLowerCase());
         }
       } else {
         invalidCount += 1;
       }
     });
+
+    if (addedUsernames.length > 0) {
+      trackInputEvent("username_submitted", { values: addedUsernames, meta: { source: "csv" } });
+    }
 
     renderUsers();
 
