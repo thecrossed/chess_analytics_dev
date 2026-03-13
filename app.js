@@ -215,6 +215,44 @@ function clampAnalysisDepth(rawValue) {
   return Math.max(8, Math.min(20, parsed));
 }
 
+function isLikelySanToken(token) {
+  const cleaned = String(token || "").replace(/[!?]+$/g, "");
+  if (!cleaned) return false;
+  const sanPattern = /^(O-O(?:-O)?[+#]?|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?|[a-h]x[a-h][1-8](?:=[QRBN])?[+#]?|[a-h][1-8](?:=[QRBN])?[+#]?)$/;
+  return sanPattern.test(cleaned);
+}
+
+function hasValidPgnFormat(text) {
+  const normalized = normalizePgnForCompare(text);
+  if (!normalized) return false;
+
+  const body = normalized
+    .split(/\r?\n/)
+    .filter((line) => line && !line.startsWith("["))
+    .join(" ")
+    .replace(/\{[^}]*\}/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\$\d+/g, " ");
+
+  if (!/\d+\./.test(body)) return false;
+
+  const resultTokens = new Set(["1-0", "0-1", "1/2-1/2", "*"]);
+  const tokens = body.split(/\s+/).filter(Boolean);
+  let sanCount = 0;
+
+  for (let token of tokens) {
+    if (resultTokens.has(token)) continue;
+    if (/^\d+\.(\.\.)?$/.test(token)) continue;
+    token = token.replace(/^\d+\.(\.\.)?/, "").trim();
+    if (!token || resultTokens.has(token)) continue;
+    if (isLikelySanToken(token)) {
+      sanCount += 1;
+    }
+  }
+
+  return sanCount >= 2;
+}
+
 function savePgnAnalysisDraft(payload) {
   sessionStorage.setItem(PGN_ANALYSIS_DRAFT_KEY, JSON.stringify(payload));
 }
@@ -397,6 +435,12 @@ if (pgnAnalyzeButton) {
     }
     if (!state.text) {
       setPgnStatus(t("home_pgn_no_input"), true);
+      return;
+    }
+    if (!hasValidPgnFormat(state.text)) {
+      const message = t("home_pgn_invalid_format");
+      setPgnStatus(message, true);
+      window.alert(message);
       return;
     }
 
