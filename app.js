@@ -22,6 +22,14 @@ const fetchEntrySection = document.getElementById("fetch-entry-section");
 const pgnEntrySection = document.getElementById("pgn-entry-section");
 const backToEntryFromFetch = document.getElementById("back-to-entry-from-fetch");
 const backToEntryFromPgn = document.getElementById("back-to-entry-from-pgn");
+const openSupportButton = document.getElementById("open-support");
+const supportModal = document.getElementById("support-modal");
+const closeSupportButton = document.getElementById("close-support");
+const supportForm = document.getElementById("support-form");
+const supportEmailInput = document.getElementById("support-email");
+const supportMessageInput = document.getElementById("support-message");
+const supportStatus = document.getElementById("support-status");
+const supportSendButton = document.getElementById("support-send");
 
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
@@ -31,6 +39,8 @@ const DEFAULT_USERNAME = "MagnusCarlsen";
 const MAX_VISIBLE_USERS = 20;
 const MAX_RANGE_DAYS = 120;
 const PGN_ANALYSIS_DRAFT_KEY = "pgn_analysis_draft_v1";
+const SUPPORT_MAX_CHARS = 200;
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 let pgnFileText = "";
 
@@ -54,6 +64,23 @@ function trackInputEvent(eventType, payload) {
       ...payload
     })
   }).catch(() => {});
+}
+
+function setSupportStatus(text, isError = false) {
+  if (!supportStatus) return;
+  supportStatus.textContent = text;
+  supportStatus.style.color = isError ? "#b42318" : "#475467";
+}
+
+function openSupportModal() {
+  if (!supportModal) return;
+  supportModal.classList.remove("hidden");
+  setSupportStatus("");
+}
+
+function closeSupportModal() {
+  if (!supportModal) return;
+  supportModal.classList.add("hidden");
 }
 
 function setHomeMode(mode) {
@@ -537,3 +564,86 @@ window.addEventListener("languagechange", () => {
   renderUsers();
   refreshPgnAutoStatus();
 });
+
+if (openSupportButton) {
+  openSupportButton.addEventListener("click", () => {
+    openSupportModal();
+  });
+}
+
+if (closeSupportButton) {
+  closeSupportButton.addEventListener("click", () => {
+    closeSupportModal();
+  });
+}
+
+if (supportModal) {
+  supportModal.addEventListener("click", (event) => {
+    if (event.target === supportModal) {
+      closeSupportModal();
+    }
+  });
+}
+
+if (supportForm) {
+  supportForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const message = (supportMessageInput?.value || "").trim();
+    const email = (supportEmailInput?.value || "").trim().toLowerCase();
+
+    if (!message) {
+      setSupportStatus(t("support_message_required"), true);
+      return;
+    }
+    if (message.length > SUPPORT_MAX_CHARS) {
+      setSupportStatus(t("support_message_too_long", { max: SUPPORT_MAX_CHARS }), true);
+      return;
+    }
+    if (email && !EMAIL_RE.test(email)) {
+      setSupportStatus(t("msg_invalid_email"), true);
+      return;
+    }
+
+    setSupportStatus(t("support_sending"));
+    if (supportSendButton) {
+      supportSendButton.disabled = true;
+    }
+
+    try {
+      const response = await fetch("/api/support-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          message,
+          page_path: window.location.pathname || "/"
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (payload?.error === "support_email_service_not_configured") {
+          setSupportStatus(t("support_email_service_not_configured"), true);
+        } else if (payload?.error === "message_too_long") {
+          setSupportStatus(t("support_message_too_long", { max: payload?.max || SUPPORT_MAX_CHARS }), true);
+        } else if (payload?.error === "message_required") {
+          setSupportStatus(t("support_message_required"), true);
+        } else if (payload?.error === "invalid_email") {
+          setSupportStatus(t("msg_invalid_email"), true);
+        } else {
+          setSupportStatus(t("support_send_failed"), true);
+        }
+        return;
+      }
+
+      setSupportStatus(t("support_send_success"), false);
+      if (supportMessageInput) supportMessageInput.value = "";
+      if (supportEmailInput) supportEmailInput.value = "";
+    } catch (_error) {
+      setSupportStatus(t("support_send_failed"), true);
+    } finally {
+      if (supportSendButton) {
+        supportSendButton.disabled = false;
+      }
+    }
+  });
+}

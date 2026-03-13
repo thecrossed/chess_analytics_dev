@@ -70,6 +70,8 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 DEBUG_RESET_TOKEN_RESPONSE = os.environ.get("DEBUG_RESET_TOKEN_RESPONSE", "0") == "1"
 ADMIN_REPORT_TOKEN = os.environ.get("ADMIN_REPORT_TOKEN", "").strip()
 DAILY_REPORT_RECIPIENT = "chessalwaysfun@gmail.com"
+SUPPORT_RECIPIENT = "chessalwaysfun@gmail.com"
+SUPPORT_MESSAGE_MAX_CHARS = 200
 GEOIP_DB_PATH = os.environ.get("GEOIP_DB_PATH", "").strip()
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
@@ -89,6 +91,7 @@ ADMIN_INPUT_EVENTS_RE = re.compile(r"^/api/admin/input-events/?$")
 ANALYSIS_PGN_EVAL_RE = re.compile(r"^/api/analysis/pgn-eval/?$")
 BUTTON_CLICK_RE = re.compile(r"^/api/metrics/button-click/?$")
 INPUT_EVENT_RE = re.compile(r"^/api/metrics/input-event/?$")
+SUPPORT_MESSAGE_RE = re.compile(r"^/api/support-message/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
 COMMON_WEAK_PASSWORDS = {
     "12345678",
@@ -582,6 +585,33 @@ def send_password_reset_email(email: str, username: str, token: str) -> bool:
         "<p>If you did not request this, you can ignore this email.</p>"
     )
     return send_email_via_provider(email, subject, text_body, html_body, "Password reset")
+
+
+def send_support_message_email(message: str, sender_email: str, client_ip: str, page_path: str) -> bool:
+    sender = sender_email.strip() if sender_email else "(not provided)"
+    now_utc = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+    subject = f"ChessAnalytics Support Message ({now_utc} UTC)"
+    text_body = (
+        "New support message received.\n\n"
+        f"Sender email: {sender}\n"
+        f"Client IP: {client_ip or '-'}\n"
+        f"Page: {page_path or '/'}\n"
+        f"Received at (UTC): {now_utc}\n\n"
+        "Message:\n"
+        f"{message}\n"
+    )
+    html_body = (
+        "<p>New support message received.</p>"
+        "<ul>"
+        f"<li>Sender email: {sender}</li>"
+        f"<li>Client IP: {client_ip or '-'}</li>"
+        f"<li>Page: {page_path or '/'}</li>"
+        f"<li>Received at (UTC): {now_utc}</li>"
+        "</ul>"
+        "<p>Message:</p>"
+        f"<pre style='white-space:pre-wrap;font-family:inherit'>{message}</pre>"
+    )
+    return send_email_via_provider(SUPPORT_RECIPIENT, subject, text_body, html_body, "Support message")
 
 
 def get_report_window(period: str, now_ts: int) -> Tuple[int, int]:
@@ -1434,6 +1464,9 @@ class AppHandler(SimpleHTTPRequestHandler):
         if INPUT_EVENT_RE.match(self.path):
             self._handle_input_event()
             return
+        if SUPPORT_MESSAGE_RE.match(self.path):
+            self._handle_support_message()
+            return
 
         self._send_json(404, {"error": "not_found"})
 
@@ -1549,6 +1582,46 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
 
         self._send_json(200, {"ok": True, "inserted": inserted})
+
+    def _handle_support_message(self):
+        try:
+            payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
+        except Exception:
+            self._send_json(400, {"error": "invalid_json"})
+            return
+
+        message = str(payload.get("message", "")).strip()
+        sender_email = str(payload.get("email", "")).strip().lower()
+        page_path = str(payload.get("page_path", "")).strip() or "/"
+
+        if not message:
+            self._send_json(400, {"error": "message_required"})
+            return
+        if len(message) > SUPPORT_MESSAGE_MAX_CHARS:
+            self._send_json(400, {"error": "message_too_long", "max": SUPPORT_MESSAGE_MAX_CHARS})
+            return
+        if sender_email and not validate_email(sender_email):
+            self._send_json(400, {"error": "invalid_email"})
+            return
+        if not is_password_reset_service_configured():
+            self._send_json(503, {"error": "support_email_service_not_configured"})
+            return
+
+        client_ip = get_client_ip(self)
+        sent = send_support_message_email(
+            message=message,
+            sender_email=sender_email,
+            client_ip=client_ip,
+            page_path=page_path,
+        )
+        if not sent:
+            self._send_json(502, {"error": "email_send_failed"})
+            return
+
+        self._send_json(200, {"ok": True})
 
     def _handle_register(self):
         try:

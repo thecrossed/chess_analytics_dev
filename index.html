@@ -11,6 +11,9 @@
       <section class="card wide home-shell">
         <h1 data-i18n="home_title">Chess Data Stats</h1>
         <p class="hint">I want to</p>
+        <div class="support-link-row">
+          <button id="open-support" type="button" class="secondary-link" data-track-id="open_support_modal" data-i18n="nav_support">Support</button>
+        </div>
 
         <div id="home-entry-chooser" class="home-entry-chooser">
           <button id="choose-fetch-entry" type="button" class="entry-choice-banner" data-track-id="home_entry_fetch">
@@ -115,6 +118,37 @@
         </div>
       </section>
     </main>
+
+    <div id="support-modal" class="support-modal hidden" role="dialog" aria-modal="true" aria-labelledby="support-title">
+      <div class="support-modal-card">
+        <div class="support-modal-header">
+          <h2 id="support-title" data-i18n="support_title">Support</h2>
+          <button id="close-support" type="button" class="secondary-link" data-track="false" data-i18n="pgn_analysis_close">Close</button>
+        </div>
+        <p class="hint" data-i18n="support_hint">Leave a message (max 200 characters) and we will receive it by email.</p>
+        <form id="support-form">
+          <div class="row import-row">
+            <label for="support-email" data-i18n="support_email_optional_label">Your Email (optional)</label>
+            <input id="support-email" type="email" data-i18n-placeholder="support_email_optional_placeholder" placeholder="you@example.com" />
+          </div>
+          <div class="row import-row">
+            <label for="support-message" data-i18n="support_message_label">Message</label>
+            <textarea
+              id="support-message"
+              rows="5"
+              maxlength="200"
+              data-i18n-placeholder="support_message_placeholder"
+              placeholder="Type your message..."
+              required
+            ></textarea>
+          </div>
+          <div class="actions">
+            <button id="support-send" type="submit" data-track-id="support_send_message" data-i18n="support_send_button">Send Message</button>
+          </div>
+          <p id="support-status" class="hint-inline"></p>
+        </form>
+      </div>
+    </div>
 
     <script src="language.js"></script>
     <script src="cookie-consent.js"></script>
