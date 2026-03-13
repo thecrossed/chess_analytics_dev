@@ -201,6 +201,10 @@ const TRANSLATIONS = {
     faq_a3: "Yes. Both game stats and PGN analysis outputs can be downloaded as CSV.",
     faq_q4: "Which platforms are supported?",
     faq_a4: "Game data fetching supports Chess.com and Lichess.",
+    faq_q5: "How are eval score and best move obtained in PGN analysis?",
+    faq_a5: "Eval score comes from engine evaluation after the played move. Best move and best move eval are engine recommendations from the position before that move.",
+    faq_q6: "What is Stockfish?",
+    faq_a6: "Stockfish is a strong open-source chess engine used to evaluate positions and suggest best moves.",
     app_remove: "Remove",
     app_more_usernames: "+{count} more usernames",
     alert_invalid_username_format: "Invalid username format: 2-30 characters, letters/numbers/_/- only.",
@@ -378,7 +382,11 @@ const TRANSLATIONS = {
     faq_q3: "Puis-je exporter les résultats d'analyse en CSV ?",
     faq_a3: "Oui. Les statistiques et les résultats d'analyse PGN peuvent être téléchargés en CSV.",
     faq_q4: "Quelles plateformes sont prises en charge ?",
-    faq_a4: "La récupération des parties prend en charge Chess.com et Lichess."
+    faq_a4: "La récupération des parties prend en charge Chess.com et Lichess.",
+    faq_q5: "Comment la note d'évaluation et le meilleur coup sont-ils obtenus dans l'analyse PGN ?",
+    faq_a5: "La note d'évaluation provient de l'évaluation moteur après le coup joué. Le meilleur coup et son évaluation proviennent de la recommandation moteur avant ce coup.",
+    faq_q6: "Qu'est-ce que Stockfish ?",
+    faq_a6: "Stockfish est un moteur d'échecs open source très puissant, utilisé pour évaluer les positions et proposer les meilleurs coups."
   },
   zh: {
     lang_selector_label: "语言",
@@ -534,7 +542,11 @@ const TRANSLATIONS = {
     faq_q3: "分析结果可以导出为 CSV 吗？",
     faq_a3: "可以。对局统计和 PGN 分析结果都可以下载为 CSV。",
     faq_q4: "支持哪些平台？",
-    faq_a4: "对局数据拉取支持 Chess.com 和 Lichess。"
+    faq_a4: "对局数据拉取支持 Chess.com 和 Lichess。",
+    faq_q5: "PGN 分析里的 eval 分数和 best move 是怎么得到的？",
+    faq_a5: "eval 分数来自“该步走完后”的引擎评估；best move 和 best move eval 来自“该步之前局面”的引擎推荐。",
+    faq_q6: "Stockfish 是什么？",
+    faq_a6: "Stockfish 是一个强大的开源国际象棋引擎，用于评估局面并给出最佳走法建议。"
   },
   es: {
     lang_selector_label: "Idioma",
@@ -690,7 +702,11 @@ const TRANSLATIONS = {
     faq_q3: "¿Puedo exportar los resultados de análisis en CSV?",
     faq_a3: "Sí. Tanto las estadísticas como los resultados de análisis PGN se pueden descargar en CSV.",
     faq_q4: "¿Qué plataformas son compatibles?",
-    faq_a4: "La obtención de partidas es compatible con Chess.com y Lichess."
+    faq_a4: "La obtención de partidas es compatible con Chess.com y Lichess.",
+    faq_q5: "¿Cómo se obtienen eval score y best move en el análisis PGN?",
+    faq_a5: "El eval score proviene de la evaluación del motor después de la jugada realizada. Best move y best move eval vienen de la recomendación del motor antes de esa jugada.",
+    faq_q6: "¿Qué es Stockfish?",
+    faq_a6: "Stockfish es un potente motor de ajedrez de código abierto usado para evaluar posiciones y sugerir mejores jugadas."
   },
   sv: {
     lang_selector_label: "Språk",
@@ -846,7 +862,11 @@ const TRANSLATIONS = {
     faq_q3: "Kan jag exportera analysresultat till CSV?",
     faq_a3: "Ja. Både spelstatistik och PGN-analysresultat kan laddas ner som CSV.",
     faq_q4: "Vilka plattformar stöds?",
-    faq_a4: "Hämtning av partidata stöder Chess.com och Lichess."
+    faq_a4: "Hämtning av partidata stöder Chess.com och Lichess.",
+    faq_q5: "Hur tas eval-score och best move fram i PGN-analysen?",
+    faq_a5: "Eval-score kommer från motorns utvärdering efter det spelade draget. Best move och best move eval kommer från motorns rekommendation före det draget.",
+    faq_q6: "Vad är Stockfish?",
+    faq_a6: "Stockfish är en stark öppen källkod-schackmotor som används för att utvärdera ställningar och föreslå bästa drag."
   }
 };
 
