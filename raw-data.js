@@ -1,6 +1,7 @@
 const rawBody = document.getElementById("raw-body");
 const rawSummary = document.getElementById("raw-summary");
 const rawTableWrap = document.getElementById("raw-table-wrap");
+const rawSelectAllCheckbox = document.getElementById("raw-select-all");
 const rawPrevPageButton = document.getElementById("raw-prev-page");
 const rawNextPageButton = document.getElementById("raw-next-page");
 const rawPageInfo = document.getElementById("raw-page-info");
@@ -23,6 +24,7 @@ const usernames = usersParam
 const RAW_PAGE_SIZE = 50;
 let rawCurrentPage = 1;
 const rawExportRows = [];
+let rawRowSeq = 0;
 
 function normalizePlatform(raw) {
   return raw === "chesscom" ? "chesscom" : "lichess";
@@ -322,6 +324,8 @@ async function fetchAndBuildGames(username) {
 function addRawRows(username, games) {
   games.forEach((g) => {
     rawExportRows.push({
+      _id: ++rawRowSeq,
+      _selected: true,
       username,
       whiteUsername: g.whiteUsername || "",
       whiteRating: typeof g.whiteRating === "number" ? String(g.whiteRating) : "",
@@ -338,6 +342,24 @@ function addRawRows(username, games) {
   });
 }
 
+function getSelectedRawRows() {
+  return rawExportRows.filter((row) => row._selected !== false);
+}
+
+function syncSelectAllState() {
+  if (!rawSelectAllCheckbox) return;
+  const total = rawExportRows.length;
+  const selected = getSelectedRawRows().length;
+  rawSelectAllCheckbox.disabled = total === 0;
+  rawSelectAllCheckbox.indeterminate = total > 0 && selected > 0 && selected < total;
+  rawSelectAllCheckbox.checked = total > 0 && selected === total;
+}
+
+function refreshDownloadState() {
+  if (!downloadRawCsvButton) return;
+  downloadRawCsvButton.disabled = getSelectedRawRows().length === 0;
+}
+
 function renderRawPreview() {
   if (!rawBody) return;
   rawBody.innerHTML = "";
@@ -348,6 +370,20 @@ function renderRawPreview() {
 
   rawExportRows.slice(startIndex, endIndex).forEach((row) => {
     const tr = document.createElement("tr");
+    const selectTd = document.createElement("td");
+    selectTd.className = "raw-select-cell";
+    const rowCheckbox = document.createElement("input");
+    rowCheckbox.type = "checkbox";
+    rowCheckbox.checked = row._selected !== false;
+    rowCheckbox.setAttribute("aria-label", `Select game ${row._id}`);
+    rowCheckbox.addEventListener("change", () => {
+      row._selected = rowCheckbox.checked;
+      refreshDownloadState();
+      syncSelectAllState();
+    });
+    selectTd.appendChild(rowCheckbox);
+    tr.appendChild(selectTd);
+
     const textColumns = [
       row.username,
       row.whiteUsername,
@@ -388,6 +424,8 @@ function renderRawPreview() {
   if (rawPrevPageButton) rawPrevPageButton.disabled = rawCurrentPage <= 1;
   if (rawNextPageButton) rawNextPageButton.disabled = rawCurrentPage >= totalPages;
   if (rawPageInfo) rawPageInfo.textContent = `Page ${rawCurrentPage}/${totalPages}`;
+  syncSelectAllState();
+  refreshDownloadState();
   if (rawTableWrap) rawTableWrap.scrollLeft = 0;
 }
 
@@ -407,7 +445,7 @@ function downloadRawCsv() {
     "Rating Diff (User Change)"
   ];
   const lines = [header.map(csvEscape).join(",")];
-  rawExportRows.forEach((row) => {
+  getSelectedRawRows().forEach((row) => {
     lines.push(
       [
         row.username,
@@ -443,8 +481,18 @@ function downloadRawCsv() {
 
 if (downloadRawCsvButton) {
   downloadRawCsvButton.addEventListener("click", () => {
-    if (rawExportRows.length === 0) return;
+    if (getSelectedRawRows().length === 0) return;
     downloadRawCsv();
+  });
+}
+
+if (rawSelectAllCheckbox) {
+  rawSelectAllCheckbox.addEventListener("change", () => {
+    const checked = rawSelectAllCheckbox.checked;
+    rawExportRows.forEach((row) => {
+      row._selected = checked;
+    });
+    renderRawPreview();
   });
 }
 
@@ -492,9 +540,7 @@ async function run() {
   }
 
   renderRawPreview();
-  if (downloadRawCsvButton) {
-    downloadRawCsvButton.disabled = rawExportRows.length === 0;
-  }
+  refreshDownloadState();
   if (rawSummary) {
     rawSummary.textContent = t("stats_completed_range", {
       finished,
