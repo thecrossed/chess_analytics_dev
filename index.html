@@ -10,10 +10,18 @@
     <main class="shell">
       <section class="card wide home-shell">
         <h1 data-i18n="home_title">Chess Data Stats</h1>
-        <p class="hint" data-i18n="home_hint">Add one or more usernames and choose a date range (max 120 days).</p>
+        <p class="hint">Choose one workflow to continue.</p>
+
+        <div id="home-entry-chooser" class="home-entry-chooser">
+          <button id="choose-fetch-entry" type="button" class="entry-choice-btn">Fetch Game Data</button>
+          <button id="choose-pgn-entry" type="button" class="entry-choice-btn">Upload PGN</button>
+        </div>
 
         <div class="home-grid">
-          <section class="feature-banner feature-banner-primary">
+          <section id="fetch-entry-section" class="feature-banner feature-banner-primary hidden">
+            <div class="entry-back-row">
+              <button id="back-to-entry-from-fetch" type="button" class="secondary-link">Back</button>
+            </div>
             <h2 data-i18n="home_banner_fetch_title">Fetch Online Game Stats</h2>
             <p class="hint" data-i18n="home_banner_fetch_hint">Pull games from Chess.com or Lichess and generate player stats.</p>
 
@@ -68,7 +76,10 @@
             </div>
           </section>
 
-          <section class="feature-banner feature-banner-secondary">
+          <section id="pgn-entry-section" class="feature-banner feature-banner-secondary hidden">
+            <div class="entry-back-row">
+              <button id="back-to-entry-from-pgn" type="button" class="secondary-link">Back</button>
+            </div>
             <h2 data-i18n="home_banner_pgn_title">Upload PGN + Stockfish Analysis</h2>
             <p class="hint" data-i18n="home_banner_pgn_hint">Upload a PGN file and run engine analysis for move-by-move scoring.</p>
 
