@@ -85,6 +85,7 @@ AUTH_PASSWORD_RESET_CONFIRM_RE = re.compile(r"^/api/auth/password-reset/confirm/
 ADMIN_DAILY_REPORT_RE = re.compile(r"^/api/admin/daily-report/?$")
 ADMIN_COUNTRY_BACKFILL_RE = re.compile(r"^/api/admin/backfill-country/?$")
 ADMIN_UNIQUE_IPS_RE = re.compile(r"^/api/admin/unique-ips/?$")
+ADMIN_INPUT_EVENTS_RE = re.compile(r"^/api/admin/input-events/?$")
 ANALYSIS_PGN_EVAL_RE = re.compile(r"^/api/analysis/pgn-eval/?$")
 BUTTON_CLICK_RE = re.compile(r"^/api/metrics/button-click/?$")
 INPUT_EVENT_RE = re.compile(r"^/api/metrics/input-event/?$")
@@ -1421,6 +1422,9 @@ class AppHandler(SimpleHTTPRequestHandler):
         if ADMIN_UNIQUE_IPS_RE.match(self.path):
             self._handle_unique_ips_report()
             return
+        if ADMIN_INPUT_EVENTS_RE.match(self.path):
+            self._handle_input_events_report()
+            return
         if ANALYSIS_PGN_EVAL_RE.match(self.path):
             self._handle_pgn_eval_analysis()
             return
@@ -2251,6 +2255,106 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "date_utc": date_utc,
                 "table": table_mode,
                 "count": len(items),
+                "items": items,
+            },
+        )
+
+    def _handle_input_events_report(self):
+        if not ADMIN_REPORT_TOKEN:
+            self._send_json(503, {"error": "admin_report_token_not_configured"})
+            return
+
+        provided_token = (self.headers.get("X-Admin-Token") or "").strip()
+        if not provided_token or not hmac.compare_digest(provided_token, ADMIN_REPORT_TOKEN):
+            self._send_json(401, {"error": "unauthorized"})
+            return
+
+        try:
+            payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
+        except Exception:
+            self._send_json(400, {"error": "invalid_json"})
+            return
+
+        event_type = str(payload.get("event_type", "all")).strip().lower()
+        if event_type not in {"all", "username_submitted", "pgn_uploaded"}:
+            self._send_json(400, {"error": "invalid_event_type", "allowed": ["all", "username_submitted", "pgn_uploaded"]})
+            return
+
+        date_utc = str(payload.get("date_utc", "")).strip()
+        if date_utc and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_utc):
+            self._send_json(400, {"error": "invalid_date_utc", "expected_format": "YYYY-MM-DD"})
+            return
+
+        limit_raw = payload.get("limit", 100)
+        try:
+            limit = max(1, min(1000, int(limit_raw)))
+        except Exception:
+            limit = 100
+
+        include_values = bool(payload.get("include_values", False))
+
+        where_clauses: List[str] = []
+        params: List[Any] = []
+        if event_type != "all":
+            where_clauses.append("event_type = ?")
+            params.append(event_type)
+        if date_utc:
+            start_dt = datetime.strptime(date_utc, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            start_ts = int(start_dt.timestamp())
+            end_ts = start_ts + 86400
+            where_clauses.append("created_at >= ? AND created_at < ?")
+            params.extend([start_ts, end_ts])
+
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+        with connect_db() as conn:
+            ensure_auth_schema(conn)
+            count_row = conn.execute(
+                f"SELECT COUNT(*) FROM input_events {where_sql}",
+                tuple(params),
+            ).fetchone()
+            total_count = int(count_row[0] or 0)
+            rows = conn.execute(
+                f"""
+                SELECT id, event_type, value_text, value_hash, value_length, page_path, country_code, created_at
+                FROM input_events
+                {where_sql}
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+                """,
+                tuple(params + [limit]),
+            ).fetchall()
+
+        items = []
+        for row in rows:
+            value_text = str(row[2] or "")
+            preview = value_text if row[1] == "username_submitted" else re.sub(r"\s+", " ", value_text).strip()[:160]
+            item = {
+                "id": int(row[0]),
+                "event_type": str(row[1] or ""),
+                "value_preview": preview,
+                "value_hash": str(row[3] or ""),
+                "value_length": int(row[4] or 0),
+                "page_path": str(row[5] or "/"),
+                "country_code": str(row[6] or "-"),
+                "created_at_utc": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(int(row[7] or 0))),
+            }
+            if include_values:
+                item["value_text"] = value_text
+            items.append(item)
+
+        self._send_json(
+            200,
+            {
+                "ok": True,
+                "event_type": event_type,
+                "date_utc": date_utc or None,
+                "limit": limit,
+                "total_count": total_count,
+                "returned_count": len(items),
                 "items": items,
             },
         )
