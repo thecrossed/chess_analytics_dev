@@ -166,6 +166,21 @@ h1 {
   font-size: 14px;
 }
 
+.home-quick-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-quick-links a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.home-quick-links a:hover {
+  text-decoration: underline;
+}
+
 .type-options {
   display: flex;
   gap: 12px;
@@ -279,6 +294,42 @@ button:hover,
   justify-content: flex-end;
   flex-wrap: wrap;
   margin-top: 16px;
+}
+
+.article-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.article-list li {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfdff;
+  padding: 12px 14px;
+}
+
+.article-title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.article-title a {
+  text-decoration: none;
+  color: var(--text);
+}
+
+.article-title a:hover {
+  color: var(--accent);
+}
+
+.article-meta {
+  margin: 0;
+  color: var(--subtle);
+  font-size: 13px;
 }
 
 .analysis-page-actions {

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How to Read Eval and Best Move in PGN Analysis | Chess Data Stats</title>
+    <meta
+      name="description"
+      content="Understand how eval score and best move are produced in PGN analysis and how to turn those values into practical training actions."
+    />
+    <link rel="canonical" href="https://chess-data.com/guides/how-to-read-eval-and-bestmove.html" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="How to Read Eval and Best Move in PGN Analysis" />
+    <meta
+      property="og:description"
+      content="Learn how eval and best move values are generated and how to interpret them move by move."
+    />
+    <meta property="og:url" content="https://chess-data.com/guides/how-to-read-eval-and-bestmove.html" />
+    <meta property="og:site_name" content="Chess Data Stats" />
+    <meta property="og:image" content="https://chess-data.com/assets/og-default.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="How to Read Eval and Best Move in PGN Analysis" />
+    <meta
+      name="twitter:description"
+      content="Learn how eval and best move values are generated and how to interpret them move by move."
+    />
+    <meta name="twitter:image" content="https://chess-data.com/assets/og-default.svg" />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card wide">
+        <h1>How to Read Eval and Best Move in PGN Analysis</h1>
+        <p class="hint"><time datetime="2026-03-13">Published: 2026-03-13</time></p>
+
+        <h2>What eval score means</h2>
+        <p>
+          In this tool, <strong>eval score</strong> is the engine's evaluation after the played move. Positive values
+          generally favor White, negative values favor Black.
+        </p>
+
+        <h2>What best move means</h2>
+        <p>
+          <strong>Best move</strong> and <strong>best move eval</strong> are calculated from the position before the
+          played move. This lets you compare what was played versus what the engine preferred in the same position.
+        </p>
+
+        <h2>How to use both together</h2>
+        <p>
+          Focus on moves where played eval and best-move eval differ a lot. Those are usually the most valuable
+          training moments.
+        </p>
+
+        <div class="actions">
+          <a class="button-link" href="../pgn-analysis.html">Run PGN Analysis</a>
+          <a class="button-link" href="../blog.html">Back to Articles</a>
+          <a class="button-link" href="../index.html">Back to Home</a>
+        </div>
+      </section>
+    </main>
+    <script src="../language.js"></script>
+    <script src="../cookie-consent.js"></script>
+  </body>
+</html>
