@@ -901,6 +901,7 @@ function trackButtonClicks() {
     if (!canTrackAnalytics) return;
 
     const buttonId =
+      button.getAttribute("data-track-id") ||
       button.id ||
       button.getAttribute("data-i18n") ||
       button.getAttribute("name") ||
