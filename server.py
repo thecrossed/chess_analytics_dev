@@ -85,8 +85,10 @@ AUTH_PASSWORD_RESET_CONFIRM_RE = re.compile(r"^/api/auth/password-reset/confirm/
 ADMIN_DAILY_REPORT_RE = re.compile(r"^/api/admin/daily-report/?$")
 ADMIN_COUNTRY_BACKFILL_RE = re.compile(r"^/api/admin/backfill-country/?$")
 ADMIN_UNIQUE_IPS_RE = re.compile(r"^/api/admin/unique-ips/?$")
+ADMIN_INPUT_EVENTS_RE = re.compile(r"^/api/admin/input-events/?$")
 ANALYSIS_PGN_EVAL_RE = re.compile(r"^/api/analysis/pgn-eval/?$")
 BUTTON_CLICK_RE = re.compile(r"^/api/metrics/button-click/?$")
+INPUT_EVENT_RE = re.compile(r"^/api/metrics/input-event/?$")
 HEALTH_RE = re.compile(r"^/health/?$")
 COMMON_WEAK_PASSWORDS = {
     "12345678",
@@ -260,12 +262,33 @@ def ensure_auth_schema_sqlite(conn: sqlite3.Connection):
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS input_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,
+            value_text TEXT NOT NULL,
+            value_hash TEXT NOT NULL,
+            value_length INTEGER NOT NULL,
+            meta_json TEXT NOT NULL DEFAULT '{}',
+            page_path TEXT NOT NULL,
+            client_ip TEXT NOT NULL,
+            country_code TEXT NOT NULL DEFAULT '-',
+            created_at INTEGER NOT NULL
+        )
+        """
+    )
     page_view_columns = [row[1] for row in conn.execute("PRAGMA table_info(page_views)").fetchall()]
     if "country_code" not in page_view_columns:
         conn.execute("ALTER TABLE page_views ADD COLUMN country_code TEXT NOT NULL DEFAULT '-'")
     button_columns = [row[1] for row in conn.execute("PRAGMA table_info(button_click_events)").fetchall()]
     if "country_code" not in button_columns:
         conn.execute("ALTER TABLE button_click_events ADD COLUMN country_code TEXT NOT NULL DEFAULT '-'")
+    input_columns = [row[1] for row in conn.execute("PRAGMA table_info(input_events)").fetchall()]
+    if "country_code" not in input_columns:
+        conn.execute("ALTER TABLE input_events ADD COLUMN country_code TEXT NOT NULL DEFAULT '-'")
+    if "meta_json" not in input_columns:
+        conn.execute("ALTER TABLE input_events ADD COLUMN meta_json TEXT NOT NULL DEFAULT '{}'")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id)")
@@ -278,6 +301,9 @@ def ensure_auth_schema_sqlite(conn: sqlite3.Connection):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_clicked_at ON button_click_events(clicked_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_button_id ON button_click_events(button_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_country_code ON button_click_events(country_code)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_input_events_created_at ON input_events(created_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_input_events_event_type ON input_events(event_type)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_input_events_value_hash ON input_events(value_hash)")
     conn.commit()
 
 
@@ -350,8 +376,26 @@ def ensure_auth_schema_postgres(conn):
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS input_events (
+            id BIGSERIAL PRIMARY KEY,
+            event_type TEXT NOT NULL,
+            value_text TEXT NOT NULL,
+            value_hash TEXT NOT NULL,
+            value_length INTEGER NOT NULL,
+            meta_json TEXT NOT NULL DEFAULT '{}',
+            page_path TEXT NOT NULL,
+            client_ip TEXT NOT NULL,
+            country_code TEXT NOT NULL DEFAULT '-',
+            created_at BIGINT NOT NULL
+        )
+        """
+    )
     conn.execute("ALTER TABLE page_views ADD COLUMN IF NOT EXISTS country_code TEXT NOT NULL DEFAULT '-'")
     conn.execute("ALTER TABLE button_click_events ADD COLUMN IF NOT EXISTS country_code TEXT NOT NULL DEFAULT '-'")
+    conn.execute("ALTER TABLE input_events ADD COLUMN IF NOT EXISTS country_code TEXT NOT NULL DEFAULT '-'")
+    conn.execute("ALTER TABLE input_events ADD COLUMN IF NOT EXISTS meta_json TEXT NOT NULL DEFAULT '{}'")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id)")
@@ -364,6 +408,9 @@ def ensure_auth_schema_postgres(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_clicked_at ON button_click_events(clicked_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_button_id ON button_click_events(button_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_button_click_events_country_code ON button_click_events(country_code)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_input_events_created_at ON input_events(created_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_input_events_event_type ON input_events(event_type)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_input_events_value_hash ON input_events(value_hash)")
     conn.commit()
 
 
@@ -567,6 +614,11 @@ def send_traffic_report_email(
     unique_visitors: int,
     button_clicks: List[Tuple[str, int]],
     country_views: List[Tuple[str, int]],
+    username_inputs_total: int,
+    unique_usernames_submitted: int,
+    submitted_usernames: List[Tuple[str, int]],
+    pgn_uploads_total: int,
+    unique_pgn_uploads: int,
 ) -> bool:
     period_label_map = {
         "hourly": "hourly",
@@ -580,15 +632,23 @@ def send_traffic_report_email(
     button_html = "".join([f"<li>{button}: {count}</li>" for button, count in button_clicks]) or "<li>no button clicks</li>"
     country_lines = "\n".join([f"- {country}: {count}" for country, count in country_views]) or "- no country data"
     country_html = "".join([f"<li>{country}: {count}</li>" for country, count in country_views]) or "<li>no country data</li>"
+    username_lines = "\n".join([f"- {username}: {count}" for username, count in submitted_usernames]) or "- no usernames submitted"
+    username_html = "".join([f"<li>{username}: {count}</li>" for username, count in submitted_usernames]) or "<li>no usernames submitted</li>"
     text_body = (
         f"{pretty_label} button report (UTC)\n"
         f"Window: {window_start_utc} to {window_end_utc}\n\n"
         f"Total page views: {total_page_views}\n"
         f"Unique visitors (by IP): {unique_visitors}\n"
+        f"Total username submissions: {username_inputs_total}\n"
+        f"Unique usernames submitted: {unique_usernames_submitted}\n"
+        f"Total PGN uploads: {pgn_uploads_total}\n"
+        f"Unique PGN uploads (by hash): {unique_pgn_uploads}\n"
         "\nTop countries (page views):\n"
         f"{country_lines}\n"
         "\nButton clicks:\n"
         f"{button_lines}\n"
+        "\nSubmitted usernames:\n"
+        f"{username_lines}\n"
     )
     html_body = (
         f"<p>{pretty_label} button report (UTC)</p>"
@@ -596,11 +656,17 @@ def send_traffic_report_email(
         "<ul>"
         f"<li>Total page views: {total_page_views}</li>"
         f"<li>Unique visitors (by IP): {unique_visitors}</li>"
+        f"<li>Total username submissions: {username_inputs_total}</li>"
+        f"<li>Unique usernames submitted: {unique_usernames_submitted}</li>"
+        f"<li>Total PGN uploads: {pgn_uploads_total}</li>"
+        f"<li>Unique PGN uploads (by hash): {unique_pgn_uploads}</li>"
         "</ul>"
         "<p>Top countries (page views):</p>"
         f"<ul>{country_html}</ul>"
         "<p>Button clicks:</p>"
         f"<ul>{button_html}</ul>"
+        "<p>Submitted usernames:</p>"
+        f"<ul>{username_html}</ul>"
     )
     return send_email_via_provider(
         DAILY_REPORT_RECIPIENT,
@@ -835,6 +901,49 @@ def record_button_click_event(
         VALUES (?, ?, ?, ?, ?, ?)
         """,
         (normalized_path, normalized_id, normalized_label, normalized_ip, country_code, int(time.time())),
+    )
+
+
+def record_input_event(
+    conn,
+    event_type: str,
+    value_text: str,
+    page_path: str,
+    client_ip: str,
+    country_code_hint: str = "",
+    meta: Optional[Dict[str, Any]] = None,
+):
+    normalized_type = (event_type or "").strip().lower()
+    if not re.fullmatch(r"[a-z0-9_:-]{1,64}", normalized_type):
+        raise ValueError("invalid_event_type")
+    normalized_value = str(value_text or "")
+    if len(normalized_value) > PGN_ANALYSIS_MAX_CHARS:
+        normalized_value = normalized_value[:PGN_ANALYSIS_MAX_CHARS]
+    normalized_path = (urlparse(page_path).path or "").strip() or "/"
+    normalized_ip = (client_ip or "").strip() or "-"
+    country_code = (country_code_hint or "").strip().upper()
+    if not re.fullmatch(r"[A-Z]{2}", country_code):
+        country_code = resolve_country_code(normalized_ip)
+    payload_meta = meta if isinstance(meta, dict) else {}
+    meta_json = json.dumps(payload_meta, ensure_ascii=False)[:4000]
+    value_hash = hashlib.sha256(normalized_value.encode("utf-8")).hexdigest()
+    conn.execute(
+        """
+        INSERT INTO input_events (
+            event_type, value_text, value_hash, value_length, meta_json, page_path, client_ip, country_code, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            normalized_type,
+            normalized_value,
+            value_hash,
+            len(normalized_value),
+            meta_json,
+            normalized_path,
+            normalized_ip,
+            country_code,
+            int(time.time()),
+        ),
     )
 
 
@@ -1313,11 +1422,17 @@ class AppHandler(SimpleHTTPRequestHandler):
         if ADMIN_UNIQUE_IPS_RE.match(self.path):
             self._handle_unique_ips_report()
             return
+        if ADMIN_INPUT_EVENTS_RE.match(self.path):
+            self._handle_input_events_report()
+            return
         if ANALYSIS_PGN_EVAL_RE.match(self.path):
             self._handle_pgn_eval_analysis()
             return
         if BUTTON_CLICK_RE.match(self.path):
             self._handle_button_click_event()
+            return
+        if INPUT_EVENT_RE.match(self.path):
+            self._handle_input_event()
             return
 
         self._send_json(404, {"error": "not_found"})
@@ -1359,6 +1474,81 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
 
         self._send_json(200, {"ok": True})
+
+    def _handle_input_event(self):
+        try:
+            payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
+        except Exception:
+            self._send_json(400, {"error": "invalid_json"})
+            return
+
+        event_type = str(payload.get("event_type", "")).strip().lower()
+        page_path = str(payload.get("page_path", "")).strip() or "/"
+        value_text = str(payload.get("value_text", ""))
+        values = payload.get("values")
+        meta = payload.get("meta", {})
+
+        if event_type not in {"username_submitted", "pgn_uploaded"}:
+            self._send_json(400, {"error": "invalid_event_type"})
+            return
+
+        values_to_insert: List[str] = []
+        if isinstance(values, list):
+            for raw in values[:200]:
+                values_to_insert.append(str(raw))
+        elif value_text:
+            values_to_insert.append(value_text)
+
+        if not values_to_insert:
+            self._send_json(400, {"error": "value_required"})
+            return
+
+        normalized_values: List[str] = []
+        if event_type == "username_submitted":
+            for raw in values_to_insert:
+                username = raw.strip().lower()
+                if not re.fullmatch(r"[a-z0-9_-]{2,30}", username):
+                    self._send_json(400, {"error": "invalid_username"})
+                    return
+                normalized_values.append(username)
+        else:
+            for raw in values_to_insert:
+                text = str(raw).strip()
+                if not text:
+                    self._send_json(400, {"error": "pgn_required"})
+                    return
+                if len(text) > PGN_ANALYSIS_MAX_CHARS:
+                    self._send_json(400, {"error": "pgn_too_large", "max_chars": PGN_ANALYSIS_MAX_CHARS})
+                    return
+                normalized_values.append(text)
+
+        try:
+            client_ip = get_client_ip(self)
+            country_code = get_country_code_from_headers(self)
+            with connect_db() as conn:
+                ensure_auth_schema(conn)
+                inserted = 0
+                for value in normalized_values:
+                    record_input_event(
+                        conn=conn,
+                        event_type=event_type,
+                        value_text=value,
+                        page_path=page_path,
+                        client_ip=client_ip,
+                        country_code_hint=country_code,
+                        meta=meta if isinstance(meta, dict) else {},
+                    )
+                    inserted += 1
+                conn.commit()
+        except Exception as exc:
+            log_runtime(f"Input event tracking failed: {exc}")
+            self._send_json(500, {"error": "input_event_track_failed"})
+            return
+
+        self._send_json(200, {"ok": True, "inserted": inserted})
 
     def _handle_register(self):
         try:
@@ -1772,6 +1962,50 @@ class AppHandler(SimpleHTTPRequestHandler):
                 (window_start, window_end),
             ).fetchall()
             button_clicks = [(str(row[0] or "-"), int(row[1] or 0)) for row in button_click_rows]
+            username_inputs_total = conn.execute(
+                """
+                SELECT COUNT(*)
+                FROM input_events
+                WHERE event_type = 'username_submitted' AND created_at >= ? AND created_at < ?
+                """,
+                (window_start, window_end),
+            ).fetchone()[0]
+            unique_usernames_submitted = conn.execute(
+                """
+                SELECT COUNT(DISTINCT value_text)
+                FROM input_events
+                WHERE event_type = 'username_submitted' AND created_at >= ? AND created_at < ?
+                """,
+                (window_start, window_end),
+            ).fetchone()[0]
+            username_rows = conn.execute(
+                """
+                SELECT value_text, COUNT(*) AS cnt
+                FROM input_events
+                WHERE event_type = 'username_submitted' AND created_at >= ? AND created_at < ?
+                GROUP BY value_text
+                ORDER BY cnt DESC, value_text ASC
+                LIMIT 20
+                """,
+                (window_start, window_end),
+            ).fetchall()
+            submitted_usernames = [(str(row[0] or "-"), int(row[1] or 0)) for row in username_rows]
+            pgn_uploads_total = conn.execute(
+                """
+                SELECT COUNT(*)
+                FROM input_events
+                WHERE event_type = 'pgn_uploaded' AND created_at >= ? AND created_at < ?
+                """,
+                (window_start, window_end),
+            ).fetchone()[0]
+            unique_pgn_uploads = conn.execute(
+                """
+                SELECT COUNT(DISTINCT value_hash)
+                FROM input_events
+                WHERE event_type = 'pgn_uploaded' AND created_at >= ? AND created_at < ?
+                """,
+                (window_start, window_end),
+            ).fetchone()[0]
 
         email_sent = send_traffic_report_email(
             period=period,
@@ -1781,13 +2015,20 @@ class AppHandler(SimpleHTTPRequestHandler):
             unique_visitors=unique_visitors,
             button_clicks=button_clicks,
             country_views=country_views,
+            username_inputs_total=username_inputs_total,
+            unique_usernames_submitted=unique_usernames_submitted,
+            submitted_usernames=submitted_usernames,
+            pgn_uploads_total=pgn_uploads_total,
+            unique_pgn_uploads=unique_pgn_uploads,
         )
         log_runtime(
             "Traffic report result: "
             + f"period={period}, "
             + f"window_start_utc={window_start_utc}, window_end_utc={window_end_utc}, "
             + f"page_views={total_page_views}, unique_visitors={unique_visitors}, "
-            + f"country_keys={len(country_views)}, button_click_keys={len(button_clicks)}, sent={email_sent}"
+            + f"country_keys={len(country_views)}, button_click_keys={len(button_clicks)}, "
+            + f"username_inputs={username_inputs_total}, unique_usernames={unique_usernames_submitted}, "
+            + f"pgn_uploads={pgn_uploads_total}, unique_pgn_uploads={unique_pgn_uploads}, sent={email_sent}"
         )
         if not email_sent:
             self._send_json(502, {"error": "email_send_failed"})
@@ -1804,6 +2045,11 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "unique_visitors": unique_visitors,
                 "country_views": [{"country": country, "count": count} for country, count in country_views],
                 "button_clicks": [{"button": button, "count": count} for button, count in button_clicks],
+                "username_inputs_total": username_inputs_total,
+                "unique_usernames_submitted": unique_usernames_submitted,
+                "submitted_usernames": [{"username": username, "count": count} for username, count in submitted_usernames],
+                "pgn_uploads_total": pgn_uploads_total,
+                "unique_pgn_uploads": unique_pgn_uploads,
                 "recipient": DAILY_REPORT_RECIPIENT,
             },
         )
@@ -2013,6 +2259,106 @@ class AppHandler(SimpleHTTPRequestHandler):
             },
         )
 
+    def _handle_input_events_report(self):
+        if not ADMIN_REPORT_TOKEN:
+            self._send_json(503, {"error": "admin_report_token_not_configured"})
+            return
+
+        provided_token = (self.headers.get("X-Admin-Token") or "").strip()
+        if not provided_token or not hmac.compare_digest(provided_token, ADMIN_REPORT_TOKEN):
+            self._send_json(401, {"error": "unauthorized"})
+            return
+
+        try:
+            payload = parse_json_body(self)
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
+        except Exception:
+            self._send_json(400, {"error": "invalid_json"})
+            return
+
+        event_type = str(payload.get("event_type", "all")).strip().lower()
+        if event_type not in {"all", "username_submitted", "pgn_uploaded"}:
+            self._send_json(400, {"error": "invalid_event_type", "allowed": ["all", "username_submitted", "pgn_uploaded"]})
+            return
+
+        date_utc = str(payload.get("date_utc", "")).strip()
+        if date_utc and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_utc):
+            self._send_json(400, {"error": "invalid_date_utc", "expected_format": "YYYY-MM-DD"})
+            return
+
+        limit_raw = payload.get("limit", 100)
+        try:
+            limit = max(1, min(1000, int(limit_raw)))
+        except Exception:
+            limit = 100
+
+        include_values = bool(payload.get("include_values", False))
+
+        where_clauses: List[str] = []
+        params: List[Any] = []
+        if event_type != "all":
+            where_clauses.append("event_type = ?")
+            params.append(event_type)
+        if date_utc:
+            start_dt = datetime.strptime(date_utc, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            start_ts = int(start_dt.timestamp())
+            end_ts = start_ts + 86400
+            where_clauses.append("created_at >= ? AND created_at < ?")
+            params.extend([start_ts, end_ts])
+
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+        with connect_db() as conn:
+            ensure_auth_schema(conn)
+            count_row = conn.execute(
+                f"SELECT COUNT(*) FROM input_events {where_sql}",
+                tuple(params),
+            ).fetchone()
+            total_count = int(count_row[0] or 0)
+            rows = conn.execute(
+                f"""
+                SELECT id, event_type, value_text, value_hash, value_length, page_path, country_code, created_at
+                FROM input_events
+                {where_sql}
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+                """,
+                tuple(params + [limit]),
+            ).fetchall()
+
+        items = []
+        for row in rows:
+            value_text = str(row[2] or "")
+            preview = value_text if row[1] == "username_submitted" else re.sub(r"\s+", " ", value_text).strip()[:160]
+            item = {
+                "id": int(row[0]),
+                "event_type": str(row[1] or ""),
+                "value_preview": preview,
+                "value_hash": str(row[3] or ""),
+                "value_length": int(row[4] or 0),
+                "page_path": str(row[5] or "/"),
+                "country_code": str(row[6] or "-"),
+                "created_at_utc": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(int(row[7] or 0))),
+            }
+            if include_values:
+                item["value_text"] = value_text
+            items.append(item)
+
+        self._send_json(
+            200,
+            {
+                "ok": True,
+                "event_type": event_type,
+                "date_utc": date_utc or None,
+                "limit": limit,
+                "total_count": total_count,
+                "returned_count": len(items),
+                "items": items,
+            },
+        )
+
     def _handle_pgn_eval_analysis(self):
         try:
             payload = parse_json_body(self)
@@ -2049,6 +2395,23 @@ class AppHandler(SimpleHTTPRequestHandler):
         if retry_after:
             self._send_json(429, {"error": "rate_limited", "retry_after": retry_after})
             return
+
+        try:
+            country_code = get_country_code_from_headers(self)
+            with connect_db() as conn:
+                ensure_auth_schema(conn)
+                record_input_event(
+                    conn=conn,
+                    event_type="pgn_uploaded",
+                    value_text=pgn_text,
+                    page_path=self.path,
+                    client_ip=client_ip,
+                    country_code_hint=country_code,
+                    meta={"depth": depth, "moves": len(parsed_moves)},
+                )
+                conn.commit()
+        except Exception as exc:
+            log_runtime(f"PGN input tracking failed: {exc}")
 
         rows, failed_count = analyze_pgn_rows(pgn_text, depth)
         self._send_json(
