@@ -1,5 +1,6 @@
 const rawBody = document.getElementById("raw-body");
 const rawSummary = document.getElementById("raw-summary");
+const rawTableWrap = document.getElementById("raw-table-wrap");
 const rawPrevPageButton = document.getElementById("raw-prev-page");
 const rawNextPageButton = document.getElementById("raw-next-page");
 const rawPageInfo = document.getElementById("raw-page-info");
@@ -387,6 +388,7 @@ function renderRawPreview() {
   if (rawPrevPageButton) rawPrevPageButton.disabled = rawCurrentPage <= 1;
   if (rawNextPageButton) rawNextPageButton.disabled = rawCurrentPage >= totalPages;
   if (rawPageInfo) rawPageInfo.textContent = `Page ${rawCurrentPage}/${totalPages}`;
+  if (rawTableWrap) rawTableWrap.scrollLeft = 0;
 }
 
 function downloadRawCsv() {

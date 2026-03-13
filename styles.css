@@ -316,6 +316,18 @@ hr {
   overflow-y: auto;
 }
 
+.raw-shell {
+  place-items: start center;
+}
+
+.raw-card {
+  width: min(1240px, 100%);
+}
+
+.raw-table-wrap {
+  margin-right: auto;
+}
+
 .progress-modal {
   position: fixed;
   inset: 0;
@@ -471,6 +483,10 @@ td small {
 
 @media (max-width: 1024px) {
   .card.wide {
+    width: 100%;
+  }
+
+  .raw-card {
     width: 100%;
   }
 
