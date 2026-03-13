@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FAQ | Chess Data Stats</title>
+    <title data-i18n-title="faq_page_title">FAQ | Chess Data Stats</title>
     <meta
       name="description"
       content="Frequently asked questions about Chess Data Stats, including game data fetch limits, PGN analysis, and CSV exports."
@@ -73,25 +73,27 @@
   <body>
     <main class="shell">
       <section class="card wide">
-        <h1>FAQ</h1>
-        <p class="hint">Common questions about data fetch and PGN analysis.</p>
+        <h1 data-i18n="faq_heading">FAQ</h1>
+        <p class="hint" data-i18n="faq_hint">Common questions about data fetch and PGN analysis.</p>
 
-        <h2>How many days can I fetch game data?</h2>
-        <p>The selected date range cannot exceed 120 days.</p>
+        <h2 data-i18n="faq_q1">How many days can I fetch game data?</h2>
+        <p data-i18n="faq_a1">The selected date range cannot exceed 120 days.</p>
 
-        <h2>Can I upload PGN by file and by paste?</h2>
-        <p>Yes. You can upload a PGN file or paste PGN text. If they conflict, keep one source.</p>
+        <h2 data-i18n="faq_q2">Can I upload PGN by file and by paste?</h2>
+        <p data-i18n="faq_a2">Yes. You can upload a PGN file or paste PGN text. If they conflict, keep one source.</p>
 
-        <h2>Can I export analysis results to CSV?</h2>
-        <p>Yes. Both game stats and PGN analysis outputs can be downloaded as CSV.</p>
+        <h2 data-i18n="faq_q3">Can I export analysis results to CSV?</h2>
+        <p data-i18n="faq_a3">Yes. Both game stats and PGN analysis outputs can be downloaded as CSV.</p>
 
-        <h2>Which platforms are supported?</h2>
-        <p>Game data fetching supports Chess.com and Lichess.</p>
+        <h2 data-i18n="faq_q4">Which platforms are supported?</h2>
+        <p data-i18n="faq_a4">Game data fetching supports Chess.com and Lichess.</p>
 
         <div class="actions">
-          <a class="button-link" href="index.html">Back to Home</a>
+          <a class="button-link" href="index.html" data-i18n="nav_back_home">Back to Home</a>
         </div>
       </section>
     </main>
+    <script src="language.js"></script>
+    <script src="cookie-consent.js"></script>
   </body>
 </html>

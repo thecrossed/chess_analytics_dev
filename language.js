@@ -190,6 +190,17 @@ const TRANSLATIONS = {
     support_message_required: "Message is required.",
     support_message_too_long: "Message must be at most {max} characters.",
     support_email_service_not_configured: "Support email service is not configured yet.",
+    faq_page_title: "FAQ | Chess Data Stats",
+    faq_heading: "FAQ",
+    faq_hint: "Common questions about data fetch and PGN analysis.",
+    faq_q1: "How many days can I fetch game data?",
+    faq_a1: "The selected date range cannot exceed 120 days.",
+    faq_q2: "Can I upload PGN by file and by paste?",
+    faq_a2: "Yes. You can upload a PGN file or paste PGN text. If they conflict, keep one source.",
+    faq_q3: "Can I export analysis results to CSV?",
+    faq_a3: "Yes. Both game stats and PGN analysis outputs can be downloaded as CSV.",
+    faq_q4: "Which platforms are supported?",
+    faq_a4: "Game data fetching supports Chess.com and Lichess.",
     app_remove: "Remove",
     app_more_usernames: "+{count} more usernames",
     alert_invalid_username_format: "Invalid username format: 2-30 characters, letters/numbers/_/- only.",
@@ -356,7 +367,18 @@ const TRANSLATIONS = {
     support_send_failed: "Envoi échoué. Veuillez réessayer.",
     support_message_required: "Le message est requis.",
     support_message_too_long: "Le message doit contenir au maximum {max} caractères.",
-    support_email_service_not_configured: "Le service e-mail de support n'est pas encore configuré."
+    support_email_service_not_configured: "Le service e-mail de support n'est pas encore configuré.",
+    faq_page_title: "FAQ | Chess Data Stats",
+    faq_heading: "FAQ",
+    faq_hint: "Questions fréquentes sur la récupération de données et l'analyse PGN.",
+    faq_q1: "Combien de jours de parties puis-je récupérer ?",
+    faq_a1: "La plage sélectionnée ne peut pas dépasser 120 jours.",
+    faq_q2: "Puis-je importer un PGN par fichier et par collage ?",
+    faq_a2: "Oui. Vous pouvez importer un fichier PGN ou coller un texte PGN. En cas de conflit, gardez une seule source.",
+    faq_q3: "Puis-je exporter les résultats d'analyse en CSV ?",
+    faq_a3: "Oui. Les statistiques et les résultats d'analyse PGN peuvent être téléchargés en CSV.",
+    faq_q4: "Quelles plateformes sont prises en charge ?",
+    faq_a4: "La récupération des parties prend en charge Chess.com et Lichess."
   },
   zh: {
     lang_selector_label: "语言",
@@ -501,7 +523,18 @@ const TRANSLATIONS = {
     support_send_failed: "发送失败，请重试。",
     support_message_required: "留言不能为空。",
     support_message_too_long: "留言最多 {max} 个字符。",
-    support_email_service_not_configured: "支持邮件服务尚未配置。"
+    support_email_service_not_configured: "支持邮件服务尚未配置。",
+    faq_page_title: "常见问题 | Chess Data Stats",
+    faq_heading: "常见问题",
+    faq_hint: "关于数据拉取和 PGN 分析的常见问题。",
+    faq_q1: "最多可以拉取多少天的对局数据？",
+    faq_a1: "所选时间范围不能超过 120 天。",
+    faq_q2: "PGN 可以同时文件上传和文本粘贴吗？",
+    faq_a2: "可以。你可以上传 PGN 文件或粘贴 PGN 文本。若两者冲突，请只保留一个来源。",
+    faq_q3: "分析结果可以导出为 CSV 吗？",
+    faq_a3: "可以。对局统计和 PGN 分析结果都可以下载为 CSV。",
+    faq_q4: "支持哪些平台？",
+    faq_a4: "对局数据拉取支持 Chess.com 和 Lichess。"
   },
   es: {
     lang_selector_label: "Idioma",
@@ -646,7 +679,18 @@ const TRANSLATIONS = {
     support_send_failed: "No se pudo enviar el mensaje. Inténtalo de nuevo.",
     support_message_required: "El mensaje es obligatorio.",
     support_message_too_long: "El mensaje debe tener como máximo {max} caracteres.",
-    support_email_service_not_configured: "El servicio de correo de soporte aún no está configurado."
+    support_email_service_not_configured: "El servicio de correo de soporte aún no está configurado.",
+    faq_page_title: "Preguntas frecuentes | Chess Data Stats",
+    faq_heading: "Preguntas frecuentes",
+    faq_hint: "Preguntas comunes sobre obtención de datos y análisis PGN.",
+    faq_q1: "¿Cuántos días de partidas puedo consultar?",
+    faq_a1: "El rango seleccionado no puede superar 120 días.",
+    faq_q2: "¿Puedo subir PGN por archivo y por texto pegado?",
+    faq_a2: "Sí. Puedes subir un archivo PGN o pegar texto PGN. Si hay conflicto, conserva una sola fuente.",
+    faq_q3: "¿Puedo exportar los resultados de análisis en CSV?",
+    faq_a3: "Sí. Tanto las estadísticas como los resultados de análisis PGN se pueden descargar en CSV.",
+    faq_q4: "¿Qué plataformas son compatibles?",
+    faq_a4: "La obtención de partidas es compatible con Chess.com y Lichess."
   },
   sv: {
     lang_selector_label: "Språk",
@@ -791,7 +835,18 @@ const TRANSLATIONS = {
     support_send_failed: "Kunde inte skicka meddelandet. Försök igen.",
     support_message_required: "Meddelande krävs.",
     support_message_too_long: "Meddelandet får vara högst {max} tecken.",
-    support_email_service_not_configured: "Supportens e-posttjänst är inte konfigurerad än."
+    support_email_service_not_configured: "Supportens e-posttjänst är inte konfigurerad än.",
+    faq_page_title: "FAQ | Chess Data Stats",
+    faq_heading: "FAQ",
+    faq_hint: "Vanliga frågor om datainsamling och PGN-analys.",
+    faq_q1: "Hur många dagar med partier kan jag hämta?",
+    faq_a1: "Det valda intervallet får inte överstiga 120 dagar.",
+    faq_q2: "Kan jag ladda upp PGN både som fil och inklistrad text?",
+    faq_a2: "Ja. Du kan ladda upp en PGN-fil eller klistra in PGN-text. Vid konflikt, behåll endast en källa.",
+    faq_q3: "Kan jag exportera analysresultat till CSV?",
+    faq_a3: "Ja. Både spelstatistik och PGN-analysresultat kan laddas ner som CSV.",
+    faq_q4: "Vilka plattformar stöds?",
+    faq_a4: "Hämtning av partidata stöder Chess.com och Lichess."
   }
 };
 
