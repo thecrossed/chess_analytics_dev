@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://chess-data.com/</loc>
+  </url>
+  <url>
+    <loc>https://chess-data.com/stats.html</loc>
+  </url>
+  <url>
+    <loc>https://chess-data.com/raw-data.html</loc>
+  </url>
+  <url>
+    <loc>https://chess-data.com/pgn-analysis.html</loc>
+  </url>
+</urlset>
