@@ -50,6 +50,25 @@ body {
   align-items: start;
 }
 
+.home-entry-chooser {
+  display: flex;
+  gap: 14px;
+  margin: 8px 0 18px;
+  flex-wrap: wrap;
+}
+
+.entry-choice-btn {
+  padding: 14px 18px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.entry-back-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
 .feature-banner {
   border: 1px solid var(--line);
   border-radius: 14px;

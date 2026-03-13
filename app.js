@@ -15,6 +15,13 @@ const pgnTextInput = document.getElementById("pgn-text");
 const pgnDepthInput = document.getElementById("analysis-depth");
 const pgnAnalyzeButton = document.getElementById("pgn-analyze-btn");
 const pgnStatus = document.getElementById("pgn-status");
+const homeEntryChooser = document.getElementById("home-entry-chooser");
+const chooseFetchEntryButton = document.getElementById("choose-fetch-entry");
+const choosePgnEntryButton = document.getElementById("choose-pgn-entry");
+const fetchEntrySection = document.getElementById("fetch-entry-section");
+const pgnEntrySection = document.getElementById("pgn-entry-section");
+const backToEntryFromFetch = document.getElementById("back-to-entry-from-fetch");
+const backToEntryFromPgn = document.getElementById("back-to-entry-from-pgn");
 
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
@@ -26,6 +33,20 @@ const MAX_RANGE_DAYS = 120;
 const PGN_ANALYSIS_DRAFT_KEY = "pgn_analysis_draft_v1";
 
 let pgnFileText = "";
+
+function setHomeMode(mode) {
+  const showFetch = mode === "fetch";
+  const showPgn = mode === "pgn";
+  if (homeEntryChooser) {
+    homeEntryChooser.classList.toggle("hidden", showFetch || showPgn);
+  }
+  if (fetchEntrySection) {
+    fetchEntrySection.classList.toggle("hidden", !showFetch);
+  }
+  if (pgnEntrySection) {
+    pgnEntrySection.classList.toggle("hidden", !showPgn);
+  }
+}
 
 function renderUsers() {
   userList.innerHTML = "";
@@ -456,6 +477,31 @@ if (pgnAnalyzeButton) {
 
 ensureDefaultDateRange();
 refreshPgnAutoStatus();
+setHomeMode("none");
+
+if (chooseFetchEntryButton) {
+  chooseFetchEntryButton.addEventListener("click", () => {
+    setHomeMode("fetch");
+  });
+}
+
+if (choosePgnEntryButton) {
+  choosePgnEntryButton.addEventListener("click", () => {
+    setHomeMode("pgn");
+  });
+}
+
+if (backToEntryFromFetch) {
+  backToEntryFromFetch.addEventListener("click", () => {
+    setHomeMode("none");
+  });
+}
+
+if (backToEntryFromPgn) {
+  backToEntryFromPgn.addEventListener("click", () => {
+    setHomeMode("none");
+  });
+}
 
 window.addEventListener("languagechange", () => {
   renderUsers();
