@@ -1069,9 +1069,13 @@ def analyze_with_local_stockfish(pgn_text: str, depth: int) -> Tuple[List[Dict[s
                 "bestmove": "",
                 "bestmove_eval": "",
                 "is_book_move": "unknown",
+                "opening_eco": "",
+                "opening_name": "",
             }
             if ply - 1 < len(book_rows):
                 row["is_book_move"] = book_rows[ply - 1].is_book_move
+                row["opening_eco"] = book_rows[ply - 1].opening_eco
+                row["opening_name"] = book_rows[ply - 1].opening_name
 
             if pre_info:
                 pv = pre_info.get("pv")
@@ -1281,9 +1285,13 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
             "bestmove": "",
             "bestmove_eval": "",
             "is_book_move": "unknown",
+            "opening_eco": "",
+            "opening_name": "",
         }
         if ply - 1 < len(book_rows):
             row["is_book_move"] = book_rows[ply - 1].is_book_move
+            row["opening_eco"] = book_rows[ply - 1].opening_eco
+            row["opening_name"] = book_rows[ply - 1].opening_name
 
         pre_move_data = previous_played_data if previous_played_data is not None else initial_position_data
         if pre_move_data:

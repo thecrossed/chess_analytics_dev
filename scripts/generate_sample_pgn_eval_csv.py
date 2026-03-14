@@ -407,6 +407,8 @@ def evaluate_all_moves(
             "bestmove_eval": "",
             "fen_before_move": "",
             "is_book_move": "unknown",
+            "opening_eco": "",
+            "opening_name": "",
         }
 
         pre_move_data = previous_played_data if previous_played_data is not None else initial_position_data
@@ -422,6 +424,8 @@ def evaluate_all_moves(
         row["fen_before_move"] = pre_fen
         if ply - 1 < len(local_book_rows):
             row["is_book_move"] = local_book_rows[ply - 1].is_book_move
+            row["opening_eco"] = local_book_rows[ply - 1].opening_eco
+            row["opening_name"] = local_book_rows[ply - 1].opening_name
 
         # Hard rule: first move bestmove/bestmove_eval always comes from start position.
         if ply == 1:
@@ -482,10 +486,14 @@ def evaluate_all_moves_with_local_stockfish(
                 "bestmove_eval": "",
                 "fen_before_move": pre_fen,
                 "is_book_move": "unknown",
+                "opening_eco": "",
+                "opening_name": "",
             }
 
             if ply - 1 < len(local_book_rows):
                 row["is_book_move"] = local_book_rows[ply - 1].is_book_move
+                row["opening_eco"] = local_book_rows[ply - 1].opening_eco
+                row["opening_name"] = local_book_rows[ply - 1].opening_name
 
             if pre_info:
                 pv = pre_info.get("pv")
@@ -539,6 +547,8 @@ def write_csv(output_path: Path, rows: List[Dict[str, str]]) -> None:
         "bestmove_eval",
         "fen_before_move",
         "is_book_move",
+        "opening_eco",
+        "opening_name",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

@@ -136,7 +136,7 @@ def classify_book_moves(san_moves: List[str], start_fen: str = STARTPOS_FEN) -> 
         pre_epd = board.epd()
         allowed = book_moves_by_epd.get(pre_epd)
         normalized = normalize_san_token(san)
-        is_book_move = "yes" if allowed and normalized in allowed else "no"
+        is_book_move = "yes" if allowed and normalized in allowed else ""
 
         try:
             board.push_san(san)
@@ -144,8 +144,8 @@ def classify_book_moves(san_moves: List[str], start_fen: str = STARTPOS_FEN) -> 
             rows.append(
                 MoveBookInfo(
                     is_book_move=is_book_move,
-                    opening_eco=current_opening.eco if current_opening else "",
-                    opening_name=current_opening.name if current_opening else "",
+                    opening_eco=current_opening.eco if is_book_move == "yes" and current_opening else "",
+                    opening_name=current_opening.name if is_book_move == "yes" and current_opening else "",
                 )
             )
             current_opening = None
@@ -157,8 +157,8 @@ def classify_book_moves(san_moves: List[str], start_fen: str = STARTPOS_FEN) -> 
         rows.append(
             MoveBookInfo(
                 is_book_move=is_book_move,
-                opening_eco=current_opening.eco if current_opening else "",
-                opening_name=current_opening.name if current_opening else "",
+                opening_eco=current_opening.eco if is_book_move == "yes" and current_opening else "",
+                opening_name=current_opening.name if is_book_move == "yes" and current_opening else "",
             )
         )
 
