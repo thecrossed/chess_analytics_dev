@@ -125,6 +125,18 @@ except Exception:
 
 GEOIP_READER = None
 GEOIP_LOCK = threading.Lock()
+TRACKED_INPUT_EVENT_TYPES = {"username_submitted", "pgn_uploaded"}
+FUNNEL_EVENT_PREFIX = "funnel_"
+FUNNEL_EVENT_ORDER = [
+    "funnel_open_fetch_entry",
+    "funnel_fetch_submit_clicked",
+    "funnel_fetch_submit_success",
+    "funnel_open_pgn_entry",
+    "funnel_pgn_submit_clicked",
+    "funnel_pgn_submit_success",
+    "funnel_pgn_analysis_started",
+    "funnel_pgn_analysis_success",
+]
 
 
 class PayloadTooLargeError(Exception):
@@ -628,6 +640,7 @@ def send_traffic_report_email(
     submitted_usernames: List[Tuple[str, int]],
     pgn_uploads_total: int,
     unique_pgn_uploads: int,
+    funnel_event_counts: List[Tuple[str, int]],
 ) -> bool:
     period_label_map = {
         "hourly": "hourly",
@@ -643,6 +656,8 @@ def send_traffic_report_email(
     country_html = "".join([f"<li>{country}: {count}</li>" for country, count in country_views]) or "<li>no country data</li>"
     username_lines = "\n".join([f"- {username}: {count}" for username, count in submitted_usernames]) or "- no usernames submitted"
     username_html = "".join([f"<li>{username}: {count}</li>" for username, count in submitted_usernames]) or "<li>no usernames submitted</li>"
+    funnel_lines = "\n".join([f"- {event_type}: {count}" for event_type, count in funnel_event_counts]) or "- no funnel events"
+    funnel_html = "".join([f"<li>{event_type}: {count}</li>" for event_type, count in funnel_event_counts]) or "<li>no funnel events</li>"
     text_body = (
         f"{pretty_label} button report (UTC)\n"
         f"Window: {window_start_utc} to {window_end_utc}\n\n"
@@ -658,6 +673,8 @@ def send_traffic_report_email(
         f"{button_lines}\n"
         "\nSubmitted usernames:\n"
         f"{username_lines}\n"
+        "\nFunnel events:\n"
+        f"{funnel_lines}\n"
     )
     html_body = (
         f"<p>{pretty_label} button report (UTC)</p>"
@@ -676,6 +693,8 @@ def send_traffic_report_email(
         f"<ul>{button_html}</ul>"
         "<p>Submitted usernames:</p>"
         f"<ul>{username_html}</ul>"
+        "<p>Funnel events:</p>"
+        f"<ul>{funnel_html}</ul>"
     )
     return send_email_via_provider(
         DAILY_REPORT_RECIPIENT,
@@ -1580,7 +1599,7 @@ class AppHandler(SimpleHTTPRequestHandler):
         values = payload.get("values")
         meta = payload.get("meta", {})
 
-        if event_type not in {"username_submitted", "pgn_uploaded"}:
+        if event_type not in TRACKED_INPUT_EVENT_TYPES and not event_type.startswith(FUNNEL_EVENT_PREFIX):
             self._send_json(400, {"error": "invalid_event_type"})
             return
 
@@ -1590,6 +1609,9 @@ class AppHandler(SimpleHTTPRequestHandler):
                 values_to_insert.append(str(raw))
         elif value_text:
             values_to_insert.append(value_text)
+
+        if event_type.startswith(FUNNEL_EVENT_PREFIX) and not values_to_insert:
+            values_to_insert.append(event_type)
 
         if not values_to_insert:
             self._send_json(400, {"error": "value_required"})
@@ -1603,7 +1625,7 @@ class AppHandler(SimpleHTTPRequestHandler):
                     self._send_json(400, {"error": "invalid_username"})
                     return
                 normalized_values.append(username)
-        else:
+        elif event_type == "pgn_uploaded":
             for raw in values_to_insert:
                 text = str(raw).strip()
                 if not text:
@@ -1613,6 +1635,10 @@ class AppHandler(SimpleHTTPRequestHandler):
                     self._send_json(400, {"error": "pgn_too_large", "max_chars": PGN_ANALYSIS_MAX_CHARS})
                     return
                 normalized_values.append(text)
+        else:
+            for raw in values_to_insert[:20]:
+                text = str(raw).strip() or event_type
+                normalized_values.append(text[:200])
 
         try:
             client_ip = get_client_ip(self)
@@ -2095,6 +2121,26 @@ class AppHandler(SimpleHTTPRequestHandler):
                 """,
                 (window_start, window_end),
             ).fetchone()[0]
+            funnel_rows = conn.execute(
+                """
+                SELECT event_type, COUNT(*) AS cnt
+                FROM input_events
+                WHERE event_type LIKE 'funnel_%' AND created_at >= ? AND created_at < ?
+                GROUP BY event_type
+                """,
+                (window_start, window_end),
+            ).fetchall()
+
+        funnel_counts_map: Dict[str, int] = {}
+        for row in funnel_rows:
+            funnel_counts_map[str(row[0] or "")] = int(row[1] or 0)
+
+        funnel_event_counts: List[Tuple[str, int]] = []
+        for event_name in FUNNEL_EVENT_ORDER:
+            if event_name in funnel_counts_map:
+                funnel_event_counts.append((event_name, funnel_counts_map.pop(event_name)))
+        for event_name in sorted(funnel_counts_map.keys()):
+            funnel_event_counts.append((event_name, funnel_counts_map[event_name]))
 
         email_sent = send_traffic_report_email(
             period=period,
@@ -2109,6 +2155,7 @@ class AppHandler(SimpleHTTPRequestHandler):
             submitted_usernames=submitted_usernames,
             pgn_uploads_total=pgn_uploads_total,
             unique_pgn_uploads=unique_pgn_uploads,
+            funnel_event_counts=funnel_event_counts,
         )
         log_runtime(
             "Traffic report result: "
@@ -2117,7 +2164,8 @@ class AppHandler(SimpleHTTPRequestHandler):
             + f"page_views={total_page_views}, unique_visitors={unique_visitors}, "
             + f"country_keys={len(country_views)}, button_click_keys={len(button_clicks)}, "
             + f"username_inputs={username_inputs_total}, unique_usernames={unique_usernames_submitted}, "
-            + f"pgn_uploads={pgn_uploads_total}, unique_pgn_uploads={unique_pgn_uploads}, sent={email_sent}"
+            + f"pgn_uploads={pgn_uploads_total}, unique_pgn_uploads={unique_pgn_uploads}, "
+            + f"funnel_event_keys={len(funnel_event_counts)}, sent={email_sent}"
         )
         if not email_sent:
             self._send_json(502, {"error": "email_send_failed"})
@@ -2139,6 +2187,7 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "submitted_usernames": [{"username": username, "count": count} for username, count in submitted_usernames],
                 "pgn_uploads_total": pgn_uploads_total,
                 "unique_pgn_uploads": unique_pgn_uploads,
+                "funnel_events": [{"event_type": event_type, "count": count} for event_type, count in funnel_event_counts],
                 "recipient": DAILY_REPORT_RECIPIENT,
             },
         )
@@ -2368,8 +2417,9 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
 
         event_type = str(payload.get("event_type", "all")).strip().lower()
-        if event_type not in {"all", "username_submitted", "pgn_uploaded"}:
-            self._send_json(400, {"error": "invalid_event_type", "allowed": ["all", "username_submitted", "pgn_uploaded"]})
+        allowed_types = ["all", "username_submitted", "pgn_uploaded", "funnel_*"]
+        if event_type not in {"all", "username_submitted", "pgn_uploaded"} and not event_type.startswith(FUNNEL_EVENT_PREFIX):
+            self._send_json(400, {"error": "invalid_event_type", "allowed": allowed_types})
             return
 
         date_utc = str(payload.get("date_utc", "")).strip()

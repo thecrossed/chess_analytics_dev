@@ -52,6 +52,30 @@
 
         <p id="analysis-status" class="hint-inline" data-i18n="pgn_analysis_starting">Preparing analysis...</p>
 
+        <section id="analysis-summary-wrap" class="analysis-summary hidden" aria-live="polite">
+          <article class="analysis-summary-card">
+            <h3>
+              <span data-i18n="pgn_summary_avg_eval_loss_label">Avg Eval Loss</span>
+              <span class="metric-info" data-tooltip-i18n="pgn_summary_avg_eval_loss_def" tabindex="0">i</span>
+            </h3>
+            <p id="summary-avg-eval-loss">-</p>
+          </article>
+          <article class="analysis-summary-card">
+            <h3>
+              <span data-i18n="pgn_summary_bestmove_misses_label">Best Move Misses</span>
+              <span class="metric-info" data-tooltip-i18n="pgn_summary_bestmove_misses_def" tabindex="0">i</span>
+            </h3>
+            <p id="summary-bestmove-misses">-</p>
+          </article>
+          <article class="analysis-summary-card">
+            <h3>
+              <span data-i18n="pgn_summary_biggest_mistake_label">Biggest Mistake Move</span>
+              <span class="metric-info" data-tooltip-i18n="pgn_summary_biggest_mistake_def" tabindex="0">i</span>
+            </h3>
+            <p id="summary-biggest-mistake">-</p>
+          </article>
+        </section>
+
         <div id="analysis-result-wrap" class="table-wrap hidden">
           <table>
             <thead>
@@ -85,6 +109,7 @@
           <div id="analysis-progress-fill" class="progress-fill"></div>
         </div>
         <p id="analysis-eta" class="hint-inline" data-i18n="pgn_analysis_eta">Estimated time remaining: --</p>
+        <p id="analysis-move-progress" class="hint-inline" data-i18n="pgn_analysis_move_progress_idle">Move progress: --/--</p>
         <div class="progress-actions">
           <button id="analysis-progress-cancel" type="button" data-i18n="pgn_analysis_cancel">Cancel</button>
           <button id="analysis-progress-close" type="button" class="hidden" data-i18n="pgn_analysis_close">Close</button>
