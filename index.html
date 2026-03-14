@@ -43,17 +43,20 @@
     <main class="shell">
       <section class="card wide home-shell">
         <h1 data-i18n="home_title">Chess Data Stats</h1>
+        <p class="home-subtitle" data-i18n="home_subtitle">Analyze your games in under a minute. No account required.</p>
 
         <div id="home-entry-chooser" class="home-entry-chooser">
+          <button id="choose-pgn-entry" type="button" class="entry-choice-banner" data-track-id="home_entry_pgn">
+            <span class="entry-choice-badge" data-i18n="home_entry_primary_badge">Recommended</span>
+            <span class="entry-choice-title" data-i18n="home_entry_analysis_title">Analyze My Games</span>
+            <span class="entry-choice-desc" data-i18n="home_entry_analysis_desc">Paste or upload PGN and run Stockfish analysis.</span>
+          </button>
           <button id="choose-fetch-entry" type="button" class="entry-choice-banner" data-track-id="home_entry_fetch">
             <span class="entry-choice-title" data-i18n="home_entry_fetch_title">Fetch Game Data</span>
             <span class="entry-choice-desc" data-i18n="home_entry_fetch_desc">Pull online games and build player stats tables.</span>
           </button>
-          <button id="choose-pgn-entry" type="button" class="entry-choice-banner" data-track-id="home_entry_pgn">
-            <span class="entry-choice-title" data-i18n="home_entry_analysis_title">Game Analysis</span>
-            <span class="entry-choice-desc" data-i18n="home_entry_analysis_desc">Paste or upload PGN and run Stockfish analysis.</span>
-          </button>
         </div>
+        <p class="home-trust-line" data-i18n="home_trust_line">Powered by Stockfish • No account required • Free</p>
 
         <div class="home-grid">
           <section id="fetch-entry-section" class="feature-banner feature-banner-primary hidden">
@@ -100,6 +103,7 @@
               <label for="username" class="sr-only">Lichess Username</label>
               <input id="username" name="username" type="text" placeholder="e.g. MagnusCalsen" autocomplete="off" required />
               <button type="submit" data-i18n="home_add">Add</button>
+              <button id="demo-fetch-user" type="button" class="secondary-link" data-i18n="home_demo_fetch">Try MagnusCarlsen</button>
             </form>
             <div class="row import-row">
               <button id="upload-csv" type="button" data-i18n="home_upload_csv">Upload CSV</button>
@@ -112,6 +116,7 @@
             <div class="actions">
               <button id="build-page" type="button" data-i18n="home_generate">Generate Stats Page</button>
             </div>
+            <p class="hint-inline" data-i18n="home_fetch_eta_hint">Typical run time: ~10-25s</p>
           </section>
 
           <section id="pgn-entry-section" class="feature-banner feature-banner-secondary hidden">
@@ -141,8 +146,10 @@
 
             <div class="actions">
               <button id="pgn-analyze-btn" type="button" data-i18n="home_pgn_analyze_btn">Run Stockfish Analysis</button>
+              <button id="demo-pgn-load" type="button" class="secondary-link" data-i18n="home_demo_pgn">Try Sample PGN</button>
             </div>
             <p id="pgn-status" class="hint-inline" data-i18n="home_pgn_auto_load_hint">PGN loads automatically from file or pasted text.</p>
+            <p class="hint-inline" data-i18n="home_pgn_eta_hint">Typical run time: ~20-40s</p>
           </section>
         </div>
         <p class="hint-inline"><a href="faq.html">FAQ</a></p>
