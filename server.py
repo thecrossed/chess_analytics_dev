@@ -1001,6 +1001,27 @@ def parse_san_moves(moves_text: str) -> List[str]:
     return moves
 
 
+def extract_pgn_clock_rows(pgn_text: str, plies: int) -> List[Dict[str, str]]:
+    clocks: List[str] = []
+    for match in re.finditer(r"\[%clk\s+([^\]]+)\]", pgn_text):
+        value = (match.group(1) or "").strip()
+        clocks.append(value)
+
+    rows: List[Dict[str, str]] = []
+    last_white = ""
+    last_black = ""
+    for index in range(plies):
+        current = clocks[index] if index < len(clocks) else ""
+        if index % 2 == 0:
+            if current:
+                last_white = current
+        else:
+            if current:
+                last_black = current
+        rows.append({"white_clock": last_white, "black_clock": last_black})
+    return rows
+
+
 def build_pgn_prefix(moves: List[str]) -> str:
     parts: List[str] = []
     move_no = 1
@@ -1062,6 +1083,7 @@ def analyze_with_local_stockfish(pgn_text: str, depth: int) -> Tuple[List[Dict[s
     san_moves = parse_san_moves(moves_text)[:PGN_ANALYSIS_MAX_PLIES]
     rows: List[Dict[str, str]] = []
     failed_count = 0
+    clock_rows = extract_pgn_clock_rows(pgn_text, len(san_moves))
 
     start_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     fen_match = re.search(r'^\[FEN\s+"([^"]+)"\]\s*$', pgn_text, re.MULTILINE)
@@ -1093,11 +1115,16 @@ def analyze_with_local_stockfish(pgn_text: str, depth: int) -> Tuple[List[Dict[s
                 "is_book_move": "unknown",
                 "opening_eco": "",
                 "opening_name": "",
+                "white_clock": "",
+                "black_clock": "",
             }
             if ply - 1 < len(book_rows):
                 row["is_book_move"] = book_rows[ply - 1].is_book_move
                 row["opening_eco"] = book_rows[ply - 1].opening_eco
                 row["opening_name"] = book_rows[ply - 1].opening_name
+            if ply - 1 < len(clock_rows):
+                row["white_clock"] = clock_rows[ply - 1].get("white_clock", "")
+                row["black_clock"] = clock_rows[ply - 1].get("black_clock", "")
 
             if pre_info:
                 pv = pre_info.get("pv")
@@ -1296,6 +1323,7 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
     rows: List[Dict[str, str]] = []
     progressive: List[str] = []
     failed_count = 0
+    clock_rows = extract_pgn_clock_rows(pgn_text, len(san_moves))
     # For each row:
     # - bestmove fields come from the position before the played move.
     # - eval_score comes from the position after the played move.
@@ -1333,11 +1361,16 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
             "is_book_move": "unknown",
             "opening_eco": "",
             "opening_name": "",
+            "white_clock": "",
+            "black_clock": "",
         }
         if ply - 1 < len(book_rows):
             row["is_book_move"] = book_rows[ply - 1].is_book_move
             row["opening_eco"] = book_rows[ply - 1].opening_eco
             row["opening_name"] = book_rows[ply - 1].opening_name
+        if ply - 1 < len(clock_rows):
+            row["white_clock"] = clock_rows[ply - 1].get("white_clock", "")
+            row["black_clock"] = clock_rows[ply - 1].get("black_clock", "")
 
         pre_move_data = previous_played_data if previous_played_data is not None else initial_position_data
         if pre_move_data:

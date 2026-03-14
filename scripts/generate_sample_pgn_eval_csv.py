@@ -94,6 +94,27 @@ def parse_san_moves(moves_text: str) -> List[str]:
     return moves
 
 
+def extract_pgn_clock_rows(pgn_text: str, plies: int) -> List[Dict[str, str]]:
+    clocks: List[str] = []
+    for match in re.finditer(r"\[%clk\s+([^\]]+)\]", pgn_text):
+        value = (match.group(1) or "").strip()
+        clocks.append(value)
+
+    rows: List[Dict[str, str]] = []
+    last_white = ""
+    last_black = ""
+    for index in range(plies):
+        current = clocks[index] if index < len(clocks) else ""
+        if index % 2 == 0:
+            if current:
+                last_white = current
+        else:
+            if current:
+                last_black = current
+        rows.append({"white_clock": last_white, "black_clock": last_black})
+    return rows
+
+
 def extract_start_fen(pgn_text: str) -> str:
     match = re.search(r'^\[FEN\s+"([^"]+)"\]\s*$', pgn_text, re.MULTILINE)
     if match and match.group(1).strip():
@@ -412,6 +433,7 @@ def evaluate_all_moves(
     start_fen = extract_start_fen(pgn_text)
     local_pre_move_fens = compute_local_pre_move_fens(san_moves, start_fen)
     local_book_rows = classify_book_moves(san_moves, start_fen)
+    clock_rows = extract_pgn_clock_rows(pgn_text, len(san_moves))
     forced_first_bestmove = extract_bestmove(initial_position_data or {})
     forced_first_bestmove_eval = extract_bestmove_eval_score(initial_position_data or {})
 
@@ -432,6 +454,8 @@ def evaluate_all_moves(
             "is_book_move": "unknown",
             "opening_eco": "",
             "opening_name": "",
+            "white_clock": "",
+            "black_clock": "",
         }
 
         pre_move_data = previous_played_data if previous_played_data is not None else initial_position_data
@@ -449,6 +473,9 @@ def evaluate_all_moves(
             row["is_book_move"] = local_book_rows[ply - 1].is_book_move
             row["opening_eco"] = local_book_rows[ply - 1].opening_eco
             row["opening_name"] = local_book_rows[ply - 1].opening_name
+        if ply - 1 < len(clock_rows):
+            row["white_clock"] = clock_rows[ply - 1].get("white_clock", "")
+            row["black_clock"] = clock_rows[ply - 1].get("black_clock", "")
 
         # Hard rule: first move bestmove/bestmove_eval always comes from start position.
         if ply == 1:
@@ -488,6 +515,7 @@ def evaluate_all_moves_with_local_stockfish(
     rows: List[Dict[str, str]] = []
     start_fen = extract_start_fen(pgn_text)
     local_book_rows = classify_book_moves(san_moves, start_fen)
+    clock_rows = extract_pgn_clock_rows(pgn_text, len(san_moves))
     board = chess.Board(start_fen)
     limit = chess.engine.Limit(depth=depth)
 
@@ -515,12 +543,17 @@ def evaluate_all_moves_with_local_stockfish(
                 "is_book_move": "unknown",
                 "opening_eco": "",
                 "opening_name": "",
+                "white_clock": "",
+                "black_clock": "",
             }
 
             if ply - 1 < len(local_book_rows):
                 row["is_book_move"] = local_book_rows[ply - 1].is_book_move
                 row["opening_eco"] = local_book_rows[ply - 1].opening_eco
                 row["opening_name"] = local_book_rows[ply - 1].opening_name
+            if ply - 1 < len(clock_rows):
+                row["white_clock"] = clock_rows[ply - 1].get("white_clock", "")
+                row["black_clock"] = clock_rows[ply - 1].get("black_clock", "")
 
             if pre_info:
                 pv = pre_info.get("pv")
@@ -581,6 +614,8 @@ def write_csv(output_path: Path, rows: List[Dict[str, str]]) -> None:
         "is_book_move",
         "opening_eco",
         "opening_name",
+        "white_clock",
+        "black_clock",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

@@ -215,7 +215,9 @@ function renderRows(rows) {
       row.accuracy || "-",
       row.is_book_move || "-",
       row.opening_eco || "-",
-      row.opening_name || "-"
+      row.opening_name || "-",
+      row.white_clock || "-",
+      row.black_clock || "-"
     ].forEach((value) => {
       const td = document.createElement("td");
       td.textContent = value == null || value === "" ? "-" : String(value);
@@ -318,7 +320,7 @@ function csvEscape(value) {
 
 function downloadCsv(rows) {
   if (!rows.length) return;
-  const header = ["move_number", "side", "move", "eval_score", "bestmove", "bestmove_eval", "eval_gap", "accuracy", "is_book_move", "opening_eco", "opening_name"];
+  const header = ["move_number", "side", "move", "eval_score", "bestmove", "bestmove_eval", "eval_gap", "accuracy", "is_book_move", "opening_eco", "opening_name", "white_clock", "black_clock"];
   const lines = [header.map(csvEscape).join(",")];
   rows.forEach((row) => {
     lines.push([
@@ -332,7 +334,9 @@ function downloadCsv(rows) {
       row.accuracy || "",
       row.is_book_move || "",
       row.opening_eco || "",
-      row.opening_name || ""
+      row.opening_name || "",
+      row.white_clock || "",
+      row.black_clock || ""
     ].map(csvEscape).join(","));
   });
   const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
