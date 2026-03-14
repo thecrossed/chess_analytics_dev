@@ -393,7 +393,7 @@ csvFileInput.addEventListener("change", async (event) => {
 
 buildPageButton.addEventListener("click", () => {
   if (users.size === 0) {
-    alert(t("alert_add_user_first"));
+    alert(t("alert_missing_username_pull"));
     return;
   }
 
