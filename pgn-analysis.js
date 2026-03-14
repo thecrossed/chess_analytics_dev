@@ -2,7 +2,10 @@ const ANALYSIS_DRAFT_KEY = "pgn_analysis_draft_v1";
 
 const statusEl = document.getElementById("analysis-status");
 const resultWrap = document.getElementById("analysis-result-wrap");
+const resultTable = document.getElementById("analysis-result-table");
+const resultHeadRow = document.getElementById("analysis-result-head-row");
 const resultBody = document.getElementById("analysis-result-body");
+const columnControls = document.getElementById("analysis-column-controls");
 const downloadButton = document.getElementById("analysis-download-btn");
 const summaryWrap = document.getElementById("analysis-summary-wrap");
 const summaryAvgEvalLoss = document.getElementById("summary-avg-eval-loss");
@@ -25,6 +28,34 @@ let analysisCancelledByUser = false;
 let analysisSlowHintShown = false;
 let currentMoveDone = 0;
 let currentMoveTotal = 0;
+let visibleColumnKeys = new Set();
+
+const COLUMN_GROUPS = [
+  { key: "core", labelKey: "pgn_columns_group_core" },
+  { key: "engine", labelKey: "pgn_columns_group_engine" },
+  { key: "opening", labelKey: "pgn_columns_group_opening" },
+  { key: "clock", labelKey: "pgn_columns_group_clock" }
+];
+
+const COLUMN_DEFS = [
+  { key: "move_number", labelKey: "pgn_eval_move_number", group: "core", sticky: 1 },
+  { key: "side", labelKey: "pgn_eval_side", group: "core", sticky: 2 },
+  { key: "move", labelKey: "pgn_eval_move", group: "core", sticky: 3 },
+  { key: "eval_score", labelKey: "pgn_eval_score", group: "engine" },
+  { key: "bestmove", labelKey: "pgn_eval_bestmove", group: "engine" },
+  { key: "bestmove_eval", labelKey: "pgn_eval_bestmove_eval", group: "engine" },
+  { key: "eval_gap", labelKey: "pgn_eval_eval_gap", group: "engine" },
+  { key: "accuracy", labelKey: "pgn_eval_accuracy", group: "engine" },
+  { key: "is_book_move", labelKey: "pgn_eval_is_book_move", group: "opening" },
+  { key: "opening_eco", labelKey: "pgn_eval_opening_eco", group: "opening" },
+  { key: "opening_name", labelKey: "pgn_eval_opening_name", group: "opening" },
+  { key: "white_clock", labelKey: "pgn_eval_white_clock", group: "clock" },
+  { key: "black_clock", labelKey: "pgn_eval_black_clock", group: "clock" }
+];
+
+const CORE_COLUMN_KEYS = new Set(
+  COLUMN_DEFS.filter((column) => column.group === "core").map((column) => column.key)
+);
 
 function canTrackAnalytics() {
   return (
@@ -77,6 +108,183 @@ function dedupeRows(rows) {
     output.push(row);
   });
   return output;
+}
+
+function getVisibleColumns() {
+  return COLUMN_DEFS.filter((column) => visibleColumnKeys.has(column.key));
+}
+
+function formatCellValue(value) {
+  return value == null || value === "" ? "-" : String(value);
+}
+
+function columnClassName(column) {
+  return `col-${column.key.replace(/_/g, "-")}`;
+}
+
+function columnHasData(rows, columnKey) {
+  return rows.some((row) => {
+    const value = row?.[columnKey];
+    return value != null && value !== "";
+  });
+}
+
+function groupHasData(rows, groupKey) {
+  if (groupKey === "core") return true;
+  return COLUMN_DEFS.some((column) => column.group === groupKey && columnHasData(rows, column.key));
+}
+
+function resetVisibleColumns(rows) {
+  const nextVisible = new Set(CORE_COLUMN_KEYS);
+  COLUMN_DEFS.forEach((column) => {
+    if (column.group === "engine" || column.group === "opening") {
+      nextVisible.add(column.key);
+    }
+  });
+  if (groupHasData(rows, "clock")) {
+    COLUMN_DEFS.forEach((column) => {
+      if (column.group === "clock") {
+        nextVisible.add(column.key);
+      }
+    });
+  }
+  visibleColumnKeys = nextVisible;
+}
+
+function setGroupVisibility(groupKey, shouldShow) {
+  COLUMN_DEFS.forEach((column) => {
+    if (column.group !== groupKey || CORE_COLUMN_KEYS.has(column.key)) {
+      return;
+    }
+    if (shouldShow) {
+      visibleColumnKeys.add(column.key);
+    } else {
+      visibleColumnKeys.delete(column.key);
+    }
+  });
+}
+
+function renderTableHead() {
+  if (!resultHeadRow) return;
+  resultHeadRow.innerHTML = "";
+  getVisibleColumns().forEach((column) => {
+    const th = document.createElement("th");
+    th.textContent = t(column.labelKey);
+    th.className = columnClassName(column);
+    if (column.sticky) {
+      th.classList.add("sticky-col", `sticky-col-${column.sticky}`);
+    }
+    resultHeadRow.appendChild(th);
+  });
+}
+
+function renderColumnControls(rows) {
+  if (!columnControls) return;
+  if (!rows.length) {
+    columnControls.classList.add("hidden");
+    columnControls.innerHTML = "";
+    return;
+  }
+
+  columnControls.classList.remove("hidden");
+  columnControls.innerHTML = "";
+
+  const header = document.createElement("div");
+  header.className = "analysis-columns-header";
+
+  const titleWrap = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = t("pgn_columns_title");
+  const hint = document.createElement("p");
+  hint.className = "hint-inline";
+  hint.textContent = t("pgn_columns_hint");
+  titleWrap.append(title, hint);
+
+  const resetButton = document.createElement("button");
+  resetButton.type = "button";
+  resetButton.className = "secondary-button";
+  resetButton.textContent = t("pgn_columns_reset");
+  resetButton.addEventListener("click", () => {
+    resetVisibleColumns(rows);
+    renderColumnControls(rows);
+    renderTableHead();
+    renderRows(rows);
+  });
+
+  header.append(titleWrap, resetButton);
+
+  const groupToggles = document.createElement("div");
+  groupToggles.className = "analysis-group-toggles";
+  COLUMN_GROUPS.filter((group) => group.key !== "core").forEach((group) => {
+    const groupColumns = COLUMN_DEFS.filter((column) => column.group === group.key);
+    const visibleCount = groupColumns.filter((column) => visibleColumnKeys.has(column.key)).length;
+    const hasData = groupHasData(rows, group.key);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "analysis-group-toggle";
+    button.textContent = t(group.labelKey);
+    button.disabled = !hasData;
+    button.setAttribute("aria-pressed", visibleCount > 0 ? "true" : "false");
+    if (visibleCount === groupColumns.length) {
+      button.dataset.state = "on";
+    } else if (visibleCount === 0) {
+      button.dataset.state = "off";
+    } else {
+      button.dataset.state = "partial";
+    }
+    button.addEventListener("click", () => {
+      setGroupVisibility(group.key, visibleCount !== groupColumns.length);
+      renderColumnControls(rows);
+      renderTableHead();
+      renderRows(rows);
+    });
+    groupToggles.appendChild(button);
+  });
+
+  const details = document.createElement("details");
+  details.className = "analysis-columns-details";
+  const summary = document.createElement("summary");
+  summary.textContent = t("pgn_columns_customize");
+  details.appendChild(summary);
+
+  const detailsGrid = document.createElement("div");
+  detailsGrid.className = "analysis-columns-grid";
+
+  COLUMN_GROUPS.forEach((group) => {
+    const fieldset = document.createElement("fieldset");
+    fieldset.className = "analysis-columns-group";
+    const legend = document.createElement("legend");
+    legend.textContent = t(group.labelKey);
+    fieldset.appendChild(legend);
+
+    COLUMN_DEFS.filter((column) => column.group === group.key).forEach((column) => {
+      const label = document.createElement("label");
+      label.className = "analysis-columns-option";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = visibleColumnKeys.has(column.key);
+      checkbox.disabled = CORE_COLUMN_KEYS.has(column.key);
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          visibleColumnKeys.add(column.key);
+        } else {
+          visibleColumnKeys.delete(column.key);
+        }
+        renderColumnControls(rows);
+        renderTableHead();
+        renderRows(rows);
+      });
+      const text = document.createElement("span");
+      text.textContent = t(column.labelKey);
+      label.append(checkbox, text);
+      fieldset.appendChild(label);
+    });
+
+    detailsGrid.appendChild(fieldset);
+  });
+
+  details.appendChild(detailsGrid);
+  columnControls.append(header, groupToggles, details);
 }
 
 function setStatus(text, isError = false) {
@@ -202,30 +410,24 @@ function formatEtaSeconds(seconds) {
 function renderRows(rows) {
   if (!resultBody || !resultWrap) return;
   resultBody.innerHTML = "";
+  const visibleColumns = getVisibleColumns();
   rows.forEach((row) => {
     const tr = document.createElement("tr");
-    [
-      row.move_number,
-      row.side,
-      row.move,
-      row.eval_score || "-",
-      row.bestmove || "-",
-      row.bestmove_eval || "-",
-      row.eval_gap || "-",
-      row.accuracy || "-",
-      row.is_book_move || "-",
-      row.opening_eco || "-",
-      row.opening_name || "-",
-      row.white_clock || "-",
-      row.black_clock || "-"
-    ].forEach((value) => {
+    visibleColumns.forEach((column) => {
       const td = document.createElement("td");
-      td.textContent = value == null || value === "" ? "-" : String(value);
+      td.textContent = formatCellValue(row?.[column.key]);
+      td.className = columnClassName(column);
+      if (column.sticky) {
+        td.classList.add("sticky-col", `sticky-col-${column.sticky}`);
+      }
       tr.appendChild(td);
     });
     resultBody.appendChild(tr);
   });
   resultWrap.classList.toggle("hidden", rows.length === 0);
+  if (resultTable) {
+    resultTable.classList.toggle("has-hidden-columns", visibleColumns.length !== COLUMN_DEFS.length);
+  }
 }
 
 function parseEvalNumber(raw) {
@@ -320,24 +522,14 @@ function csvEscape(value) {
 
 function downloadCsv(rows) {
   if (!rows.length) return;
-  const header = ["move_number", "side", "move", "eval_score", "bestmove", "bestmove_eval", "eval_gap", "accuracy", "is_book_move", "opening_eco", "opening_name", "white_clock", "black_clock"];
+  const header = COLUMN_DEFS.map((column) => column.key);
   const lines = [header.map(csvEscape).join(",")];
   rows.forEach((row) => {
-    lines.push([
-      row.move_number,
-      row.side,
-      row.move,
-      row.eval_score || "",
-      row.bestmove || "",
-      row.bestmove_eval || "",
-      row.eval_gap || "",
-      row.accuracy || "",
-      row.is_book_move || "",
-      row.opening_eco || "",
-      row.opening_name || "",
-      row.white_clock || "",
-      row.black_clock || ""
-    ].map(csvEscape).join(","));
+    lines.push(
+      COLUMN_DEFS.map((column) => (row?.[column.key] == null ? "" : row[column.key]))
+        .map(csvEscape)
+        .join(",")
+    );
   });
   const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -458,6 +650,9 @@ async function runAnalysis() {
     }
 
     currentRows = dedupeRows(Array.isArray(data.rows) ? data.rows : []);
+    resetVisibleColumns(currentRows);
+    renderTableHead();
+    renderColumnControls(currentRows);
     trackFunnelEvent("funnel_pgn_analysis_success", {
       rows: currentRows.length,
       failed_eval_count: Number(data.failed_eval_count || 0)
@@ -547,9 +742,13 @@ window.addEventListener("languagechange", () => {
     progressMessageEl.textContent = `${t("pgn_analysis_progress_running")} (${t("pgn_analysis_slow_hint")})`;
   }
   setMoveProgress(currentMoveDone, currentMoveTotal);
+  renderTableHead();
+  renderColumnControls(currentRows);
+  renderRows(currentRows);
   renderSummary(currentRows);
   applyMetricTooltips();
 });
 
+renderTableHead();
 applyMetricTooltips();
 runAnalysis();
