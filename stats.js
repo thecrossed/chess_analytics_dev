@@ -517,6 +517,10 @@ async function run() {
   if (usernames.length === 0) {
     setLoading(false);
     summary.textContent = t("stats_no_usernames");
+    if (viewRawLink) {
+      viewRawLink.removeAttribute("href");
+      viewRawLink.setAttribute("aria-disabled", "true");
+    }
     return;
   }
 

@@ -407,7 +407,7 @@ buildPageButton.addEventListener("click", () => {
   trackFunnelEvent("funnel_fetch_submit_clicked");
   if (users.size === 0) {
     trackFunnelEvent("funnel_fetch_validation_error", { reason: "no_username" });
-    alert(t("alert_add_user_first"));
+    alert(t("alert_missing_username_pull"));
     return;
   }
 

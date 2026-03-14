@@ -529,6 +529,7 @@ if (rawTableWrap) {
 async function run() {
   if (usernames.length === 0) {
     if (rawSummary) rawSummary.textContent = t("stats_no_usernames");
+    refreshDownloadState();
     return;
   }
 
