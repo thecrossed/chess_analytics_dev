@@ -56,6 +56,13 @@ function trackInputEvent(eventType, payload) {
   }).catch(() => {});
 }
 
+function trackFunnelEvent(eventType, meta = {}) {
+  trackInputEvent(eventType, {
+    value_text: eventType,
+    meta
+  });
+}
+
 function setHomeMode(mode) {
   const showFetch = mode === "fetch";
   const showPgn = mode === "pgn";
@@ -330,10 +337,12 @@ form.addEventListener("submit", (event) => {
   const username = normalizeUsername(input.value);
 
   if (!username) {
+    trackFunnelEvent("funnel_fetch_validation_error", { reason: "empty_username" });
     return;
   }
 
   if (!addUsername(username)) {
+    trackFunnelEvent("funnel_fetch_validation_error", { reason: "invalid_username_format" });
     alert(t("alert_invalid_username_format"));
     return;
   }
@@ -392,13 +401,16 @@ csvFileInput.addEventListener("change", async (event) => {
 });
 
 buildPageButton.addEventListener("click", () => {
+  trackFunnelEvent("funnel_fetch_submit_clicked");
   if (users.size === 0) {
+    trackFunnelEvent("funnel_fetch_validation_error", { reason: "no_username" });
     alert(t("alert_add_user_first"));
     return;
   }
 
   const selectedTypes = getSelectedGameTypes();
   if (selectedTypes.length === 0) {
+    trackFunnelEvent("funnel_fetch_validation_error", { reason: "no_game_type" });
     alert(t("alert_select_game_type"));
     return;
   }
@@ -406,10 +418,12 @@ buildPageButton.addEventListener("click", () => {
   const rawRangeDays = rangeDaysInput?.value || "30";
   const strictRangeDays = parseRangeDaysStrict(rawRangeDays);
   if (!strictRangeDays || strictRangeDays < 1) {
+    trackFunnelEvent("funnel_fetch_validation_error", { reason: "invalid_range_days" });
     alert(t("alert_invalid_date_selection"));
     return;
   }
   if (strictRangeDays > MAX_RANGE_DAYS) {
+    trackFunnelEvent("funnel_fetch_validation_error", { reason: "range_days_exceeded", entered_days: strictRangeDays });
     alert(t("alert_max_120_days", { days: strictRangeDays }));
     return;
   }
@@ -429,21 +443,25 @@ buildPageButton.addEventListener("click", () => {
 
   if (usingCustomDates) {
     if (!hasFrom || !hasTo) {
+      trackFunnelEvent("funnel_fetch_validation_error", { reason: "missing_custom_dates" });
       alert(t("alert_select_both_dates_or_empty"));
       return;
     }
     const fromMs = parseDateInputValue(fromRaw);
     const toMs = parseDateInputValue(toRaw);
     if (!fromMs || !toMs) {
+      trackFunnelEvent("funnel_fetch_validation_error", { reason: "invalid_custom_dates" });
       alert(t("alert_invalid_date_selection"));
       return;
     }
     if (fromMs > toMs) {
+      trackFunnelEvent("funnel_fetch_validation_error", { reason: "from_after_to" });
       alert(t("alert_from_after_to"));
       return;
     }
     const customRangeDays = Math.floor((toMs - fromMs) / (24 * 60 * 60 * 1000)) + 1;
     if (customRangeDays > MAX_RANGE_DAYS) {
+      trackFunnelEvent("funnel_fetch_validation_error", { reason: "custom_range_exceeded", entered_days: customRangeDays });
       alert(t("alert_max_120_days", { days: customRangeDays }));
       return;
     }
@@ -453,6 +471,11 @@ buildPageButton.addEventListener("click", () => {
     applyDateRangeFromDays(rangeDays);
   }
 
+  trackFunnelEvent("funnel_fetch_submit_success", {
+    usernames: users.size,
+    game_types: selectedTypes.length,
+    platform: platformSelect.value
+  });
   window.location.href = `stats.html?${params.toString()}`;
 });
 
@@ -470,6 +493,7 @@ if (pgnTextInput) {
 
 if (pgnAnalyzeButton) {
   pgnAnalyzeButton.addEventListener("click", async () => {
+    trackFunnelEvent("funnel_pgn_submit_clicked");
     const depth = clampAnalysisDepth(pgnDepthInput?.value || "18");
     if (pgnDepthInput) {
       pgnDepthInput.value = String(depth);
@@ -481,14 +505,17 @@ if (pgnAnalyzeButton) {
 
     const state = getPgnInputState();
     if (state.conflict) {
+      trackFunnelEvent("funnel_pgn_validation_error", { reason: "input_conflict" });
       setPgnStatus(t("home_pgn_conflict"), true);
       return;
     }
     if (!state.text) {
+      trackFunnelEvent("funnel_pgn_validation_error", { reason: "empty_pgn" });
       setPgnStatus(t("home_pgn_no_input"), true);
       return;
     }
     if (!hasValidPgnFormat(state.text)) {
+      trackFunnelEvent("funnel_pgn_validation_error", { reason: "invalid_pgn_format" });
       const message = t("home_pgn_invalid_format");
       setPgnStatus(message, true);
       window.alert(message);
@@ -501,6 +528,10 @@ if (pgnAnalyzeButton) {
       source: state.source,
       saved_at_ms: Date.now()
     });
+    trackFunnelEvent("funnel_pgn_submit_success", {
+      source: state.source,
+      depth
+    });
     window.location.href = "pgn-analysis.html";
   });
 }
@@ -511,12 +542,14 @@ setHomeMode("none");
 
 if (chooseFetchEntryButton) {
   chooseFetchEntryButton.addEventListener("click", () => {
+    trackFunnelEvent("funnel_open_fetch_entry");
     setHomeMode("fetch");
   });
 }
 
 if (choosePgnEntryButton) {
   choosePgnEntryButton.addEventListener("click", () => {
+    trackFunnelEvent("funnel_open_pgn_entry");
     setHomeMode("pgn");
   });
 }
