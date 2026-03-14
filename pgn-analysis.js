@@ -4,11 +4,16 @@ const statusEl = document.getElementById("analysis-status");
 const resultWrap = document.getElementById("analysis-result-wrap");
 const resultBody = document.getElementById("analysis-result-body");
 const downloadButton = document.getElementById("analysis-download-btn");
+const summaryWrap = document.getElementById("analysis-summary-wrap");
+const summaryAvgEvalLoss = document.getElementById("summary-avg-eval-loss");
+const summaryBestMoveMisses = document.getElementById("summary-bestmove-misses");
+const summaryBiggestMistake = document.getElementById("summary-biggest-mistake");
 
 const modalEl = document.getElementById("analysis-progress-modal");
 const progressFillEl = document.getElementById("analysis-progress-fill");
 const progressMessageEl = document.getElementById("analysis-progress-message");
 const etaEl = document.getElementById("analysis-eta");
+const moveProgressEl = document.getElementById("analysis-move-progress");
 const closeModalButton = document.getElementById("analysis-progress-close");
 const cancelModalButton = document.getElementById("analysis-progress-cancel");
 
@@ -18,6 +23,8 @@ let currentRows = [];
 let currentAbortController = null;
 let analysisCancelledByUser = false;
 let analysisSlowHintShown = false;
+let currentMoveDone = 0;
+let currentMoveTotal = 0;
 
 function canTrackAnalytics() {
   return (
@@ -70,6 +77,20 @@ function setStatus(text, isError = false) {
 
 function showErrorPopup(message) {
   window.alert(message);
+}
+
+function setMoveProgress(done, total) {
+  currentMoveDone = Math.max(0, Number(done) || 0);
+  currentMoveTotal = Math.max(0, Number(total) || 0);
+  if (!moveProgressEl) return;
+  if (currentMoveTotal <= 0) {
+    moveProgressEl.textContent = t("pgn_analysis_move_progress_idle");
+    return;
+  }
+  moveProgressEl.textContent = t("pgn_analysis_move_progress", {
+    done: Math.min(currentMoveDone, currentMoveTotal),
+    total: currentMoveTotal
+  });
 }
 
 function setProgress(percent) {
@@ -183,6 +204,70 @@ function renderRows(rows) {
   resultWrap.classList.toggle("hidden", rows.length === 0);
 }
 
+function parseEvalNumber(raw) {
+  const parsed = Number.parseFloat(String(raw ?? "").trim());
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function renderSummary(rows) {
+  if (!summaryWrap || !summaryAvgEvalLoss || !summaryBestMoveMisses || !summaryBiggestMistake) return;
+  if (!rows.length) {
+    summaryWrap.classList.add("hidden");
+    return;
+  }
+
+  let comparedCount = 0;
+  let totalLoss = 0;
+  let misses = 0;
+  let biggestLoss = -1;
+  let biggestRow = null;
+
+  rows.forEach((row) => {
+    const evalScore = parseEvalNumber(row?.eval_score);
+    const bestEval = parseEvalNumber(row?.bestmove_eval);
+    if (evalScore == null || bestEval == null) {
+      return;
+    }
+    const loss = Math.abs(bestEval - evalScore);
+    comparedCount += 1;
+    totalLoss += loss;
+    if (loss >= 0.5) {
+      misses += 1;
+    }
+    if (loss > biggestLoss) {
+      biggestLoss = loss;
+      biggestRow = row;
+    }
+  });
+
+  if (comparedCount === 0) {
+    summaryAvgEvalLoss.textContent = t("pgn_summary_not_enough_data");
+    summaryBestMoveMisses.textContent = t("pgn_summary_not_enough_data");
+    summaryBiggestMistake.textContent = t("pgn_summary_not_enough_data");
+    summaryWrap.classList.remove("hidden");
+    return;
+  }
+
+  const avgLoss = totalLoss / comparedCount;
+  summaryAvgEvalLoss.textContent = avgLoss.toFixed(2);
+  summaryBestMoveMisses.textContent = t("pgn_summary_bestmove_misses_value", {
+    misses,
+    total: comparedCount
+  });
+  if (biggestRow) {
+    summaryBiggestMistake.textContent = t("pgn_summary_biggest_mistake_value", {
+      move_number: biggestRow.move_number ?? "-",
+      side: biggestRow.side ?? "-",
+      move: biggestRow.move ?? "-",
+      loss: biggestLoss.toFixed(2)
+    });
+  } else {
+    summaryBiggestMistake.textContent = t("pgn_summary_not_enough_data");
+  }
+
+  summaryWrap.classList.remove("hidden");
+}
+
 function csvEscape(value) {
   const raw = value == null ? "" : String(value);
   return `"${raw.replace(/"/g, '""')}"`;
@@ -208,6 +293,9 @@ function downloadCsv(rows) {
 
 async function runAnalysis() {
   const draft = parseDraft();
+  if (summaryWrap) {
+    summaryWrap.classList.add("hidden");
+  }
   if (!draft || !draft.pgn_text) {
     trackFunnelEvent("funnel_pgn_analysis_missing_input");
     setStatus(t("pgn_analysis_missing_input"), true);
@@ -219,6 +307,7 @@ async function runAnalysis() {
   }
 
   showModal();
+  setMoveProgress(0, 0);
   trackFunnelEvent("funnel_pgn_analysis_started", { depth: draft.depth });
   analysisCancelledByUser = false;
   setStatus(t("pgn_analysis_starting"));
@@ -228,6 +317,7 @@ async function runAnalysis() {
   setProgress(2);
 
   const plies = estimatePlies(draft.pgn_text);
+  setMoveProgress(0, plies);
   const expectedSeconds = estimateDurationSeconds(plies, draft.depth);
   const startedAt = Date.now();
 
@@ -247,6 +337,8 @@ async function runAnalysis() {
     if (etaEl) {
       etaEl.textContent = formatEtaSeconds(remaining);
     }
+    const estimatedDone = ratio < 1 ? Math.floor(ratio * plies) : Math.max(plies - 1, 0);
+    setMoveProgress(estimatedDone, plies);
   }, 250);
 
   // Soft timeout only: show a hint when analysis is slower than expected,
@@ -274,28 +366,28 @@ async function runAnalysis() {
     if (!response.ok) {
       if (data.error === "pgn_required") {
         trackFunnelEvent("funnel_pgn_analysis_failed", { reason: "pgn_required", status: response.status });
-        setStatus(t("home_pgn_no_input"), true);
+        setStatus(t("pgn_analysis_error_missing"), true);
       } else if (data.error === "invalid_pgn_format") {
         trackFunnelEvent("funnel_pgn_analysis_failed", { reason: "invalid_pgn_format", status: response.status });
-        const message = t("home_pgn_invalid_format");
+        const message = t("pgn_analysis_error_invalid_format");
         setStatus(message, true);
         showErrorPopup(message);
       } else if (data.error === "pgn_too_large" || data.error === "payload_too_large") {
         trackFunnelEvent("funnel_pgn_analysis_failed", { reason: "pgn_too_large", status: response.status });
-        setStatus(t("home_pgn_too_large"), true);
+        setStatus(t("pgn_analysis_error_too_large"), true);
       } else if (data.error === "rate_limited") {
         trackFunnelEvent("funnel_pgn_analysis_failed", { reason: "rate_limited", status: response.status });
-        setStatus(t("home_pgn_rate_limited"), true);
+        setStatus(t("pgn_analysis_error_rate_limited"), true);
       } else {
         trackFunnelEvent("funnel_pgn_analysis_failed", {
           reason: data.error || "unknown_error",
           status: response.status
         });
         const detail = data.error ? ` (${data.error})` : "";
-        setStatus(`${t("home_pgn_analyze_failed")} [${response.status}]${detail}`, true);
+        setStatus(`${t("pgn_analysis_error_generic")} [${response.status}]${detail}`, true);
       }
       if (progressMessageEl) {
-        progressMessageEl.textContent = t("home_pgn_analyze_failed");
+        progressMessageEl.textContent = t("pgn_analysis_error_generic");
       }
       if (etaEl) {
         etaEl.textContent = t("pgn_analysis_eta_done");
@@ -310,6 +402,7 @@ async function runAnalysis() {
       failed_eval_count: Number(data.failed_eval_count || 0)
     });
     renderRows(currentRows);
+    renderSummary(currentRows);
     if (downloadButton) {
       downloadButton.disabled = currentRows.length === 0;
     }
@@ -324,6 +417,7 @@ async function runAnalysis() {
       progressMessageEl.textContent = t("pgn_analysis_progress_done");
     }
     setProgress(100);
+    setMoveProgress(plies, plies);
     if (etaEl) {
       etaEl.textContent = t("pgn_analysis_eta_done");
     }
@@ -344,9 +438,9 @@ async function runAnalysis() {
       return;
     }
     trackFunnelEvent("funnel_pgn_analysis_failed", { reason: "network_or_runtime_exception" });
-    setStatus(t("home_pgn_analyze_failed"), true);
+    setStatus(t("pgn_analysis_error_generic"), true);
     if (progressMessageEl) {
-      progressMessageEl.textContent = t("home_pgn_analyze_failed");
+      progressMessageEl.textContent = t("pgn_analysis_error_generic");
     }
     if (etaEl) {
       etaEl.textContent = t("pgn_analysis_eta_done");
@@ -391,6 +485,8 @@ window.addEventListener("languagechange", () => {
   if (progressMessageEl && !modalEl.classList.contains("hidden") && analysisSlowHintShown) {
     progressMessageEl.textContent = `${t("pgn_analysis_progress_running")} (${t("pgn_analysis_slow_hint")})`;
   }
+  setMoveProgress(currentMoveDone, currentMoveTotal);
+  renderSummary(currentRows);
 });
 
 runAnalysis();
