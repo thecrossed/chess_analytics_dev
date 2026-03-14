@@ -6,8 +6,11 @@ const rawPrevPageButton = document.getElementById("raw-prev-page");
 const rawNextPageButton = document.getElementById("raw-next-page");
 const rawPageInfo = document.getElementById("raw-page-info");
 const downloadRawCsvButton = document.getElementById("download-raw-csv");
+const openSelectedPgnPageButton = document.getElementById("open-selected-pgn-page");
 const backStatsLink = document.getElementById("back-stats-link");
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
+
+const SELECTED_PGN_BATCH_KEY = "selected_pgn_analysis_batch_v1";
 
 const params = new URLSearchParams(window.location.search);
 const usersParam = params.get("users") || "";
@@ -216,7 +219,7 @@ async function fetchLichessGamesForUser(username) {
   const perfTypeParam = selectedTypes.join(",");
   const url = `https://lichess.org/api/games/user/${encodeURIComponent(
     normalizedUsername
-  )}?since=${rangeFromMs}&until=${rangeToMs}&max=${maxGames}&clocks=true&moves=false&opening=false&pgnInJson=false&perfType=${encodeURIComponent(
+  )}?since=${rangeFromMs}&until=${rangeToMs}&max=${maxGames}&clocks=true&moves=true&opening=true&pgnInJson=true&perfType=${encodeURIComponent(
     perfTypeParam
   )}`;
 
@@ -247,6 +250,7 @@ function buildFromLichessGames(games, username) {
         blackUsername: game.players?.black?.user?.name || "",
         blackRating: typeof game.players?.black?.rating === "number" ? game.players.black.rating : null,
         ratingDiff: typeof player?.ratingDiff === "number" ? player.ratingDiff : null,
+        pgnText: typeof game.pgn === "string" ? game.pgn : "",
       };
     })
     .filter((g) => g.playedAt > 0)
@@ -309,6 +313,7 @@ async function fetchChessComGamesForUser(username) {
         blackRating: typeof game.black?.rating === "number" ? game.black.rating : null,
         playerRating: typeof player.rating === "number" ? player.rating : null,
         ratingDiff: null,
+        pgnText: typeof game.pgn === "string" ? game.pgn : "",
       };
     })
     .filter(Boolean);
@@ -337,7 +342,8 @@ function addRawRows(username, games) {
       gameUrl: g.gameUrl || "",
       playedAtUtc: g.playedAt ? new Date(g.playedAt).toISOString() : "",
       durationMinutes: formatDurationMinutes(g.durationMs),
-      ratingDiff: typeof g.ratingDiff === "number" ? String(g.ratingDiff) : ""
+      ratingDiff: typeof g.ratingDiff === "number" ? String(g.ratingDiff) : "",
+      pgnText: g.pgnText || ""
     });
   });
 }
@@ -358,6 +364,29 @@ function syncSelectAllState() {
 function refreshDownloadState() {
   if (!downloadRawCsvButton) return;
   downloadRawCsvButton.disabled = getSelectedRawRows().length === 0;
+  if (openSelectedPgnPageButton) {
+    openSelectedPgnPageButton.disabled = getSelectedRawRows().length === 0;
+  }
+}
+
+function saveSelectedPgnBatch() {
+  const selectedGames = getSelectedRawRows().map((row) => ({
+    username: row.username || "",
+    white_username: row.whiteUsername || "",
+    black_username: row.blackUsername || "",
+    game_type: row.gameType || "",
+    game_url: row.gameUrl || "",
+    played_at_utc: row.playedAtUtc || "",
+    pgn_text: row.pgnText || ""
+  }));
+  sessionStorage.setItem(
+    SELECTED_PGN_BATCH_KEY,
+    JSON.stringify({
+      saved_at_ms: Date.now(),
+      source_url: window.location.href,
+      games: selectedGames
+    })
+  );
 }
 
 function renderRawPreview() {
@@ -370,6 +399,7 @@ function renderRawPreview() {
 
   rawExportRows.slice(startIndex, endIndex).forEach((row) => {
     const tr = document.createElement("tr");
+    tr.classList.toggle("raw-row-selected", row._selected !== false);
     const selectTd = document.createElement("td");
     selectTd.className = "raw-select-cell";
     const rowCheckbox = document.createElement("input");
@@ -378,6 +408,7 @@ function renderRawPreview() {
     rowCheckbox.setAttribute("aria-label", `Select game ${row._id}`);
     rowCheckbox.addEventListener("change", () => {
       row._selected = rowCheckbox.checked;
+      tr.classList.toggle("raw-row-selected", rowCheckbox.checked);
       refreshDownloadState();
       syncSelectAllState();
     });
@@ -488,6 +519,14 @@ if (downloadRawCsvButton) {
   downloadRawCsvButton.addEventListener("click", () => {
     if (getSelectedRawRows().length === 0) return;
     downloadRawCsv();
+  });
+}
+
+if (openSelectedPgnPageButton) {
+  openSelectedPgnPageButton.addEventListener("click", () => {
+    if (getSelectedRawRows().length === 0) return;
+    saveSelectedPgnBatch();
+    window.location.href = "selected-pgn-analysis.html";
   });
 }
 
