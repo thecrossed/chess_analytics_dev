@@ -265,9 +265,9 @@ function renderSummary(rows) {
   const renderMisses = (sideKey) => {
     const stats = sideStats[sideKey];
     if (stats.comparedCount === 0) return t("pgn_summary_not_enough_data");
-    return t("pgn_summary_bestmove_misses_value", {
-      misses: stats.misses,
-      total: stats.comparedCount
+    const percent = ((stats.misses / stats.comparedCount) * 100).toFixed(1);
+    return t("pgn_summary_bestmove_misses_percent", {
+      percent
     });
   };
 
