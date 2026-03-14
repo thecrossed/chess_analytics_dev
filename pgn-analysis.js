@@ -209,6 +209,17 @@ function parseEvalNumber(raw) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function sideLabel(sideKey) {
+  return sideKey === "black" ? t("pgn_side_black") : t("pgn_side_white");
+}
+
+function renderSidePair(targetEl, whiteText, blackText) {
+  if (!targetEl) return;
+  targetEl.innerHTML =
+    `<span class="summary-side-line"><strong>${sideLabel("white")}:</strong> ${whiteText}</span>` +
+    `<span class="summary-side-line"><strong>${sideLabel("black")}:</strong> ${blackText}</span>`;
+}
+
 function renderSummary(rows) {
   if (!summaryWrap || !summaryAvgEvalLoss || !summaryBestMoveMisses || !summaryBiggestMistake) return;
   if (!rows.length) {
@@ -216,54 +227,60 @@ function renderSummary(rows) {
     return;
   }
 
-  let comparedCount = 0;
-  let totalLoss = 0;
-  let misses = 0;
-  let biggestLoss = -1;
-  let biggestRow = null;
+  const sideStats = {
+    white: { comparedCount: 0, totalLoss: 0, misses: 0, biggestLoss: -1, biggestRow: null },
+    black: { comparedCount: 0, totalLoss: 0, misses: 0, biggestLoss: -1, biggestRow: null }
+  };
 
   rows.forEach((row) => {
+    const sideKey = String(row?.side || "").toLowerCase() === "black" ? "black" : "white";
+    const stats = sideStats[sideKey];
     const evalScore = parseEvalNumber(row?.eval_score);
     const bestEval = parseEvalNumber(row?.bestmove_eval);
     if (evalScore == null || bestEval == null) {
       return;
     }
     const loss = Math.abs(bestEval - evalScore);
-    comparedCount += 1;
-    totalLoss += loss;
+    stats.comparedCount += 1;
+    stats.totalLoss += loss;
     if (loss >= 0.5) {
-      misses += 1;
+      stats.misses += 1;
     }
-    if (loss > biggestLoss) {
-      biggestLoss = loss;
-      biggestRow = row;
+    if (loss > stats.biggestLoss) {
+      stats.biggestLoss = loss;
+      stats.biggestRow = row;
     }
   });
 
-  if (comparedCount === 0) {
-    summaryAvgEvalLoss.textContent = t("pgn_summary_not_enough_data");
-    summaryBestMoveMisses.textContent = t("pgn_summary_not_enough_data");
-    summaryBiggestMistake.textContent = t("pgn_summary_not_enough_data");
-    summaryWrap.classList.remove("hidden");
-    return;
-  }
+  const renderAvgLoss = (sideKey) => {
+    const stats = sideStats[sideKey];
+    if (stats.comparedCount === 0) return t("pgn_summary_not_enough_data");
+    return (stats.totalLoss / stats.comparedCount).toFixed(2);
+  };
 
-  const avgLoss = totalLoss / comparedCount;
-  summaryAvgEvalLoss.textContent = avgLoss.toFixed(2);
-  summaryBestMoveMisses.textContent = t("pgn_summary_bestmove_misses_value", {
-    misses,
-    total: comparedCount
-  });
-  if (biggestRow) {
-    summaryBiggestMistake.textContent = t("pgn_summary_biggest_mistake_value", {
-      move_number: biggestRow.move_number ?? "-",
-      side: biggestRow.side ?? "-",
-      move: biggestRow.move ?? "-",
-      loss: biggestLoss.toFixed(2)
+  const renderMisses = (sideKey) => {
+    const stats = sideStats[sideKey];
+    if (stats.comparedCount === 0) return t("pgn_summary_not_enough_data");
+    return t("pgn_summary_bestmove_misses_value", {
+      misses: stats.misses,
+      total: stats.comparedCount
     });
-  } else {
-    summaryBiggestMistake.textContent = t("pgn_summary_not_enough_data");
-  }
+  };
+
+  const renderBiggestMistake = (sideKey) => {
+    const stats = sideStats[sideKey];
+    if (!stats.biggestRow) return t("pgn_summary_not_enough_data");
+    return t("pgn_summary_biggest_mistake_value", {
+      move_number: stats.biggestRow.move_number ?? "-",
+      side: stats.biggestRow.side ?? "-",
+      move: stats.biggestRow.move ?? "-",
+      loss: stats.biggestLoss.toFixed(2)
+    });
+  };
+
+  renderSidePair(summaryAvgEvalLoss, renderAvgLoss("white"), renderAvgLoss("black"));
+  renderSidePair(summaryBestMoveMisses, renderMisses("white"), renderMisses("black"));
+  renderSidePair(summaryBiggestMistake, renderBiggestMistake("white"), renderBiggestMistake("black"));
 
   summaryWrap.classList.remove("hidden");
 }
