@@ -19,6 +19,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import Request, urlopen
 
+from opening_index import classify_book_moves
+
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", "8000"))
 USER_AGENT = "ChessAnalytics/1.0 (contact: chessalwaysfun@gmail.com)"
@@ -1045,6 +1047,7 @@ def analyze_with_local_stockfish(pgn_text: str, depth: int) -> Tuple[List[Dict[s
     fen_match = re.search(r'^\[FEN\s+"([^"]+)"\]\s*$', pgn_text, re.MULTILINE)
     if fen_match and fen_match.group(1).strip():
         start_fen = fen_match.group(1).strip()
+    book_rows = classify_book_moves(san_moves, start_fen)
     board = chess.Board(start_fen)
     limit = chess.engine.Limit(depth=depth)
 
@@ -1065,7 +1068,10 @@ def analyze_with_local_stockfish(pgn_text: str, depth: int) -> Tuple[List[Dict[s
                 "eval_score": "",
                 "bestmove": "",
                 "bestmove_eval": "",
+                "is_book_move": "unknown",
             }
+            if ply - 1 < len(book_rows):
+                row["is_book_move"] = book_rows[ply - 1].is_book_move
 
             if pre_info:
                 pv = pre_info.get("pv")
@@ -1246,7 +1252,10 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
     # - bestmove fields come from the position before the played move.
     # - eval_score comes from the position after the played move.
     initial_position_data: Optional[Dict] = None
-    startpos_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    start_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    fen_match = re.search(r'^\[FEN\s+"([^"]+)"\]\s*$', pgn_text, re.MULTILINE)
+    if fen_match and fen_match.group(1).strip():
+        start_fen = fen_match.group(1).strip()
     try:
         initial_position_data = request_stockfish_eval("", depth)
     except Exception:
@@ -1255,12 +1264,13 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
     # In that case, retry explicitly with start-position FEN.
     if not initial_position_data or not extract_bestmove_san(initial_position_data):
         try:
-            initial_position_data = request_stockfish_eval(startpos_fen, depth)
+            initial_position_data = request_stockfish_eval(start_fen, depth)
         except Exception:
             pass
     previous_played_data: Optional[Dict] = None
     forced_first_bestmove = extract_bestmove_san(initial_position_data or {})
     forced_first_bestmove_eval = extract_bestmove_eval_score(initial_position_data or {})
+    book_rows = classify_book_moves(san_moves, start_fen)
 
     for ply, san in enumerate(san_moves, start=1):
         row = {
@@ -1270,7 +1280,10 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
             "eval_score": "",
             "bestmove": "",
             "bestmove_eval": "",
+            "is_book_move": "unknown",
         }
+        if ply - 1 < len(book_rows):
+            row["is_book_move"] = book_rows[ply - 1].is_book_move
 
         pre_move_data = previous_played_data if previous_played_data is not None else initial_position_data
         if pre_move_data:

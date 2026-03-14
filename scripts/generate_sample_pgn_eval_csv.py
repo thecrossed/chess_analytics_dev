@@ -13,6 +13,7 @@ import json
 import os
 import re
 import shutil
+import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -25,6 +26,12 @@ try:
     import chess.engine  # type: ignore
 except Exception:
     chess = None  # type: ignore
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from opening_index import classify_book_moves
 
 
 DEFAULT_INPUT = Path("sample-pgn.md")
@@ -356,7 +363,6 @@ def evaluate_all_moves(
     rows: List[Dict[str, str]] = []
     progressive: List[str] = []
     initial_position_data = None
-    opening_cache: Dict[str, List[str] | None] = {}
     try:
         initial_position_data = call_stockfish_api(
             api_url=api_url,
@@ -384,6 +390,7 @@ def evaluate_all_moves(
     previous_played_data = None
     start_fen = extract_start_fen(pgn_text)
     local_pre_move_fens = compute_local_pre_move_fens(san_moves, start_fen)
+    local_book_rows = classify_book_moves(san_moves, start_fen)
     forced_first_bestmove = extract_bestmove(initial_position_data or {})
     forced_first_bestmove_eval = extract_bestmove_eval_score(initial_position_data or {})
 
@@ -413,13 +420,8 @@ def evaluate_all_moves(
             if isinstance(fen_value, str) and fen_value.strip():
                 pre_fen = fen_value.strip()
         row["fen_before_move"] = pre_fen
-        if pre_fen not in opening_cache:
-            opening_cache[pre_fen] = fetch_opening_san_moves(opening_api_url, pre_fen)
-        book_sans = opening_cache.get(pre_fen)
-        if isinstance(book_sans, list):
-            played = normalize_san_token(san)
-            known = {normalize_san_token(item) for item in book_sans if normalize_san_token(item)}
-            row["is_book_move"] = "yes" if played in known else "no"
+        if ply - 1 < len(local_book_rows):
+            row["is_book_move"] = local_book_rows[ply - 1].is_book_move
 
         # Hard rule: first move bestmove/bestmove_eval always comes from start position.
         if ply == 1:
@@ -455,8 +457,8 @@ def evaluate_all_moves_with_local_stockfish(
         raise RuntimeError("python-chess is not available")
 
     rows: List[Dict[str, str]] = []
-    opening_cache: Dict[str, List[str] | None] = {}
     start_fen = extract_start_fen(pgn_text)
+    local_book_rows = classify_book_moves(san_moves, start_fen)
     board = chess.Board(start_fen)
     limit = chess.engine.Limit(depth=depth)
 
@@ -482,13 +484,8 @@ def evaluate_all_moves_with_local_stockfish(
                 "is_book_move": "unknown",
             }
 
-            if pre_fen not in opening_cache:
-                opening_cache[pre_fen] = fetch_opening_san_moves(opening_api_url, pre_fen)
-            book_sans = opening_cache.get(pre_fen)
-            if isinstance(book_sans, list):
-                played = normalize_san_token(san)
-                known = {normalize_san_token(item) for item in book_sans if normalize_san_token(item)}
-                row["is_book_move"] = "yes" if played in known else "no"
+            if ply - 1 < len(local_book_rows):
+                row["is_book_move"] = local_book_rows[ply - 1].is_book_move
 
             if pre_info:
                 pv = pre_info.get("pv")
