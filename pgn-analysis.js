@@ -327,16 +327,18 @@ async function runAnalysis() {
     const ratio = Math.min(1, elapsed / Math.max(1, expectedSeconds));
     if (ratio < 1) {
       progressValue = Math.min(92, 2 + Math.round(ratio * 90));
+      const remaining = Math.max(1, Math.ceil(expectedSeconds - elapsed));
+      if (etaEl) {
+        etaEl.textContent = formatEtaSeconds(remaining);
+      }
     } else {
       // Keep moving slowly while backend is still processing.
       progressValue = Math.min(98, progressValue + 1);
+      if (etaEl) {
+        etaEl.textContent = t("pgn_analysis_eta_finalizing");
+      }
     }
     setProgress(progressValue);
-
-    const remaining = Math.max(0, Math.ceil(expectedSeconds - elapsed));
-    if (etaEl) {
-      etaEl.textContent = formatEtaSeconds(remaining);
-    }
     const estimatedDone = ratio < 1 ? Math.floor(ratio * plies) : Math.max(plies - 1, 0);
     setMoveProgress(estimatedDone, plies);
   }, 250);
