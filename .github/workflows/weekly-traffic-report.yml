@@ -19,8 +19,18 @@ jobs:
             exit 1
           fi
 
-          curl --fail --show-error --silent \
-            -X POST "$DAILY_REPORT_ENDPOINT" \
-            -H "X-Admin-Token: $DAILY_REPORT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"period":"weekly"}'
+          response_file="$(mktemp)"
+          http_code="$(
+            curl --show-error --silent \
+              --output "$response_file" \
+              --write-out "%{http_code}" \
+              -X POST "$DAILY_REPORT_ENDPOINT" \
+              -H "X-Admin-Token: $DAILY_REPORT_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"period":"weekly"}'
+          )"
+          echo "HTTP $http_code"
+          cat "$response_file"
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            exit 1
+          fi

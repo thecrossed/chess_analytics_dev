@@ -176,9 +176,15 @@ class PostgresCompatConnection:
             self.raw_conn.close()
         return False
 
+    def _translate_sql(self, sql: str) -> str:
+        # This codebase writes SQLite-style `?` placeholders. Psycopg expects
+        # `%s`, and any literal `%` in the SQL must be escaped first so it is
+        # not misread as a placeholder marker.
+        return sql.replace("%", "%%").replace("?", "%s")
+
     def execute(self, sql: str, params: Tuple[Any, ...] = ()):
         cur = self.raw_conn.cursor()
-        cur.execute(sql.replace("?", "%s"), params)
+        cur.execute(self._translate_sql(sql), params)
         return cur
 
     def commit(self):
