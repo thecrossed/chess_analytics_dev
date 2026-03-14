@@ -312,6 +312,34 @@ button:hover,
   margin: 8px 0 14px;
 }
 
+.analysis-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 10px 0 14px;
+}
+
+.analysis-summary-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f8fbff;
+  padding: 10px 12px;
+}
+
+.analysis-summary-card h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--subtle);
+  font-weight: 600;
+}
+
+.analysis-summary-card p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
 .secondary-link {
   background: #e8eef8;
   color: #0f2c59;
@@ -583,6 +611,10 @@ td small {
   }
 
   .home-entry-chooser {
+    grid-template-columns: 1fr;
+  }
+
+  .analysis-summary {
     grid-template-columns: 1fr;
   }
 
