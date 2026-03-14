@@ -236,6 +236,15 @@ def extract_bestmove_eval_score(data: Dict) -> str:
     return normalize_eval_score(data)
 
 
+def compute_eval_gap(eval_score: str, bestmove_eval: str) -> str:
+    try:
+        actual = float(str(eval_score).strip())
+        best = float(str(bestmove_eval).strip())
+    except Exception:
+        return ""
+    return f"{abs(actual - best):.2f}"
+
+
 def extract_bestmove(data: Dict) -> str:
     def normalize_token(token: str) -> str:
         return token.strip() if isinstance(token, str) else ""
@@ -405,6 +414,7 @@ def evaluate_all_moves(
             "eval_score": "",
             "bestmove": "",
             "bestmove_eval": "",
+            "eval_gap": "",
             "fen_before_move": "",
             "is_book_move": "unknown",
             "opening_eco": "",
@@ -443,6 +453,7 @@ def evaluate_all_moves(
         except (HTTPError, URLError, Exception):
             row["eval_score"] = ""
             previous_played_data = None
+        row["eval_gap"] = compute_eval_gap(row["eval_score"], row["bestmove_eval"])
 
         rows.append(row)
         if sleep_seconds > 0:
@@ -484,6 +495,7 @@ def evaluate_all_moves_with_local_stockfish(
                 "eval_score": "",
                 "bestmove": "",
                 "bestmove_eval": "",
+                "eval_gap": "",
                 "fen_before_move": pre_fen,
                 "is_book_move": "unknown",
                 "opening_eco": "",
@@ -530,6 +542,8 @@ def evaluate_all_moves_with_local_stockfish(
                 row["eval_score"] = ""
                 pre_info = None
 
+            row["eval_gap"] = compute_eval_gap(row["eval_score"], row["bestmove_eval"])
+
             rows.append(row)
             if sleep_seconds > 0:
                 time.sleep(sleep_seconds)
@@ -545,6 +559,7 @@ def write_csv(output_path: Path, rows: List[Dict[str, str]]) -> None:
         "eval_score",
         "bestmove",
         "bestmove_eval",
+        "eval_gap",
         "fen_before_move",
         "is_book_move",
         "opening_eco",
