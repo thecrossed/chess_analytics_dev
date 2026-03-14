@@ -19,6 +19,35 @@ let currentAbortController = null;
 let analysisCancelledByUser = false;
 let analysisSlowHintShown = false;
 
+function canTrackAnalytics() {
+  return (
+    window.cookieConsent &&
+    typeof window.cookieConsent.canUse === "function" &&
+    window.cookieConsent.canUse("analytics")
+  );
+}
+
+function trackInputEvent(eventType, payload) {
+  if (!canTrackAnalytics()) return;
+  fetch("/api/metrics/input-event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    keepalive: true,
+    body: JSON.stringify({
+      event_type: eventType,
+      page_path: window.location.pathname || "/",
+      ...payload
+    })
+  }).catch(() => {});
+}
+
+function trackFunnelEvent(eventType, meta = {}) {
+  trackInputEvent(eventType, {
+    value_text: eventType,
+    meta
+  });
+}
+
 function dedupeRows(rows) {
   const seen = new Set();
   const output = [];
@@ -180,6 +209,7 @@ function downloadCsv(rows) {
 async function runAnalysis() {
   const draft = parseDraft();
   if (!draft || !draft.pgn_text) {
+    trackFunnelEvent("funnel_pgn_analysis_missing_input");
     setStatus(t("pgn_analysis_missing_input"), true);
     if (progressMessageEl) {
       progressMessageEl.textContent = t("pgn_analysis_progress_missing");
@@ -189,6 +219,7 @@ async function runAnalysis() {
   }
 
   showModal();
+  trackFunnelEvent("funnel_pgn_analysis_started", { depth: draft.depth });
   analysisCancelledByUser = false;
   setStatus(t("pgn_analysis_starting"));
   if (progressMessageEl) {
@@ -242,16 +273,24 @@ async function runAnalysis() {
 
     if (!response.ok) {
       if (data.error === "pgn_required") {
+        trackFunnelEvent("funnel_pgn_analysis_failed", { reason: "pgn_required", status: response.status });
         setStatus(t("home_pgn_no_input"), true);
       } else if (data.error === "invalid_pgn_format") {
+        trackFunnelEvent("funnel_pgn_analysis_failed", { reason: "invalid_pgn_format", status: response.status });
         const message = t("home_pgn_invalid_format");
         setStatus(message, true);
         showErrorPopup(message);
       } else if (data.error === "pgn_too_large" || data.error === "payload_too_large") {
+        trackFunnelEvent("funnel_pgn_analysis_failed", { reason: "pgn_too_large", status: response.status });
         setStatus(t("home_pgn_too_large"), true);
       } else if (data.error === "rate_limited") {
+        trackFunnelEvent("funnel_pgn_analysis_failed", { reason: "rate_limited", status: response.status });
         setStatus(t("home_pgn_rate_limited"), true);
       } else {
+        trackFunnelEvent("funnel_pgn_analysis_failed", {
+          reason: data.error || "unknown_error",
+          status: response.status
+        });
         const detail = data.error ? ` (${data.error})` : "";
         setStatus(`${t("home_pgn_analyze_failed")} [${response.status}]${detail}`, true);
       }
@@ -266,6 +305,10 @@ async function runAnalysis() {
     }
 
     currentRows = dedupeRows(Array.isArray(data.rows) ? data.rows : []);
+    trackFunnelEvent("funnel_pgn_analysis_success", {
+      rows: currentRows.length,
+      failed_eval_count: Number(data.failed_eval_count || 0)
+    });
     renderRows(currentRows);
     if (downloadButton) {
       downloadButton.disabled = currentRows.length === 0;
@@ -288,6 +331,7 @@ async function runAnalysis() {
     showCloseModalButton();
   } catch (error) {
     if (analysisCancelledByUser || (error && error.name === "AbortError")) {
+      trackFunnelEvent("funnel_pgn_analysis_cancelled");
       setStatus(t("pgn_analysis_cancelled"), false);
       if (progressMessageEl) {
         progressMessageEl.textContent = t("pgn_analysis_cancelled");
@@ -299,6 +343,7 @@ async function runAnalysis() {
       showCloseModalButton();
       return;
     }
+    trackFunnelEvent("funnel_pgn_analysis_failed", { reason: "network_or_runtime_exception" });
     setStatus(t("home_pgn_analyze_failed"), true);
     if (progressMessageEl) {
       progressMessageEl.textContent = t("home_pgn_analyze_failed");
@@ -329,6 +374,7 @@ if (closeModalButton) {
 
 if (cancelModalButton) {
   cancelModalButton.addEventListener("click", () => {
+    trackFunnelEvent("funnel_pgn_analysis_cancel_clicked");
     analysisCancelledByUser = true;
     if (currentAbortController) {
       currentAbortController.abort();
