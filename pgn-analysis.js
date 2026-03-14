@@ -6,6 +6,7 @@ const resultTable = document.getElementById("analysis-result-table");
 const resultHeadRow = document.getElementById("analysis-result-head-row");
 const resultBody = document.getElementById("analysis-result-body");
 const columnControls = document.getElementById("analysis-column-controls");
+const backSelectedLink = document.getElementById("analysis-back-selected");
 const downloadButton = document.getElementById("analysis-download-btn");
 const summaryWrap = document.getElementById("analysis-summary-wrap");
 const summaryAvgEvalLoss = document.getElementById("summary-avg-eval-loss");
@@ -362,6 +363,12 @@ function parseDraft() {
   }
 }
 
+function updateBackLinks(draft) {
+  if (!backSelectedLink) return;
+  const shouldShow = draft?.source === "raw_selected_game";
+  backSelectedLink.classList.toggle("hidden", !shouldShow);
+}
+
 function clampDepth(value) {
   const parsed = Number.parseInt(String(value ?? 18), 10);
   if (!Number.isFinite(parsed)) {
@@ -544,6 +551,7 @@ function downloadCsv(rows) {
 
 async function runAnalysis() {
   const draft = parseDraft();
+  updateBackLinks(draft);
   if (summaryWrap) {
     summaryWrap.classList.add("hidden");
   }
