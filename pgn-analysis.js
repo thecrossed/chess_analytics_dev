@@ -55,6 +55,16 @@ function trackFunnelEvent(eventType, meta = {}) {
   });
 }
 
+function applyMetricTooltips() {
+  document.querySelectorAll("[data-tooltip-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-tooltip-i18n");
+    if (!key) return;
+    const text = t(key);
+    el.setAttribute("data-tooltip", text);
+    el.setAttribute("aria-label", text);
+  });
+}
+
 function dedupeRows(rows) {
   const seen = new Set();
   const output = [];
@@ -265,9 +275,9 @@ function renderSummary(rows) {
   const renderMisses = (sideKey) => {
     const stats = sideStats[sideKey];
     if (stats.comparedCount === 0) return t("pgn_summary_not_enough_data");
-    return t("pgn_summary_bestmove_misses_value", {
-      misses: stats.misses,
-      total: stats.comparedCount
+    const percent = ((stats.misses / stats.comparedCount) * 100).toFixed(1);
+    return t("pgn_summary_bestmove_misses_percent", {
+      percent
     });
   };
 
@@ -510,6 +520,8 @@ window.addEventListener("languagechange", () => {
   }
   setMoveProgress(currentMoveDone, currentMoveTotal);
   renderSummary(currentRows);
+  applyMetricTooltips();
 });
 
+applyMetricTooltips();
 runAnalysis();
