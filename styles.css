@@ -338,6 +338,15 @@ button:hover,
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-side-line {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .secondary-link {
