@@ -211,6 +211,7 @@ function renderRows(rows) {
       row.eval_score || "-",
       row.bestmove || "-",
       row.bestmove_eval || "-",
+      row.eval_gap || "-",
       row.is_book_move || "-",
       row.opening_eco || "-",
       row.opening_name || "-"
@@ -316,7 +317,7 @@ function csvEscape(value) {
 
 function downloadCsv(rows) {
   if (!rows.length) return;
-  const header = ["move_number", "side", "move", "eval_score", "bestmove", "bestmove_eval", "is_book_move", "opening_eco", "opening_name"];
+  const header = ["move_number", "side", "move", "eval_score", "bestmove", "bestmove_eval", "eval_gap", "is_book_move", "opening_eco", "opening_name"];
   const lines = [header.map(csvEscape).join(",")];
   rows.forEach((row) => {
     lines.push([
@@ -326,6 +327,7 @@ function downloadCsv(rows) {
       row.eval_score || "",
       row.bestmove || "",
       row.bestmove_eval || "",
+      row.eval_gap || "",
       row.is_book_move || "",
       row.opening_eco || "",
       row.opening_name || ""

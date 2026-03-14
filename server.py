@@ -1087,6 +1087,7 @@ def analyze_with_local_stockfish(pgn_text: str, depth: int) -> Tuple[List[Dict[s
                 "eval_score": "",
                 "bestmove": "",
                 "bestmove_eval": "",
+                "eval_gap": "",
                 "is_book_move": "unknown",
                 "opening_eco": "",
                 "opening_name": "",
@@ -1134,6 +1135,7 @@ def analyze_with_local_stockfish(pgn_text: str, depth: int) -> Tuple[List[Dict[s
                 failed_count += 1
                 row["eval_score"] = ""
                 pre_info = None
+            row["eval_gap"] = compute_eval_gap(row["eval_score"], row["bestmove_eval"])
             rows.append(row)
 
     return rows, failed_count
@@ -1163,6 +1165,15 @@ def extract_bestmove_eval_score(data: Dict) -> str:
     # is not provided by the upstream API.
     fallback = normalize_eval_score(data)
     return fallback if fallback else ""
+
+
+def compute_eval_gap(eval_score: str, bestmove_eval: str) -> str:
+    try:
+        actual = float(str(eval_score).strip())
+        best = float(str(bestmove_eval).strip())
+    except Exception:
+        return ""
+    return f"{abs(actual - best):.2f}"
 
 
 def extract_bestmove_san(data: Dict) -> str:
@@ -1303,6 +1314,7 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
             "eval_score": "",
             "bestmove": "",
             "bestmove_eval": "",
+            "eval_gap": "",
             "is_book_move": "unknown",
             "opening_eco": "",
             "opening_name": "",
@@ -1336,6 +1348,7 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
             failed_count += 1
             row["eval_score"] = ""
             previous_played_data = None
+        row["eval_gap"] = compute_eval_gap(row["eval_score"], row["bestmove_eval"])
         rows.append(row)
     return rows, failed_count
 
