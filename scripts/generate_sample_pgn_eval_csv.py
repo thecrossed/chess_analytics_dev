@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 import os
 import re
 import shutil
@@ -245,6 +246,17 @@ def compute_eval_gap(eval_score: str, bestmove_eval: str) -> str:
     return f"{abs(actual - best):.2f}"
 
 
+def compute_accuracy(side: str, eval_score: str, bestmove_eval: str) -> str:
+    try:
+        actual = float(str(eval_score).strip())
+        best = float(str(bestmove_eval).strip())
+    except Exception:
+        return ""
+    loss = (best - actual) if side == "white" else (actual - best)
+    loss = max(0.0, loss)
+    return f"{100.0 * math.exp(-0.9 * loss):.1f}"
+
+
 def extract_bestmove(data: Dict) -> str:
     def normalize_token(token: str) -> str:
         return token.strip() if isinstance(token, str) else ""
@@ -415,6 +427,7 @@ def evaluate_all_moves(
             "bestmove": "",
             "bestmove_eval": "",
             "eval_gap": "",
+            "accuracy": "",
             "fen_before_move": "",
             "is_book_move": "unknown",
             "opening_eco": "",
@@ -454,6 +467,7 @@ def evaluate_all_moves(
             row["eval_score"] = ""
             previous_played_data = None
         row["eval_gap"] = compute_eval_gap(row["eval_score"], row["bestmove_eval"])
+        row["accuracy"] = compute_accuracy(row["side"], row["eval_score"], row["bestmove_eval"])
 
         rows.append(row)
         if sleep_seconds > 0:
@@ -496,6 +510,7 @@ def evaluate_all_moves_with_local_stockfish(
                 "bestmove": "",
                 "bestmove_eval": "",
                 "eval_gap": "",
+                "accuracy": "",
                 "fen_before_move": pre_fen,
                 "is_book_move": "unknown",
                 "opening_eco": "",
@@ -543,6 +558,7 @@ def evaluate_all_moves_with_local_stockfish(
                 pre_info = None
 
             row["eval_gap"] = compute_eval_gap(row["eval_score"], row["bestmove_eval"])
+            row["accuracy"] = compute_accuracy(row["side"], row["eval_score"], row["bestmove_eval"])
 
             rows.append(row)
             if sleep_seconds > 0:
@@ -560,6 +576,7 @@ def write_csv(output_path: Path, rows: List[Dict[str, str]]) -> None:
         "bestmove",
         "bestmove_eval",
         "eval_gap",
+        "accuracy",
         "fen_before_move",
         "is_book_move",
         "opening_eco",

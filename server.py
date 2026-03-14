@@ -2,6 +2,7 @@
 import hashlib
 import hmac
 import json
+import math
 import os
 import re
 import secrets
@@ -1069,6 +1070,7 @@ def analyze_with_local_stockfish(pgn_text: str, depth: int) -> Tuple[List[Dict[s
                 "bestmove": "",
                 "bestmove_eval": "",
                 "eval_gap": "",
+                "accuracy": "",
                 "is_book_move": "unknown",
                 "opening_eco": "",
                 "opening_name": "",
@@ -1117,6 +1119,7 @@ def analyze_with_local_stockfish(pgn_text: str, depth: int) -> Tuple[List[Dict[s
                 row["eval_score"] = ""
                 pre_info = None
             row["eval_gap"] = compute_eval_gap(row["eval_score"], row["bestmove_eval"])
+            row["accuracy"] = compute_accuracy(row["side"], row["eval_score"], row["bestmove_eval"])
             rows.append(row)
 
     return rows, failed_count
@@ -1155,6 +1158,17 @@ def compute_eval_gap(eval_score: str, bestmove_eval: str) -> str:
     except Exception:
         return ""
     return f"{abs(actual - best):.2f}"
+
+
+def compute_accuracy(side: str, eval_score: str, bestmove_eval: str) -> str:
+    try:
+        actual = float(str(eval_score).strip())
+        best = float(str(bestmove_eval).strip())
+    except Exception:
+        return ""
+    loss = (best - actual) if side == "white" else (actual - best)
+    loss = max(0.0, loss)
+    return f"{100.0 * math.exp(-0.9 * loss):.1f}"
 
 
 def extract_bestmove_san(data: Dict) -> str:
@@ -1296,6 +1310,7 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
             "bestmove": "",
             "bestmove_eval": "",
             "eval_gap": "",
+            "accuracy": "",
             "is_book_move": "unknown",
             "opening_eco": "",
             "opening_name": "",
@@ -1330,6 +1345,7 @@ def analyze_pgn_rows(pgn_text: str, depth: int) -> Tuple[List[Dict[str, str]], i
             row["eval_score"] = ""
             previous_played_data = None
         row["eval_gap"] = compute_eval_gap(row["eval_score"], row["bestmove_eval"])
+        row["accuracy"] = compute_accuracy(row["side"], row["eval_score"], row["bestmove_eval"])
         rows.append(row)
     return rows, failed_count
 
