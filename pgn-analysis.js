@@ -240,7 +240,11 @@ function renderSummary(rows) {
     if (evalScore == null || bestEval == null) {
       return;
     }
-    const loss = Math.abs(bestEval - evalScore);
+    // Eval convention: positive = white advantage, negative = black advantage.
+    // White "miss" means actual eval is lower than best eval.
+    // Black "miss" means actual eval is higher than best eval (less negative / more white-favored).
+    const directionalLoss = sideKey === "white" ? (bestEval - evalScore) : (evalScore - bestEval);
+    const loss = Math.max(0, directionalLoss);
     stats.comparedCount += 1;
     stats.totalLoss += loss;
     if (loss >= 0.5) {
