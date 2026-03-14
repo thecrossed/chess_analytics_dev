@@ -251,6 +251,10 @@ const TRANSLATIONS = {
     faq_a5: "Eval score comes from engine evaluation after the played move. Best move and best move eval are engine recommendations from the position before that move.",
     faq_q6: "What is Stockfish?",
     faq_a6: "Stockfish is a strong open-source chess engine used to evaluate positions and suggest best moves.",
+    faq_q7: "Which extra PGN analysis fields are available now?",
+    faq_a7: "PGN analysis can now include eval gap, accuracy, book move status, opening ECO, opening name, and white or black clock values when the PGN contains clock annotations.",
+    faq_q8: "Can I customize which PGN analysis columns are visible?",
+    faq_a8: "Yes. The PGN analysis table keeps key move columns pinned and lets you toggle Engine, Opening, and Clock column groups, or customize individual columns.",
     app_remove: "Remove",
     app_more_usernames: "+{count} more usernames",
     alert_invalid_username_format: "Invalid username format: 2-30 characters, letters/numbers/_/- only.",
@@ -479,7 +483,11 @@ const TRANSLATIONS = {
     faq_q5: "Comment la note d'évaluation et le meilleur coup sont-ils obtenus dans l'analyse PGN ?",
     faq_a5: "La note d'évaluation provient de l'évaluation moteur après le coup joué. Le meilleur coup et son évaluation proviennent de la recommandation moteur avant ce coup.",
     faq_q6: "Qu'est-ce que Stockfish ?",
-    faq_a6: "Stockfish est un moteur d'échecs open source très puissant, utilisé pour évaluer les positions et proposer les meilleurs coups."
+    faq_a6: "Stockfish est un moteur d'échecs open source très puissant, utilisé pour évaluer les positions et proposer les meilleurs coups.",
+    faq_q7: "Quels champs PGN supplémentaires sont disponibles maintenant ?",
+    faq_a7: "L'analyse PGN peut désormais inclure l'écart d'évaluation, la précision, le statut de coup théorique, l'ECO, le nom d'ouverture, ainsi que les horloges blanche et noire lorsque le PGN contient des annotations d'horloge.",
+    faq_q8: "Puis-je personnaliser les colonnes visibles dans l'analyse PGN ?",
+    faq_a8: "Oui. Le tableau d'analyse PGN garde les colonnes de coups essentielles fixes et vous permet d'afficher ou masquer les groupes Moteur, Ouverture et Temps, ou de choisir des colonnes individuelles."
   },
   zh: {
     lang_selector_label: "语言",
@@ -685,7 +693,11 @@ const TRANSLATIONS = {
     faq_q5: "PGN 分析里的 eval 分数和 best move 是怎么得到的？",
     faq_a5: "eval 分数来自“该步走完后”的引擎评估；best move 和 best move eval 来自“该步之前局面”的引擎推荐。",
     faq_q6: "Stockfish 是什么？",
-    faq_a6: "Stockfish 是一个强大的开源国际象棋引擎，用于评估局面并给出最佳走法建议。"
+    faq_a6: "Stockfish 是一个强大的开源国际象棋引擎，用于评估局面并给出最佳走法建议。",
+    faq_q7: "现在 PGN 分析里新增了哪些字段？",
+    faq_a7: "现在 PGN 分析可以包含评分差值、精确度、库步状态、开局 ECO、开局名称，以及当 PGN 含有时钟标注时的白方和黑方用时。",
+    faq_q8: "我可以自定义 PGN 分析表格里显示哪些列吗？",
+    faq_a8: "可以。PGN 分析表格会固定关键走法列，同时支持按分组切换 Engine、Opening、Clock 列，也支持单独勾选具体列。"
   },
   es: {
     lang_selector_label: "Idioma",
@@ -891,7 +903,11 @@ const TRANSLATIONS = {
     faq_q5: "¿Cómo se obtienen eval score y best move en el análisis PGN?",
     faq_a5: "El eval score proviene de la evaluación del motor después de la jugada realizada. Best move y best move eval vienen de la recomendación del motor antes de esa jugada.",
     faq_q6: "¿Qué es Stockfish?",
-    faq_a6: "Stockfish es un potente motor de ajedrez de código abierto usado para evaluar posiciones y sugerir mejores jugadas."
+    faq_a6: "Stockfish es un potente motor de ajedrez de código abierto usado para evaluar posiciones y sugerir mejores jugadas.",
+    faq_q7: "¿Qué campos extra de análisis PGN están disponibles ahora?",
+    faq_a7: "El análisis PGN ahora puede incluir diferencia de evaluación, precisión, estado de jugada de libro, ECO de apertura, nombre de apertura y relojes de blancas o negras cuando el PGN contiene anotaciones de reloj.",
+    faq_q8: "¿Puedo personalizar qué columnas del análisis PGN se muestran?",
+    faq_a8: "Sí. La tabla de análisis PGN mantiene fijas las columnas clave de jugadas y te permite alternar grupos de columnas de Motor, Apertura y Reloj, o personalizar columnas individuales."
   },
   sv: {
     lang_selector_label: "Språk",
@@ -1097,7 +1113,11 @@ const TRANSLATIONS = {
     faq_q5: "Hur tas eval-score och best move fram i PGN-analysen?",
     faq_a5: "Eval-score kommer från motorns utvärdering efter det spelade draget. Best move och best move eval kommer från motorns rekommendation före det draget.",
     faq_q6: "Vad är Stockfish?",
-    faq_a6: "Stockfish är en stark öppen källkod-schackmotor som används för att utvärdera ställningar och föreslå bästa drag."
+    faq_a6: "Stockfish är en stark öppen källkod-schackmotor som används för att utvärdera ställningar och föreslå bästa drag.",
+    faq_q7: "Vilka extra PGN-analysfält finns nu?",
+    faq_a7: "PGN-analysen kan nu innehålla evalskillnad, precision, bokdrag-status, ECO-öppning, öppningsnamn samt vit och svart klocka när PGN-filen innehåller klockannoteringar.",
+    faq_q8: "Kan jag anpassa vilka PGN-analyskolumner som visas?",
+    faq_a8: "Ja. PGN-analyssidan håller viktiga dragkolumner fästa och låter dig växla kolumngrupper för Motor, Öppning och Klocka, eller välja enskilda kolumner."
   }
 };
 
