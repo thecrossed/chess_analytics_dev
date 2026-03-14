@@ -331,6 +331,9 @@ button:hover,
   font-size: 13px;
   color: var(--subtle);
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .analysis-summary-card p {
@@ -347,6 +350,49 @@ button:hover,
   display: block;
   font-size: 14px;
   font-weight: 500;
+}
+
+.metric-info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid #9cb3d9;
+  background: #eef4ff;
+  color: #0f2c59;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: help;
+}
+
+.metric-info::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  min-width: 220px;
+  max-width: 320px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  z-index: 30;
+}
+
+.metric-info:hover::after,
+.metric-info:focus-visible::after {
+  opacity: 1;
 }
 
 .secondary-link {

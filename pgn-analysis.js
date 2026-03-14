@@ -55,6 +55,16 @@ function trackFunnelEvent(eventType, meta = {}) {
   });
 }
 
+function applyMetricTooltips() {
+  document.querySelectorAll("[data-tooltip-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-tooltip-i18n");
+    if (!key) return;
+    const text = t(key);
+    el.setAttribute("data-tooltip", text);
+    el.setAttribute("aria-label", text);
+  });
+}
+
 function dedupeRows(rows) {
   const seen = new Set();
   const output = [];
@@ -510,6 +520,8 @@ window.addEventListener("languagechange", () => {
   }
   setMoveProgress(currentMoveDone, currentMoveTotal);
   renderSummary(currentRows);
+  applyMetricTooltips();
 });
 
+applyMetricTooltips();
 runAnalysis();
