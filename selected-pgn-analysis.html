@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n-title="selected_pgn_page_title">Selected PGN Analysis | Chess Data Stats</title>
+    <meta
+      name="description"
+      content="Review selected games from raw data preview and open Stockfish PGN analysis for each game."
+    />
+    <link rel="canonical" href="https://chess-data.com/selected-pgn-analysis.html" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card wide">
+        <h1 data-i18n="selected_pgn_heading">Selected PGN Analysis</h1>
+        <p id="selected-pgn-summary" class="hint" data-i18n="selected_pgn_loading">Loading selected games...</p>
+
+        <section id="selected-pgn-list" class="selected-pgn-list hidden" aria-live="polite"></section>
+
+        <div class="actions">
+          <a id="selected-pgn-back-raw" class="button-link" href="raw-data.html" data-i18n="selected_pgn_back_raw">Back to Raw Data Preview</a>
+          <a class="button-link" href="index.html" data-i18n="nav_back_home">Back to Home</a>
+        </div>
+      </section>
+    </main>
+
+    <script src="language.js"></script>
+    <script src="cookie-consent.js"></script>
+    <script src="selected-pgn-analysis.js" type="module"></script>
+  </body>
+</html>
