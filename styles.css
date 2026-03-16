@@ -805,6 +805,71 @@ hr {
   min-width: 132px;
 }
 
+.move-cell-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.move-cell-text {
+  font-weight: 600;
+}
+
+.move-annotation {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+}
+
+.move-annotation-book {
+  background: #ece8df;
+  border-color: #d3cdc0;
+  color: #6d6757;
+}
+
+.move-annotation-brilliant {
+  background: #dff4ea;
+  border-color: #9dcdb2;
+  color: #1f6a4b;
+}
+
+.move-annotation-good {
+  background: #e6f1e8;
+  border-color: #b7cbb8;
+  color: #2f5c44;
+}
+
+.move-annotation-interesting {
+  background: #edf2de;
+  border-color: #cad3a3;
+  color: #59652a;
+}
+
+.move-annotation-inaccuracy {
+  background: #f6ead8;
+  border-color: #ddbf93;
+  color: #8a5a20;
+}
+
+.move-annotation-mistake {
+  background: #f8dfd7;
+  border-color: #deab9b;
+  color: #9a4b3c;
+}
+
+.move-annotation-blunder {
+  background: #f1cfc8;
+  border-color: #cd9185;
+  color: #7e2e26;
+}
+
 .analysis-result-table .col-bestmove,
 .analysis-result-table .col-opening-name {
   min-width: 150px;

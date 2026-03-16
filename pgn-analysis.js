@@ -123,6 +123,70 @@ function columnClassName(column) {
   return `col-${column.key.replace(/_/g, "-")}`;
 }
 
+function getDirectionalLoss(row) {
+  const sideKey = String(row?.side || "").toLowerCase() === "black" ? "black" : "white";
+  const evalScore = parseEvalNumber(row?.eval_score);
+  const bestEval = parseEvalNumber(row?.bestmove_eval);
+  if (evalScore == null || bestEval == null) {
+    return null;
+  }
+  const directionalLoss = sideKey === "white" ? (bestEval - evalScore) : (evalScore - bestEval);
+  return Math.max(0, directionalLoss);
+}
+
+function getMoveAnnotation(row) {
+  if (row?.is_book_move) {
+    return {
+      symbol: "=",
+      label: "Book",
+      tone: "book"
+    };
+  }
+
+  const loss = getDirectionalLoss(row);
+  if (loss == null) return null;
+
+  if (loss <= 0.08) {
+    return { symbol: "!!", label: "Brilliant", tone: "brilliant" };
+  }
+  if (loss <= 0.2) {
+    return { symbol: "!", label: "Good", tone: "good" };
+  }
+  if (loss <= 0.5) {
+    return { symbol: "!?", label: "Interesting", tone: "interesting" };
+  }
+  if (loss <= 1.0) {
+    return { symbol: "?!", label: "Inaccuracy", tone: "inaccuracy" };
+  }
+  if (loss <= 2.0) {
+    return { symbol: "?", label: "Mistake", tone: "mistake" };
+  }
+  return { symbol: "??", label: "Blunder", tone: "blunder" };
+}
+
+function renderMoveCell(td, row, column) {
+  td.className = columnClassName(column);
+  const wrap = document.createElement("div");
+  wrap.className = "move-cell-content";
+
+  const moveText = document.createElement("span");
+  moveText.className = "move-cell-text";
+  moveText.textContent = formatCellValue(row?.[column.key]);
+  wrap.appendChild(moveText);
+
+  const annotation = getMoveAnnotation(row);
+  if (annotation && moveText.textContent !== "-") {
+    const badge = document.createElement("span");
+    badge.className = `move-annotation move-annotation-${annotation.tone}`;
+    badge.textContent = annotation.symbol;
+    badge.title = annotation.label;
+    badge.setAttribute("aria-label", annotation.label);
+    wrap.appendChild(badge);
+  }
+
+  td.appendChild(wrap);
+}
+
 function columnHasData(rows, columnKey) {
   return rows.some((row) => {
     const value = row?.[columnKey];
@@ -422,8 +486,12 @@ function renderRows(rows) {
     const tr = document.createElement("tr");
     visibleColumns.forEach((column) => {
       const td = document.createElement("td");
-      td.textContent = formatCellValue(row?.[column.key]);
-      td.className = columnClassName(column);
+      if (column.key === "move") {
+        renderMoveCell(td, row, column);
+      } else {
+        td.textContent = formatCellValue(row?.[column.key]);
+        td.className = columnClassName(column);
+      }
       if (column.sticky) {
         td.classList.add("sticky-col", `sticky-col-${column.sticky}`);
       }
@@ -468,16 +536,10 @@ function renderSummary(rows) {
   rows.forEach((row) => {
     const sideKey = String(row?.side || "").toLowerCase() === "black" ? "black" : "white";
     const stats = sideStats[sideKey];
-    const evalScore = parseEvalNumber(row?.eval_score);
-    const bestEval = parseEvalNumber(row?.bestmove_eval);
-    if (evalScore == null || bestEval == null) {
+    const loss = getDirectionalLoss(row);
+    if (loss == null) {
       return;
     }
-    // Eval convention: positive = white advantage, negative = black advantage.
-    // White "miss" means actual eval is lower than best eval.
-    // Black "miss" means actual eval is higher than best eval (less negative / more white-favored).
-    const directionalLoss = sideKey === "white" ? (bestEval - evalScore) : (evalScore - bestEval);
-    const loss = Math.max(0, directionalLoss);
     stats.comparedCount += 1;
     stats.totalLoss += loss;
     if (loss >= 0.5) {
