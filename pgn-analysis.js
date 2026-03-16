@@ -402,27 +402,52 @@ function hideCancelModalButton() {
 }
 
 function parseDraft() {
+  const resultKeyFromUrl = new URLSearchParams(window.location.search).get("result") || "";
   const raw = sessionStorage.getItem(ANALYSIS_DRAFT_KEY);
-  if (!raw) return null;
+  if (!raw) {
+    return resultKeyFromUrl ? { pgn_text: "", depth: 18, source: "saved_batch_result", result_key: resultKeyFromUrl } : null;
+  }
   try {
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed.pgn_text !== "string") {
-      return null;
+    if (!parsed) {
+      return resultKeyFromUrl ? { pgn_text: "", depth: 18, source: "saved_batch_result", result_key: resultKeyFromUrl } : null;
     }
     return {
-      pgn_text: parsed.pgn_text.trim(),
+      pgn_text: typeof parsed.pgn_text === "string" ? parsed.pgn_text.trim() : "",
       depth: clampDepth(parsed.depth),
-      source: parsed.source || "unknown"
+      source: parsed.source || "unknown",
+      result_key: resultKeyFromUrl || (typeof parsed.result_key === "string" ? parsed.result_key : "")
     };
   } catch (_error) {
-    return null;
+    return resultKeyFromUrl ? { pgn_text: "", depth: 18, source: "saved_batch_result", result_key: resultKeyFromUrl } : null;
   }
 }
 
 function updateBackLinks(draft) {
   if (!backSelectedLink) return;
-  const shouldShow = draft?.source === "raw_selected_game" || draft?.source === "uploaded_batch_game";
+  const shouldShow =
+    draft?.source === "raw_selected_game" ||
+    draft?.source === "uploaded_batch_game" ||
+    draft?.source === "saved_batch_result";
   backSelectedLink.classList.toggle("hidden", !shouldShow);
+}
+
+function loadSavedResult(resultKey) {
+  if (!resultKey) return null;
+  const raw = sessionStorage.getItem(resultKey);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      rows: Array.isArray(parsed?.rows) ? parsed.rows : [],
+      failed_eval_count: Number(parsed?.failed_eval_count || 0),
+      pgn_text: typeof parsed?.pgn_text === "string" ? parsed.pgn_text : "",
+      source: typeof parsed?.source === "string" ? parsed.source : "saved_batch_result",
+      depth: clampDepth(parsed?.depth)
+    };
+  } catch (_error) {
+    return null;
+  }
 }
 
 function extractPgnPlayers(pgnText) {
@@ -621,12 +646,42 @@ function downloadCsv(rows) {
   URL.revokeObjectURL(url);
 }
 
+function renderAnalysisPayload(draft, rows, failedEvalCount) {
+  currentPlayers = extractPgnPlayers(draft?.pgn_text || "");
+  currentRows = dedupeRows(Array.isArray(rows) ? rows : []);
+  resetVisibleColumns(currentRows);
+  renderTableHead();
+  renderColumnControls(currentRows);
+  renderRows(currentRows);
+  renderSummary(currentRows);
+  if (downloadButton) {
+    downloadButton.disabled = currentRows.length === 0;
+  }
+  setStatus(
+    t("home_pgn_analysis_done", {
+      count: currentRows.length,
+      failed: Number(failedEvalCount || 0)
+    })
+  );
+}
+
 async function runAnalysis() {
   const draft = parseDraft();
   updateBackLinks(draft);
-  currentPlayers = extractPgnPlayers(draft?.pgn_text || "");
   if (summaryWrap) {
     summaryWrap.classList.add("hidden");
+  }
+  const savedResult = loadSavedResult(draft?.result_key || "");
+  if (savedResult) {
+    const savedDraft = {
+      ...draft,
+      pgn_text: savedResult.pgn_text || draft?.pgn_text || "",
+      source: savedResult.source || draft?.source || "saved_batch_result"
+    };
+    updateBackLinks(savedDraft);
+    renderAnalysisPayload(savedDraft, savedResult.rows, savedResult.failed_eval_count);
+    hideModal();
+    return;
   }
   if (!draft || !draft.pgn_text) {
     trackFunnelEvent("funnel_pgn_analysis_missing_input");
@@ -730,26 +785,11 @@ async function runAnalysis() {
       return;
     }
 
-    currentRows = dedupeRows(Array.isArray(data.rows) ? data.rows : []);
-    resetVisibleColumns(currentRows);
-    renderTableHead();
-    renderColumnControls(currentRows);
     trackFunnelEvent("funnel_pgn_analysis_success", {
-      rows: currentRows.length,
+      rows: Array.isArray(data.rows) ? data.rows.length : 0,
       failed_eval_count: Number(data.failed_eval_count || 0)
     });
-    renderRows(currentRows);
-    renderSummary(currentRows);
-    if (downloadButton) {
-      downloadButton.disabled = currentRows.length === 0;
-    }
-
-    setStatus(
-      t("home_pgn_analysis_done", {
-        count: currentRows.length,
-        failed: Number(data.failed_eval_count || 0)
-      })
-    );
+    renderAnalysisPayload(draft, data.rows, data.failed_eval_count);
     if (progressMessageEl) {
       progressMessageEl.textContent = t("pgn_analysis_progress_done");
     }
