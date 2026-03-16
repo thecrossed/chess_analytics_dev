@@ -130,10 +130,12 @@
               <label for="pgn-upload" data-i18n="home_pgn_file_label">PGN File</label>
               <input id="pgn-upload" type="file" accept=".pgn,text/plain" multiple />
             </div>
-            <p class="hint-inline pgn-format-hint">
-              <span class="pgn-format-chip" data-i18n="home_pgn_multi_chip_block">full PGN block</span>
-              <span class="pgn-format-chip" data-i18n="home_pgn_multi_chip_blank">blank line</span>
-              <span data-i18n="home_pgn_batch_hint">For multiple games in one file, place each game as a full PGN block and separate games with a blank line.</span>
+            <p class="hint-inline">
+              <span data-i18n="home_pgn_batch_hint_before">For multiple games in one file, place each game as a </span>
+              <strong data-i18n="home_pgn_batch_hint_block">full PGN block</strong>
+              <span data-i18n="home_pgn_batch_hint_middle"> and separate games with a </span>
+              <strong data-i18n="home_pgn_batch_hint_blank">blank line</strong>
+              <span data-i18n="home_pgn_batch_hint_after">.</span>
             </p>
             <div class="row import-row">
               <label for="pgn-text" data-i18n="home_pgn_paste_label">Paste PGN</label>
