@@ -15,6 +15,11 @@ const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 let currentBatch = null;
 let batchRunInProgress = false;
+let batchProgressTimer = null;
+let batchProgressTotalPlies = 0;
+let batchProgressCompletedPlies = 0;
+let batchProgressCurrentPlies = 0;
+let batchProgressCurrentDone = 0;
 
 function canTrackAnalytics() {
   return (
@@ -53,6 +58,36 @@ function clampDepth(value) {
   return Math.max(8, Math.min(20, parsed));
 }
 
+function estimatePlies(pgnText) {
+  const movesText = String(pgnText || "")
+    .split(/\r?\n/)
+    .filter((line) => line && !line.startsWith("["))
+    .join(" ");
+
+  const stripped = movesText
+    .replace(/\{[^}]*\}/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\$\d+/g, " ");
+
+  const resultTokens = new Set(["1-0", "0-1", "1/2-1/2", "*"]);
+  const tokens = stripped.split(/\s+/).filter(Boolean);
+
+  let plies = 0;
+  for (let token of tokens) {
+    if (resultTokens.has(token)) continue;
+    if (/^\d+\.(\.\.)?$/.test(token)) continue;
+    token = token.replace(/^\d+\.(\.\.)?/, "").trim();
+    if (!token || resultTokens.has(token)) continue;
+    plies += 1;
+  }
+  return Math.max(1, plies);
+}
+
+function estimateDurationSeconds(plies, depth) {
+  const baseline = plies * (0.12 + depth * 0.006);
+  return Math.max(6, Math.min(180, Math.round(baseline)));
+}
+
 function normalizeGameStatus(game) {
   if (!game?.pgn_text) return "missing";
   if (game?.analysis_status === "running") return "pending";
@@ -76,6 +111,7 @@ function ensureBatchShape(batch) {
         analysis_completed_at_ms: Number.isFinite(Number(game?.analysis_completed_at_ms))
           ? Number(game.analysis_completed_at_ms)
           : null,
+        estimated_plies: typeof game?.pgn_text === "string" && game.pgn_text.trim() ? estimatePlies(game.pgn_text) : 0,
         original_index: Number.isFinite(Number(game?.original_index)) ? Number(game.original_index) : index
       }))
     : [];
@@ -217,7 +253,12 @@ function updateBatchProgress(currentLabel = "") {
 
   batchPanelEl.classList.remove("hidden");
   const completed = counters.done + counters.failed + counters.missing;
-  const percent = counters.total > 0 ? Math.round((completed / counters.total) * 100) : 0;
+  const donePlies = Math.max(0, batchProgressCompletedPlies + batchProgressCurrentDone);
+  const percent = batchProgressTotalPlies > 0
+    ? Math.round((Math.min(donePlies, batchProgressTotalPlies) / batchProgressTotalPlies) * 100)
+    : counters.total > 0
+      ? Math.round((completed / counters.total) * 100)
+      : 0;
   batchFillEl.style.width = `${Math.max(0, Math.min(100, percent))}%`;
   batchSummaryEl.textContent = t("selected_pgn_batch_progress", {
     done: counters.done,
@@ -227,7 +268,11 @@ function updateBatchProgress(currentLabel = "") {
   });
 
   if (batchRunInProgress && currentLabel) {
-    batchCurrentEl.textContent = t("selected_pgn_batch_current", { game: currentLabel });
+    batchCurrentEl.textContent = t("selected_pgn_batch_current_moves", {
+      game: currentLabel,
+      done: Math.min(donePlies, batchProgressTotalPlies),
+      total: batchProgressTotalPlies
+    });
   } else if (batchRunInProgress) {
     batchCurrentEl.textContent = t("selected_pgn_batch_running");
   } else if (counters.done > 0 || counters.failed > 0 || counters.missing > 0) {
@@ -239,6 +284,42 @@ function updateBatchProgress(currentLabel = "") {
   if (runAllButton) {
     runAllButton.disabled = batchRunInProgress || counters.analyzable === 0 || counters.rerunnable === 0;
   }
+}
+
+function stopBatchProgressTimer() {
+  if (batchProgressTimer) {
+    window.clearInterval(batchProgressTimer);
+    batchProgressTimer = null;
+  }
+}
+
+function resetBatchProgressState() {
+  stopBatchProgressTimer();
+  batchProgressCurrentPlies = 0;
+  batchProgressCurrentDone = 0;
+  batchProgressTotalPlies = (currentBatch?.games || [])
+    .filter((game) => Boolean(game?.pgn_text))
+    .reduce((sum, game) => sum + Math.max(0, Number(game?.estimated_plies || 0)), 0);
+  batchProgressCompletedPlies = (currentBatch?.games || [])
+    .filter((game) => normalizeGameStatus(game) === "done")
+    .reduce((sum, game) => sum + Math.max(0, Number(game?.estimated_plies || 0)), 0);
+}
+
+function startGameProgress(game, currentLabel) {
+  stopBatchProgressTimer();
+  batchProgressCurrentPlies = Math.max(1, Number(game?.estimated_plies || 1));
+  batchProgressCurrentDone = 0;
+  const expectedSeconds = estimateDurationSeconds(batchProgressCurrentPlies, currentBatch?.depth || 18);
+  const startedAt = Date.now();
+
+  batchProgressTimer = window.setInterval(() => {
+    const elapsed = (Date.now() - startedAt) / 1000;
+    const ratio = Math.min(1, elapsed / Math.max(1, expectedSeconds));
+    batchProgressCurrentDone = ratio < 1
+      ? Math.floor(ratio * batchProgressCurrentPlies)
+      : Math.max(batchProgressCurrentPlies - 1, 0);
+    updateBatchProgress(currentLabel);
+  }, 250);
 }
 
 function renderSummaryText() {
@@ -379,6 +460,7 @@ async function analyzeGame(game) {
 async function runBatchAnalysis() {
   if (!currentBatch || batchRunInProgress) return;
   batchRunInProgress = true;
+  resetBatchProgressState();
   trackFunnelEvent("funnel_selected_pgn_batch_started", {
     games: currentBatch.games.length,
     depth: currentBatch.depth
@@ -402,6 +484,7 @@ async function runBatchAnalysis() {
 
     game.analysis_status = "running";
     game.analysis_error = "";
+    startGameProgress(game, currentLabel);
     updateBatchProgress(currentLabel);
     renderGames();
     saveBatch();
@@ -419,10 +502,17 @@ async function runBatchAnalysis() {
       game.analysis_error = error?.message || t("pgn_analysis_error_generic");
     }
 
+    stopBatchProgressTimer();
+    batchProgressCompletedPlies += Math.max(0, Number(game?.estimated_plies || 0));
+    batchProgressCurrentDone = 0;
+    batchProgressCurrentPlies = 0;
     saveBatch();
     renderGames();
   }
 
+  stopBatchProgressTimer();
+  batchProgressCurrentDone = 0;
+  batchProgressCurrentPlies = 0;
   batchRunInProgress = false;
   saveBatch();
   renderGames();
