@@ -67,6 +67,17 @@ function trackFunnelEvent(eventType, meta = {}) {
   });
 }
 
+function applyInlineTooltips() {
+  document.querySelectorAll("[data-tooltip-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-tooltip-i18n");
+    if (!key) return;
+    const text = t(key);
+    el.setAttribute("data-tooltip", text);
+    el.setAttribute("aria-label", text);
+    el.setAttribute("title", text);
+  });
+}
+
 function setHomeMode(mode) {
   const showFetch = mode === "fetch";
   const showPgn = mode === "pgn";
@@ -620,6 +631,7 @@ if (pgnAnalyzeButton) {
 ensureDefaultDateRange();
 refreshPgnAutoStatus();
 setHomeMode("none");
+applyInlineTooltips();
 
 if (chooseFetchEntryButton) {
   chooseFetchEntryButton.addEventListener("click", () => {
@@ -673,4 +685,5 @@ if (demoPgnLoadButton) {
 window.addEventListener("languagechange", () => {
   renderUsers();
   refreshPgnAutoStatus();
+  applyInlineTooltips();
 });
