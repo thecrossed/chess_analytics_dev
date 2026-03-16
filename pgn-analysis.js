@@ -594,8 +594,8 @@ function renderSummary(rows) {
 
   renderSidePair(
     summaryPlayers,
-    currentPlayers.white || "unknown",
-    currentPlayers.black || "unknown"
+    currentPlayers.white || "-",
+    currentPlayers.black || "-"
   );
   renderSidePair(summaryAvgEvalLoss, renderAvgLoss("white"), renderAvgLoss("black"));
   renderSidePair(summaryBestMoveMisses, renderMisses("white"), renderMisses("black"));
