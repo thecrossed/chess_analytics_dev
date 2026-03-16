@@ -138,11 +138,7 @@ function getDirectionalLoss(row) {
 
 function getMoveAnnotation(row) {
   if (row?.is_book_move) {
-    return {
-      symbol: "=",
-      label: "Book",
-      tone: "book"
-    };
+    return null;
   }
 
   const loss = getDirectionalLoss(row);
