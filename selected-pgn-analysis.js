@@ -9,25 +9,27 @@ const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 function loadBatch() {
   const raw = sessionStorage.getItem(SELECTED_PGN_BATCH_KEY);
-  if (!raw) return { games: [], sourceUrl: "" };
+  if (!raw) return { games: [], sourceUrl: "", depth: 18, sourceKind: "" };
   try {
     const parsed = JSON.parse(raw);
     return {
       games: Array.isArray(parsed?.games) ? parsed.games : [],
-      sourceUrl: typeof parsed?.source_url === "string" ? parsed.source_url : ""
+      sourceUrl: typeof parsed?.source_url === "string" ? parsed.source_url : "",
+      depth: Number.isFinite(Number(parsed?.depth)) ? Number(parsed.depth) : 18,
+      sourceKind: typeof parsed?.source_kind === "string" ? parsed.source_kind : ""
     };
   } catch (_error) {
-    return { games: [], sourceUrl: "" };
+    return { games: [], sourceUrl: "", depth: 18, sourceKind: "" };
   }
 }
 
-function savePgnDraft(game) {
+function savePgnDraft(game, depth, sourceKind) {
   sessionStorage.setItem(
     PGN_ANALYSIS_DRAFT_KEY,
     JSON.stringify({
       pgn_text: game.pgn_text,
-      depth: 18,
-      source: "raw_selected_game",
+      depth,
+      source: sourceKind === "uploaded_pgn_batch" ? "uploaded_batch_game" : "raw_selected_game",
       saved_at_ms: Date.now()
     })
   );
@@ -36,15 +38,17 @@ function savePgnDraft(game) {
 function formatMeta(game) {
   const parts = [];
   if (game.username) parts.push(`${t("stats_username")}: ${game.username}`);
+  if (game.platform) parts.push(`${t("stats_raw_platform")}: ${game.platform === "chesscom" ? "Chess.com" : "Lichess"}`);
+  if (game.source_name) parts.push(game.source_name);
+  if (game.game_type) parts.push(game.game_type);
   if (game.white_username || game.black_username) {
     parts.push(`${game.white_username || "?"} vs ${game.black_username || "?"}`);
   }
   if (game.played_at_utc) parts.push(game.played_at_utc);
-  if (game.game_type) parts.push(game.game_type);
   return parts.join(" | ");
 }
 
-function renderGames(games) {
+function renderGames(games, depth, sourceKind) {
   if (!summaryEl || !listEl) return;
   if (!games.length) {
     summaryEl.textContent = t("selected_pgn_empty");
@@ -78,8 +82,8 @@ function renderGames(games) {
       openButton.setAttribute("aria-disabled", "true");
       openButton.classList.add("button-link-disabled");
     } else {
-      openButton.addEventListener("click", (event) => {
-        savePgnDraft(game);
+      openButton.addEventListener("click", () => {
+        savePgnDraft(game, depth, sourceKind);
       });
     }
     actions.appendChild(openButton);
@@ -110,5 +114,8 @@ function renderGames(games) {
 const batch = loadBatch();
 if (backRawLink && batch.sourceUrl) {
   backRawLink.href = batch.sourceUrl;
+  if (batch.sourceKind === "uploaded_pgn_batch") {
+    backRawLink.classList.add("hidden");
+  }
 }
-renderGames(batch.games);
+renderGames(batch.games, batch.depth, batch.sourceKind);
