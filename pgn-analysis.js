@@ -431,7 +431,7 @@ function parseDraft() {
 
 function updateBackLinks(draft) {
   if (!backSelectedLink) return;
-  const shouldShow = draft?.source === "raw_selected_game";
+  const shouldShow = draft?.source === "raw_selected_game" || draft?.source === "uploaded_batch_game";
   backSelectedLink.classList.toggle("hidden", !shouldShow);
 }
 

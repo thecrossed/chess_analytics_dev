@@ -33,8 +33,9 @@ const DEFAULT_USERNAME = "MagnusCarlsen";
 const MAX_VISIBLE_USERS = 20;
 const MAX_RANGE_DAYS = 120;
 const PGN_ANALYSIS_DRAFT_KEY = "pgn_analysis_draft_v1";
+const SELECTED_PGN_BATCH_KEY = "selected_pgn_analysis_batch_v1";
 
-let pgnFileText = "";
+let pgnFileEntries = [];
 const SAMPLE_PGN_TEXT = `1. e4 c5 2. Nf3 Nc6 3. Bb5 g6 4. O-O Bg7 5. d3 Nf6 6. h3 O-O 7. Bxc6 dxc6 8. Be3 Ne8 9. Qc1 b6 10. a4 a5 11. Bh6 Nc7 12. Na3 Ne6 13. Bxg7 Kxg7 14. Nc4 Ba6 15. b3 Nd4 16. Nxd4 cxd4 17. f4 Bxc4 18. bxc4 Qd6 19. Rb1 Rab8 20. e5 Qc5 21. Qe1 e6 22. Qh4 b5 23. f5 exf5 24. Qf6+ Kg8 25. Qd6 Qxd6 26. exd6 bxa4 27. c5 Rb4 28. Rfe1 Rfb8 29. Ra1 Kf8 30. Re7 R4b5 31. Rxa4 Rxc5 32. Rc4 Rxc4 33. dxc4 c5 34. Ra7 Rd8 35. Ra6 Ke8 36. Rxa5 Rxd6 37. Rxc5 d3 38. cxd3 Rxd3 39. Kf2 Rc3 40. Rc7 h5 41. h4 Kf8 42. c5 Kg7 43. c6 Kf6 44. Ke2 Ke6 45. Kd2 Rc5 46. Kd3 Kd6 47. Rxf7 Rxc6 48. Ke3 Ke5 49. Re7+ Re6 50. Ra7 Kf6+ 51. Kf3 Re4 52. g3 Rd4 53. Ra6+ Kg7 54. Ra7+ Kh6 55. Rb7 Rg4 56. Rf7 f4 57. Rxf4 Rxf4+ 58. gxf4 Kg7 59. Ke3 Kf6 60. Ke4 Ke6 61. Ke3 Kf5 62. Kf3 Kf6 63. Ke4 Ke6 64. Ke3 Kf5 65. Kf3 Kf6 66. Ke4 1/2-1/2`;
 
 function canTrackAnalytics() {
@@ -217,47 +218,103 @@ function normalizePgnForCompare(value) {
   return (value || "").replace(/\r\n/g, "\n").trim();
 }
 
-function getPgnInputState() {
-  const fileText = normalizePgnForCompare(pgnFileText);
+function splitPgnGames(rawText) {
+  const normalized = normalizePgnForCompare(rawText);
+  if (!normalized) return [];
+  const chunks = normalized
+    .split(/\n{2,}(?=\[(?:Event|Site|Date|Round|White|Black|Result|UTCDate|UTCTime|FEN|SetUp)\s+")/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+  return chunks.length > 1 ? chunks : [normalized];
+}
+
+function extractPgnTags(pgnText) {
+  const tags = {};
+  String(pgnText || "")
+    .split(/\r?\n/)
+    .forEach((line) => {
+      const match = line.match(/^\[([A-Za-z0-9_]+)\s+"(.*)"\]$/);
+      if (!match) return;
+      tags[match[1]] = match[2].trim();
+    });
+  return tags;
+}
+
+function formatPgnBatchDate(tags) {
+  if (tags.UTCDate) return tags.UTCDate;
+  if (tags.Date) return tags.Date;
+  return "";
+}
+
+function buildBatchGameEntry(pgnText, sourceName, sourceIndex, gameIndex) {
+  const tags = extractPgnTags(pgnText);
+  return {
+    pgn_text: pgnText,
+    white_username: tags.White || "",
+    black_username: tags.Black || "",
+    played_at_utc: formatPgnBatchDate(tags),
+    game_type: tags.Event || "",
+    source_name: sourceName || "",
+    source_index: sourceIndex,
+    game_index: gameIndex,
+    title: tags.White || tags.Black ? `${tags.White || "-"} vs ${tags.Black || "-"}` : ""
+  };
+}
+
+function getPgnBatchState() {
+  const sources = [];
+  pgnFileEntries.forEach((entry, index) => {
+    const normalized = normalizePgnForCompare(entry.text);
+    if (!normalized) return;
+    sources.push({
+      name: entry.name || `file-${index + 1}.pgn`,
+      text: normalized
+    });
+  });
+
   const pastedText = normalizePgnForCompare(pgnTextInput?.value || "");
-
-  if (fileText && pastedText) {
-    if (fileText !== pastedText) {
-      return { conflict: true, text: "", source: "conflict", fileChars: fileText.length, pasteChars: pastedText.length };
-    }
-    return { conflict: false, text: fileText, source: "both", fileChars: fileText.length, pasteChars: pastedText.length };
-  }
-
-  if (fileText) {
-    return { conflict: false, text: fileText, source: "file", fileChars: fileText.length, pasteChars: 0 };
-  }
-
   if (pastedText) {
-    return { conflict: false, text: pastedText, source: "paste", fileChars: 0, pasteChars: pastedText.length };
+    sources.push({
+      name: t("home_pgn_pasted_source"),
+      text: pastedText
+    });
   }
 
-  return { conflict: false, text: "", source: "none", fileChars: 0, pasteChars: 0 };
+  if (!sources.length) {
+    return { games: [], sourcesCount: 0 };
+  }
+
+  const seen = new Set();
+  const games = [];
+
+  sources.forEach((source, sourceIndex) => {
+    splitPgnGames(source.text).forEach((gameText, gameIndex) => {
+      const normalized = normalizePgnForCompare(gameText);
+      if (!normalized || !hasValidPgnFormat(normalized)) return;
+      if (seen.has(normalized)) return;
+      seen.add(normalized);
+      games.push(buildBatchGameEntry(normalized, source.name, sourceIndex, gameIndex));
+    });
+  });
+
+  return { games, sourcesCount: sources.length };
 }
 
 function refreshPgnAutoStatus() {
-  const state = getPgnInputState();
-  if (state.conflict) {
-    setPgnStatus(t("home_pgn_conflict"), true);
+  const state = getPgnBatchState();
+  if (state.sourcesCount === 0) {
+    setPgnStatus(t("home_pgn_auto_load_hint"));
     return;
   }
-  if (state.source === "file") {
-    setPgnStatus(t("home_pgn_ready_from_file", { chars: state.fileChars }));
+  if (state.games.length === 0) {
+    setPgnStatus(t("home_pgn_no_games_detected"), true);
     return;
   }
-  if (state.source === "paste") {
-    setPgnStatus(t("home_pgn_ready_from_paste", { chars: state.pasteChars }));
+  if (state.games.length === 1) {
+    setPgnStatus(t("home_pgn_ready_single", { sources: state.sourcesCount }));
     return;
   }
-  if (state.source === "both") {
-    setPgnStatus(t("home_pgn_ready_from_both", { chars: state.fileChars }));
-    return;
-  }
-  setPgnStatus(t("home_pgn_auto_load_hint"));
+  setPgnStatus(t("home_pgn_ready_batch", { games: state.games.length, sources: state.sourcesCount }));
 }
 
 function clampAnalysisDepth(rawValue) {
@@ -311,17 +368,22 @@ function savePgnAnalysisDraft(payload) {
 }
 
 async function handlePgnFileSelected() {
-  const file = pgnFileInput?.files?.[0];
-  if (!file) {
-    pgnFileText = "";
+  const files = Array.from(pgnFileInput?.files || []);
+  if (!files.length) {
+    pgnFileEntries = [];
     refreshPgnAutoStatus();
     return;
   }
   try {
-    pgnFileText = (await file.text()) || "";
+    pgnFileEntries = await Promise.all(
+      files.map(async (file) => ({
+        name: file.name,
+        text: (await file.text()) || ""
+      }))
+    );
     refreshPgnAutoStatus();
   } catch (error) {
-    pgnFileText = "";
+    pgnFileEntries = [];
     setPgnStatus(t("home_pgn_load_failed", { error: error?.message || "unknown error" }), true);
   }
 }
@@ -502,40 +564,56 @@ if (pgnAnalyzeButton) {
       pgnDepthInput.value = String(depth);
     }
 
-    if (pgnFileInput?.files?.[0] && !pgnFileText) {
+    if ((pgnFileInput?.files?.length || 0) > 0 && pgnFileEntries.length === 0) {
       await handlePgnFileSelected();
     }
 
-    const state = getPgnInputState();
-    if (state.conflict) {
-      trackFunnelEvent("funnel_pgn_validation_error", { reason: "input_conflict" });
-      setPgnStatus(t("home_pgn_conflict"), true);
-      return;
-    }
-    if (!state.text) {
+    const state = getPgnBatchState();
+    if (state.sourcesCount === 0) {
       trackFunnelEvent("funnel_pgn_validation_error", { reason: "empty_pgn" });
       setPgnStatus(t("home_pgn_no_input"), true);
       return;
     }
-    if (!hasValidPgnFormat(state.text)) {
-      trackFunnelEvent("funnel_pgn_validation_error", { reason: "invalid_pgn_format" });
+    if (state.games.length === 0) {
+      trackFunnelEvent("funnel_pgn_validation_error", { reason: "invalid_pgn_format_batch" });
       const message = t("home_pgn_invalid_format");
       setPgnStatus(message, true);
       window.alert(message);
       return;
     }
 
-    savePgnAnalysisDraft({
-      pgn_text: state.text,
-      depth,
-      source: state.source,
-      saved_at_ms: Date.now()
-    });
+    if (state.games.length === 1) {
+      const onlyGame = state.games[0];
+      savePgnAnalysisDraft({
+        pgn_text: onlyGame.pgn_text,
+        depth,
+        source: "single_upload",
+        saved_at_ms: Date.now()
+      });
+      trackFunnelEvent("funnel_pgn_submit_success", {
+        source: state.sourcesCount > 1 ? "batch_single_result" : "single",
+        depth,
+        games: 1
+      });
+      window.location.href = "pgn-analysis.html";
+      return;
+    }
+
+    sessionStorage.setItem(
+      SELECTED_PGN_BATCH_KEY,
+      JSON.stringify({
+        games: state.games,
+        depth,
+        source_url: "index.html",
+        source_kind: "uploaded_pgn_batch"
+      })
+    );
     trackFunnelEvent("funnel_pgn_submit_success", {
-      source: state.source,
-      depth
+      source: "uploaded_batch",
+      depth,
+      games: state.games.length
     });
-    window.location.href = "pgn-analysis.html";
+    window.location.href = "selected-pgn-analysis.html";
   });
 }
 
@@ -585,7 +663,7 @@ if (demoPgnLoadButton) {
     if (pgnTextInput) {
       pgnTextInput.value = SAMPLE_PGN_TEXT;
     }
-    pgnFileText = "";
+    pgnFileEntries = [];
     refreshPgnAutoStatus();
     setHomeMode("pgn");
     trackFunnelEvent("funnel_demo_pgn_used");
