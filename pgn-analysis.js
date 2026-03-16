@@ -148,14 +148,8 @@ function getMoveAnnotation(row) {
   const loss = getDirectionalLoss(row);
   if (loss == null) return null;
 
-  if (loss <= 0.08) {
-    return { symbol: "!!", label: "Brilliant", tone: "brilliant" };
-  }
-  if (loss <= 0.2) {
-    return { symbol: "!", label: "Good", tone: "good" };
-  }
   if (loss <= 0.5) {
-    return { symbol: "!?", label: "Interesting", tone: "interesting" };
+    return null;
   }
   if (loss <= 1.0) {
     return { symbol: "?!", label: "Inaccuracy", tone: "inaccuracy" };
