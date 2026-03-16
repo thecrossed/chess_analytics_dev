@@ -9,6 +9,7 @@ const columnControls = document.getElementById("analysis-column-controls");
 const backSelectedLink = document.getElementById("analysis-back-selected");
 const downloadButton = document.getElementById("analysis-download-btn");
 const summaryWrap = document.getElementById("analysis-summary-wrap");
+const summaryPlayers = document.getElementById("summary-players");
 const summaryAvgEvalLoss = document.getElementById("summary-avg-eval-loss");
 const summaryBestMoveMisses = document.getElementById("summary-bestmove-misses");
 const summaryBiggestMistake = document.getElementById("summary-biggest-mistake");
@@ -30,6 +31,7 @@ let analysisSlowHintShown = false;
 let currentMoveDone = 0;
 let currentMoveTotal = 0;
 let visibleColumnKeys = new Set();
+let currentPlayers = { white: "", black: "" };
 
 const COLUMN_GROUPS = [
   { key: "core", labelKey: "pgn_columns_group_core" },
@@ -433,6 +435,19 @@ function updateBackLinks(draft) {
   backSelectedLink.classList.toggle("hidden", !shouldShow);
 }
 
+function extractPgnPlayers(pgnText) {
+  const tags = { white: "", black: "" };
+  String(pgnText || "")
+    .split(/\r?\n/)
+    .forEach((line) => {
+      const match = line.match(/^\[(White|Black)\s+"(.*)"\]$/);
+      if (!match) return;
+      const sideKey = match[1].toLowerCase();
+      tags[sideKey] = match[2].trim();
+    });
+  return tags;
+}
+
 function clampDepth(value) {
   const parsed = Number.parseInt(String(value ?? 18), 10);
   if (!Number.isFinite(parsed)) {
@@ -522,7 +537,7 @@ function renderSidePair(targetEl, whiteText, blackText) {
 }
 
 function renderSummary(rows) {
-  if (!summaryWrap || !summaryAvgEvalLoss || !summaryBestMoveMisses || !summaryBiggestMistake) return;
+  if (!summaryWrap || !summaryPlayers || !summaryAvgEvalLoss || !summaryBestMoveMisses || !summaryBiggestMistake) return;
   if (!rows.length) {
     summaryWrap.classList.add("hidden");
     return;
@@ -577,6 +592,11 @@ function renderSummary(rows) {
     });
   };
 
+  renderSidePair(
+    summaryPlayers,
+    currentPlayers.white || t("pgn_summary_unknown_player"),
+    currentPlayers.black || t("pgn_summary_unknown_player")
+  );
   renderSidePair(summaryAvgEvalLoss, renderAvgLoss("white"), renderAvgLoss("black"));
   renderSidePair(summaryBestMoveMisses, renderMisses("white"), renderMisses("black"));
   renderSidePair(summaryBiggestMistake, renderBiggestMistake("white"), renderBiggestMistake("black"));
@@ -614,6 +634,7 @@ function downloadCsv(rows) {
 async function runAnalysis() {
   const draft = parseDraft();
   updateBackLinks(draft);
+  currentPlayers = extractPgnPlayers(draft?.pgn_text || "");
   if (summaryWrap) {
     summaryWrap.classList.add("hidden");
   }
