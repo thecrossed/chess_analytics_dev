@@ -9,6 +9,7 @@ const columnControls = document.getElementById("analysis-column-controls");
 const backSelectedLink = document.getElementById("analysis-back-selected");
 const downloadButton = document.getElementById("analysis-download-btn");
 const summaryWrap = document.getElementById("analysis-summary-wrap");
+const summaryPlayers = document.getElementById("summary-players");
 const summaryAvgEvalLoss = document.getElementById("summary-avg-eval-loss");
 const summaryBestMoveMisses = document.getElementById("summary-bestmove-misses");
 const summaryBiggestMistake = document.getElementById("summary-biggest-mistake");
@@ -30,6 +31,7 @@ let analysisSlowHintShown = false;
 let currentMoveDone = 0;
 let currentMoveTotal = 0;
 let visibleColumnKeys = new Set();
+let currentPlayers = { white: "", black: "" };
 
 const COLUMN_GROUPS = [
   { key: "core", labelKey: "pgn_columns_group_core" },
@@ -121,6 +123,70 @@ function formatCellValue(value) {
 
 function columnClassName(column) {
   return `col-${column.key.replace(/_/g, "-")}`;
+}
+
+function getDirectionalLoss(row) {
+  const sideKey = String(row?.side || "").toLowerCase() === "black" ? "black" : "white";
+  const evalScore = parseEvalNumber(row?.eval_score);
+  const bestEval = parseEvalNumber(row?.bestmove_eval);
+  if (evalScore == null || bestEval == null) {
+    return null;
+  }
+  const directionalLoss = sideKey === "white" ? (bestEval - evalScore) : (evalScore - bestEval);
+  return Math.max(0, directionalLoss);
+}
+
+function getMoveAnnotation(row) {
+  if (row?.is_book_move) {
+    return {
+      symbol: "=",
+      label: "Book",
+      tone: "book"
+    };
+  }
+
+  const loss = getDirectionalLoss(row);
+  if (loss == null) return null;
+
+  if (loss <= 0.08) {
+    return { symbol: "!!", label: "Brilliant", tone: "brilliant" };
+  }
+  if (loss <= 0.2) {
+    return { symbol: "!", label: "Good", tone: "good" };
+  }
+  if (loss <= 0.5) {
+    return { symbol: "!?", label: "Interesting", tone: "interesting" };
+  }
+  if (loss <= 1.0) {
+    return { symbol: "?!", label: "Inaccuracy", tone: "inaccuracy" };
+  }
+  if (loss <= 2.0) {
+    return { symbol: "?", label: "Mistake", tone: "mistake" };
+  }
+  return { symbol: "??", label: "Blunder", tone: "blunder" };
+}
+
+function renderMoveCell(td, row, column) {
+  td.className = columnClassName(column);
+  const wrap = document.createElement("div");
+  wrap.className = "move-cell-content";
+
+  const moveText = document.createElement("span");
+  moveText.className = "move-cell-text";
+  moveText.textContent = formatCellValue(row?.[column.key]);
+  wrap.appendChild(moveText);
+
+  const annotation = getMoveAnnotation(row);
+  if (annotation && moveText.textContent !== "-") {
+    const badge = document.createElement("span");
+    badge.className = `move-annotation move-annotation-${annotation.tone}`;
+    badge.textContent = annotation.symbol;
+    badge.title = annotation.label;
+    badge.setAttribute("aria-label", annotation.label);
+    wrap.appendChild(badge);
+  }
+
+  td.appendChild(wrap);
 }
 
 function columnHasData(rows, columnKey) {
@@ -369,6 +435,19 @@ function updateBackLinks(draft) {
   backSelectedLink.classList.toggle("hidden", !shouldShow);
 }
 
+function extractPgnPlayers(pgnText) {
+  const tags = { white: "", black: "" };
+  String(pgnText || "")
+    .split(/\r?\n/)
+    .forEach((line) => {
+      const match = line.match(/^\[(White|Black)\s+"(.*)"\]$/);
+      if (!match) return;
+      const sideKey = match[1].toLowerCase();
+      tags[sideKey] = match[2].trim();
+    });
+  return tags;
+}
+
 function clampDepth(value) {
   const parsed = Number.parseInt(String(value ?? 18), 10);
   if (!Number.isFinite(parsed)) {
@@ -422,8 +501,12 @@ function renderRows(rows) {
     const tr = document.createElement("tr");
     visibleColumns.forEach((column) => {
       const td = document.createElement("td");
-      td.textContent = formatCellValue(row?.[column.key]);
-      td.className = columnClassName(column);
+      if (column.key === "move") {
+        renderMoveCell(td, row, column);
+      } else {
+        td.textContent = formatCellValue(row?.[column.key]);
+        td.className = columnClassName(column);
+      }
       if (column.sticky) {
         td.classList.add("sticky-col", `sticky-col-${column.sticky}`);
       }
@@ -454,7 +537,7 @@ function renderSidePair(targetEl, whiteText, blackText) {
 }
 
 function renderSummary(rows) {
-  if (!summaryWrap || !summaryAvgEvalLoss || !summaryBestMoveMisses || !summaryBiggestMistake) return;
+  if (!summaryWrap || !summaryPlayers || !summaryAvgEvalLoss || !summaryBestMoveMisses || !summaryBiggestMistake) return;
   if (!rows.length) {
     summaryWrap.classList.add("hidden");
     return;
@@ -468,16 +551,10 @@ function renderSummary(rows) {
   rows.forEach((row) => {
     const sideKey = String(row?.side || "").toLowerCase() === "black" ? "black" : "white";
     const stats = sideStats[sideKey];
-    const evalScore = parseEvalNumber(row?.eval_score);
-    const bestEval = parseEvalNumber(row?.bestmove_eval);
-    if (evalScore == null || bestEval == null) {
+    const loss = getDirectionalLoss(row);
+    if (loss == null) {
       return;
     }
-    // Eval convention: positive = white advantage, negative = black advantage.
-    // White "miss" means actual eval is lower than best eval.
-    // Black "miss" means actual eval is higher than best eval (less negative / more white-favored).
-    const directionalLoss = sideKey === "white" ? (bestEval - evalScore) : (evalScore - bestEval);
-    const loss = Math.max(0, directionalLoss);
     stats.comparedCount += 1;
     stats.totalLoss += loss;
     if (loss >= 0.5) {
@@ -515,6 +592,11 @@ function renderSummary(rows) {
     });
   };
 
+  renderSidePair(
+    summaryPlayers,
+    currentPlayers.white || t("pgn_summary_unknown_player"),
+    currentPlayers.black || t("pgn_summary_unknown_player")
+  );
   renderSidePair(summaryAvgEvalLoss, renderAvgLoss("white"), renderAvgLoss("black"));
   renderSidePair(summaryBestMoveMisses, renderMisses("white"), renderMisses("black"));
   renderSidePair(summaryBiggestMistake, renderBiggestMistake("white"), renderBiggestMistake("black"));
@@ -552,6 +634,7 @@ function downloadCsv(rows) {
 async function runAnalysis() {
   const draft = parseDraft();
   updateBackLinks(draft);
+  currentPlayers = extractPgnPlayers(draft?.pgn_text || "");
   if (summaryWrap) {
     summaryWrap.classList.add("hidden");
   }
