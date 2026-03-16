@@ -64,6 +64,7 @@ body::before {
   width: min(1280px, 100%);
   position: relative;
   overflow: hidden;
+  padding-top: clamp(28px, 4vw, 46px);
 }
 
 .home-shell::after {
@@ -87,6 +88,7 @@ body::before {
   grid-template-columns: 1.15fr 0.85fr;
   gap: 22px;
   align-items: start;
+  margin-top: 12px;
 }
 
 .home-entry-chooser {
@@ -94,6 +96,7 @@ body::before {
   grid-template-columns: repeat(2, minmax(220px, 320px));
   gap: 16px;
   margin: 14px 0 20px;
+  align-items: stretch;
 }
 
 .entry-choice-banner {
@@ -113,10 +116,24 @@ body::before {
   text-align: left;
 }
 
+.entry-choice-banner::after {
+  content: "";
+  width: 42px;
+  height: 1px;
+  margin-top: auto;
+  background: rgba(53, 92, 82, 0.35);
+  transition: width 180ms ease, background 180ms ease;
+}
+
 .entry-choice-banner:hover {
   transform: translateY(-2px);
   box-shadow: 0 16px 28px rgba(43, 51, 47, 0.1);
   border-color: var(--line-strong);
+}
+
+.entry-choice-banner:hover::after {
+  width: 68px;
+  background: rgba(39, 70, 62, 0.6);
 }
 
 .entry-choice-title {
@@ -157,11 +174,24 @@ body::before {
   padding: clamp(18px, 2vw, 24px);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(248, 244, 237, 0.92) 100%);
   box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(53, 92, 82, 0.95), rgba(53, 92, 82, 0));
+  opacity: 0.9;
 }
 
 .feature-banner h2 {
-  margin: 0 0 8px;
-  font-size: clamp(18px, 1.6vw, 24px);
+  margin: 0 0 10px;
+  font-size: clamp(24px, 2vw, 32px);
+  line-height: 1.08;
+  position: relative;
 }
 
 .feature-banner-primary {
@@ -193,6 +223,7 @@ h3 {
   color: var(--subtle);
   font-size: 17px;
   max-width: 42rem;
+  text-wrap: balance;
 }
 
 .home-trust-line {
@@ -201,6 +232,21 @@ h3 {
   font-size: 13px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.home-shell > .hint-inline:last-child {
+  margin-top: 18px;
+}
+
+.home-shell > .hint-inline:last-child a {
+  color: var(--accent-dark);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(39, 70, 62, 0.2);
+  padding-bottom: 2px;
+}
+
+.home-shell > .hint-inline:last-child a:hover {
+  border-bottom-color: rgba(39, 70, 62, 0.45);
 }
 
 .hint {
@@ -240,6 +286,15 @@ h3 {
 .import-row {
   align-items: center;
   margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(213, 214, 204, 0.55);
+}
+
+.feature-banner > .import-row:first-of-type,
+.feature-banner > form.row,
+.feature-banner > details.date-override + .row.import-row {
+  border-top: 0;
+  padding-top: 0;
 }
 
 .hint-inline {
@@ -258,6 +313,10 @@ h3 {
   align-items: center;
   gap: 6px;
   color: var(--subtle);
+  padding: 7px 10px;
+  border: 1px solid rgba(213, 214, 204, 0.8);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
 }
 
 input {
@@ -385,29 +444,34 @@ button:disabled,
   gap: 14px;
   justify-content: flex-end;
   flex-wrap: wrap;
-  margin-top: 16px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(213, 214, 204, 0.75);
 }
 
 .analysis-page-actions {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  margin: 8px 0 14px;
+  margin: 18px 0 18px;
+  padding: 14px 0 0;
+  border-top: 1px solid rgba(213, 214, 204, 0.72);
 }
 
 .analysis-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin: 10px 0 14px;
+  gap: 14px;
+  margin: 18px 0 18px;
 }
 
 .analysis-columns {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(252, 251, 248, 0.98) 0%, rgba(243, 240, 233, 0.96) 100%);
-  padding: 14px;
-  margin: 12px 0 14px;
+  padding: 16px;
+  margin: 18px 0 18px;
+  box-shadow: var(--shadow-card);
 }
 
 .analysis-columns-header {
@@ -420,7 +484,7 @@ button:disabled,
 
 .analysis-columns-header h3 {
   margin: 0 0 4px;
-  font-size: 16px;
+  font-size: 22px;
 }
 
 .analysis-group-toggles {
@@ -519,7 +583,7 @@ button:disabled,
 
 .analysis-summary-card h3 {
   margin: 0 0 6px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--subtle);
   font-weight: 600;
   display: inline-flex;
@@ -529,7 +593,7 @@ button:disabled,
 
 .analysis-summary-card p {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text);
   display: flex;
@@ -541,6 +605,7 @@ button:disabled,
   display: block;
   font-size: 14px;
   font-weight: 500;
+  line-height: 1.45;
 }
 
 .metric-info {
@@ -660,6 +725,7 @@ hr {
   border-radius: 14px;
   background: rgba(253, 251, 248, 0.96);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  margin-top: 18px;
 }
 
 .table-wrap.scrollable-rows {
@@ -679,6 +745,10 @@ hr {
   z-index: 20;
   background: #f3efe8;
   box-shadow: inset 0 -1px 0 var(--line);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #607069;
 }
 
 .analysis-result-table th,
@@ -688,6 +758,10 @@ hr {
   border-bottom: 1px solid #e4e4db;
   white-space: nowrap;
   background: rgba(255, 253, 250, 0.94);
+}
+
+.analysis-result-table tbody td {
+  color: #22302d;
 }
 
 .analysis-result-table tbody tr:nth-child(even) td {
@@ -787,12 +861,12 @@ hr {
   border-radius: 14px;
   background: rgba(251, 248, 242, 0.97);
   box-shadow: 0 20px 40px rgba(33, 39, 36, 0.16);
-  padding: 18px;
+  padding: 22px;
 }
 
 .progress-dialog h2 {
-  margin: 0 0 8px;
-  font-size: 20px;
+  margin: 0 0 10px;
+  font-size: 28px;
 }
 
 .progress-bar {
@@ -815,6 +889,7 @@ hr {
   margin-top: 12px;
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
 }
 
 .cookie-banner {
@@ -942,7 +1017,7 @@ td {
 
 .selected-pgn-card h2 {
   margin: 0 0 8px;
-  font-size: 18px;
+  font-size: 24px;
 }
 
 .selected-pgn-card-actions {
@@ -988,10 +1063,6 @@ td small {
     grid-template-columns: 1fr;
   }
 
-  .home-entry-chooser {
-    grid-template-columns: 1fr;
-  }
-
   .analysis-summary {
     grid-template-columns: 1fr;
   }
@@ -999,6 +1070,11 @@ td small {
   .selected-pgn-card-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .home-entry-chooser {
+    grid-template-columns: 1fr;
+    max-width: 480px;
   }
 
   th,
@@ -1033,6 +1109,7 @@ td small {
   .actions {
     justify-content: stretch;
     margin-top: 14px;
+    padding-top: 14px;
   }
 
   button,
@@ -1062,6 +1139,10 @@ td small {
 
   .analysis-columns-grid {
     grid-template-columns: 1fr;
+  }
+
+  .analysis-page-actions {
+    padding-top: 12px;
   }
 }
 
