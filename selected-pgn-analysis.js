@@ -38,6 +38,7 @@ function savePgnDraft(game, depth, sourceKind) {
 function formatMeta(game) {
   const parts = [];
   if (game.username) parts.push(`${t("stats_username")}: ${game.username}`);
+  if (game.platform) parts.push(`${t("stats_raw_platform")}: ${game.platform === "chesscom" ? "Chess.com" : "Lichess"}`);
   if (game.source_name) parts.push(game.source_name);
   if (game.game_type) parts.push(game.game_type);
   if (game.white_username || game.black_username) {

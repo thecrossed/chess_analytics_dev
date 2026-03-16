@@ -11,6 +11,8 @@ const csvFileInput = document.getElementById("csv-file");
 const gameTypeInputs = Array.from(document.querySelectorAll('input[name="game-type"]'));
 
 const pgnFileInput = document.getElementById("pgn-upload");
+const pgnPlayerPlatformInput = document.getElementById("pgn-player-platform");
+const pgnPlayerUsernameInput = document.getElementById("pgn-player-username");
 const pgnTextInput = document.getElementById("pgn-text");
 const pgnDepthInput = document.getElementById("analysis-depth");
 const pgnAnalyzeButton = document.getElementById("pgn-analyze-btn");
@@ -246,10 +248,23 @@ function formatPgnBatchDate(tags) {
   return "";
 }
 
-function buildBatchGameEntry(pgnText, sourceName, sourceIndex, gameIndex) {
+function getPgnPlayerContext() {
+  const username = normalizeUsername(pgnPlayerUsernameInput?.value || "");
+  if (!username) {
+    return { username: "", platform: "" };
+  }
+  return {
+    username,
+    platform: pgnPlayerPlatformInput?.value || "chesscom"
+  };
+}
+
+function buildBatchGameEntry(pgnText, sourceName, sourceIndex, gameIndex, playerContext) {
   const tags = extractPgnTags(pgnText);
   return {
     pgn_text: pgnText,
+    username: playerContext?.username || "",
+    platform: playerContext?.platform || "",
     white_username: tags.White || "",
     black_username: tags.Black || "",
     played_at_utc: formatPgnBatchDate(tags),
@@ -262,6 +277,7 @@ function buildBatchGameEntry(pgnText, sourceName, sourceIndex, gameIndex) {
 }
 
 function getPgnBatchState() {
+  const playerContext = getPgnPlayerContext();
   const sources = [];
   pgnFileEntries.forEach((entry, index) => {
     const normalized = normalizePgnForCompare(entry.text);
@@ -293,7 +309,7 @@ function getPgnBatchState() {
       if (!normalized || !hasValidPgnFormat(normalized)) return;
       if (seen.has(normalized)) return;
       seen.add(normalized);
-      games.push(buildBatchGameEntry(normalized, source.name, sourceIndex, gameIndex));
+      games.push(buildBatchGameEntry(normalized, source.name, sourceIndex, gameIndex, playerContext));
     });
   });
 
@@ -556,6 +572,12 @@ if (pgnTextInput) {
   });
 }
 
+if (pgnPlayerUsernameInput) {
+  pgnPlayerUsernameInput.addEventListener("input", () => {
+    refreshPgnAutoStatus();
+  });
+}
+
 if (pgnAnalyzeButton) {
   pgnAnalyzeButton.addEventListener("click", async () => {
     trackFunnelEvent("funnel_pgn_submit_clicked");
@@ -574,6 +596,13 @@ if (pgnAnalyzeButton) {
       setPgnStatus(t("home_pgn_no_input"), true);
       return;
     }
+    const playerContext = getPgnPlayerContext();
+    if (playerContext.username && !USERNAME_RE.test(playerContext.username)) {
+      trackFunnelEvent("funnel_pgn_validation_error", { reason: "invalid_batch_username_format" });
+      window.alert(t("alert_invalid_username_format"));
+      pgnPlayerUsernameInput?.focus();
+      return;
+    }
     if (state.games.length === 0) {
       trackFunnelEvent("funnel_pgn_validation_error", { reason: "invalid_pgn_format_batch" });
       const message = t("home_pgn_invalid_format");
@@ -588,12 +617,15 @@ if (pgnAnalyzeButton) {
         pgn_text: onlyGame.pgn_text,
         depth,
         source: "single_upload",
+        username: onlyGame.username || "",
+        platform: onlyGame.platform || "",
         saved_at_ms: Date.now()
       });
       trackFunnelEvent("funnel_pgn_submit_success", {
         source: state.sourcesCount > 1 ? "batch_single_result" : "single",
         depth,
-        games: 1
+        games: 1,
+        has_username_context: Boolean(onlyGame.username)
       });
       window.location.href = "pgn-analysis.html";
       return;
@@ -611,7 +643,8 @@ if (pgnAnalyzeButton) {
     trackFunnelEvent("funnel_pgn_submit_success", {
       source: "uploaded_batch",
       depth,
-      games: state.games.length
+      games: state.games.length,
+      has_username_context: Boolean(playerContext.username)
     });
     window.location.href = "selected-pgn-analysis.html";
   });

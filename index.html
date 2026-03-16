@@ -132,6 +132,22 @@
             </div>
             <p class="hint-inline" data-i18n="home_pgn_batch_hint">Upload multiple PGN files or one PGN file containing multiple games.</p>
             <div class="row import-row">
+              <label for="pgn-player-platform" data-i18n="home_pgn_player_context_label">Player Context (Optional)</label>
+              <select id="pgn-player-platform" name="pgn-player-platform">
+                <option value="chesscom">Chess.com</option>
+                <option value="lichess">Lichess</option>
+              </select>
+              <input
+                id="pgn-player-username"
+                name="pgn-player-username"
+                type="text"
+                data-i18n-placeholder="home_pgn_player_username_placeholder"
+                placeholder="e.g. MagnusCarlsen"
+                autocomplete="off"
+              />
+            </div>
+            <p class="hint-inline" data-i18n="home_pgn_player_context_hint">If these PGNs belong to one player, add the platform and username so the batch list is easier to scan.</p>
+            <div class="row import-row">
               <label for="pgn-text" data-i18n="home_pgn_paste_label">Paste PGN</label>
               <textarea
                 id="pgn-text"
