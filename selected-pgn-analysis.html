@@ -17,6 +17,24 @@
         <h1 data-i18n="selected_pgn_heading">Selected PGN Analysis</h1>
         <p id="selected-pgn-summary" class="hint" data-i18n="selected_pgn_loading">Loading selected games...</p>
 
+        <section id="selected-pgn-batch-panel" class="selected-pgn-batch-panel hidden" aria-live="polite">
+          <div class="selected-pgn-batch-header">
+            <div>
+              <h2 data-i18n="selected_pgn_batch_title">Analyze All Games</h2>
+              <p id="selected-pgn-batch-summary" class="hint-inline" data-i18n="selected_pgn_batch_idle">
+                Analyze every game in this list one by one.
+              </p>
+            </div>
+            <button id="selected-pgn-run-all" type="button" data-i18n="selected_pgn_batch_cta">Analyze All Games</button>
+          </div>
+          <div class="progress-bar" aria-hidden="true">
+            <div id="selected-pgn-batch-fill" class="progress-fill"></div>
+          </div>
+          <p id="selected-pgn-batch-current" class="hint-inline" data-i18n="selected_pgn_batch_waiting">
+            Waiting to start.
+          </p>
+        </section>
+
         <section id="selected-pgn-list" class="selected-pgn-list hidden" aria-live="polite"></section>
 
         <div class="actions">

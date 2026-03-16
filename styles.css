@@ -1072,6 +1072,28 @@ td {
   margin: 14px 0;
 }
 
+.selected-pgn-batch-panel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 18px 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(243, 240, 233, 0.96) 100%);
+  box-shadow: var(--shadow-card);
+}
+
+.selected-pgn-batch-header {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.selected-pgn-batch-header h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+}
+
 .selected-pgn-card {
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -1080,9 +1102,60 @@ td {
   box-shadow: var(--shadow-card);
 }
 
+.selected-pgn-card-header {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .selected-pgn-card h2 {
   margin: 0 0 8px;
   font-size: 24px;
+}
+
+.selected-pgn-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.selected-pgn-status-pending {
+  background: rgba(232, 234, 229, 0.9);
+  border-color: rgba(173, 180, 170, 0.8);
+  color: #58635b;
+}
+
+.selected-pgn-status-running {
+  background: rgba(230, 239, 233, 0.95);
+  border-color: rgba(126, 154, 138, 0.9);
+  color: #2e5746;
+}
+
+.selected-pgn-status-done {
+  background: rgba(220, 238, 228, 0.95);
+  border-color: rgba(111, 154, 128, 0.9);
+  color: #1f5f3f;
+}
+
+.selected-pgn-status-failed {
+  background: rgba(248, 223, 215, 0.95);
+  border-color: rgba(210, 144, 131, 0.9);
+  color: #8f3f32;
+}
+
+.selected-pgn-status-missing {
+  background: rgba(244, 237, 228, 0.95);
+  border-color: rgba(194, 173, 143, 0.8);
+  color: #7b6645;
 }
 
 .selected-pgn-card-actions {
@@ -1090,6 +1163,14 @@ td {
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 10px;
+}
+
+.selected-pgn-card-note {
+  margin: 10px 0 0;
+}
+
+.selected-pgn-card-note-failed {
+  color: #9a4b3c;
 }
 
 .button-link-disabled,
@@ -1208,6 +1289,19 @@ td small {
 
   .analysis-page-actions {
     padding-top: 12px;
+  }
+
+  .selected-pgn-batch-header {
+    align-items: stretch;
+  }
+
+  .selected-pgn-card-header {
+    align-items: flex-start;
+  }
+
+  .selected-pgn-card-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
