@@ -127,13 +127,14 @@
             <p class="hint" data-i18n="home_banner_pgn_hint">Upload a PGN file and run engine analysis for move-by-move scoring.</p>
 
             <div class="row import-row">
-              <label for="pgn-upload">
-                <span data-i18n="home_pgn_file_label">PGN File</span>
-                <span class="metric-info" data-tooltip-i18n="home_pgn_batch_hint" tabindex="0">i</span>
-              </label>
+              <label for="pgn-upload" data-i18n="home_pgn_file_label">PGN File</label>
               <input id="pgn-upload" type="file" accept=".pgn,text/plain" multiple />
             </div>
-            <p class="hint-inline" data-i18n="home_pgn_multi_hint">For multiple games in one file, place each game as a full PGN block and separate games with a blank line.</p>
+            <p class="hint-inline pgn-format-hint">
+              <span class="pgn-format-chip" data-i18n="home_pgn_multi_chip_block">full PGN block</span>
+              <span class="pgn-format-chip" data-i18n="home_pgn_multi_chip_blank">blank line</span>
+              <span data-i18n="home_pgn_batch_hint">For multiple games in one file, place each game as a full PGN block and separate games with a blank line.</span>
+            </p>
             <div class="row import-row">
               <label for="pgn-text" data-i18n="home_pgn_paste_label">Paste PGN</label>
               <textarea
