@@ -185,6 +185,64 @@ function renderMoveCell(td, row, column) {
   td.appendChild(wrap);
 }
 
+function parseFenBoardMap(fen) {
+  const placement = String(fen || "").trim().split(/\s+/)[0];
+  if (!placement) return null;
+
+  const boardMap = {};
+  const ranks = placement.split("/");
+  if (ranks.length !== 8) return null;
+
+  for (let rankIndex = 0; rankIndex < 8; rankIndex += 1) {
+    const rank = ranks[rankIndex];
+    let fileCode = "a".charCodeAt(0);
+    for (const char of rank) {
+      if (/\d/.test(char)) {
+        fileCode += Number.parseInt(char, 10);
+        continue;
+      }
+      const square = `${String.fromCharCode(fileCode)}${8 - rankIndex}`;
+      boardMap[square] = char;
+      fileCode += 1;
+    }
+  }
+  return boardMap;
+}
+
+function formatBestMoveFromFen(uciMove, fenBeforeMove) {
+  const text = formatCellValue(uciMove);
+  if (text === "-") return text;
+
+  const match = text.match(/^([a-h][1-8])([a-h][1-8])([nbrq])?$/i);
+  if (!match) return text;
+
+  const [, from, to, promotion] = match;
+  if (from === "e1" && to === "g1") return "O-O";
+  if (from === "e8" && to === "g8") return "O-O";
+  if (from === "e1" && to === "c1") return "O-O-O";
+  if (from === "e8" && to === "c8") return "O-O-O";
+
+  const boardMap = parseFenBoardMap(fenBeforeMove);
+  const piece = boardMap?.[from];
+  if (!piece) {
+    return promotion ? `${to}=${promotion.toUpperCase()}` : to;
+  }
+
+  const pieceLetter = piece.toUpperCase();
+  const destinationOccupied = Boolean(boardMap[to]);
+  const isPawn = pieceLetter === "P";
+  const isCapture = destinationOccupied || (from[0] !== to[0] && isPawn);
+
+  if (isPawn) {
+    const pawnPrefix = isCapture ? `${from[0]}x` : "";
+    const promotionSuffix = promotion ? `=${promotion.toUpperCase()}` : "";
+    return `${pawnPrefix}${to}${promotionSuffix}`;
+  }
+
+  const captureMarker = isCapture ? "x" : "";
+  return `${pieceLetter}${captureMarker}${to}`;
+}
+
 function columnHasData(rows, columnKey) {
   return rows.some((row) => {
     const value = row?.[columnKey];
@@ -524,6 +582,9 @@ function renderRows(rows) {
       const td = document.createElement("td");
       if (column.key === "move") {
         renderMoveCell(td, row, column);
+      } else if (column.key === "bestmove") {
+        td.textContent = formatBestMoveFromFen(row?.[column.key], row?.fen_before_move);
+        td.className = columnClassName(column);
       } else {
         td.textContent = formatCellValue(row?.[column.key]);
         td.className = columnClassName(column);
