@@ -785,20 +785,11 @@ hr {
 
 .analysis-result-table .sticky-col-2 {
   left: 90px;
-  min-width: 88px;
-}
-
-.analysis-result-table .sticky-col-3 {
-  left: 178px;
   min-width: 132px;
 }
 
 .analysis-result-table .col-move-number {
   min-width: 90px;
-}
-
-.analysis-result-table .col-side {
-  min-width: 88px;
 }
 
 .analysis-result-table .col-move {
@@ -813,6 +804,25 @@ hr {
 
 .move-cell-text {
   font-weight: 600;
+}
+
+.move-side-indicator {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex: 0 0 11px;
+  box-sizing: border-box;
+}
+
+.move-side-white {
+  background: #fbfaf6;
+  border: 1px solid #9a9b92;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.move-side-black {
+  background: #2b312d;
+  border: 1px solid #2b312d;
 }
 
 .move-annotation {

@@ -42,8 +42,7 @@ const COLUMN_GROUPS = [
 
 const COLUMN_DEFS = [
   { key: "move_number", labelKey: "pgn_eval_move_number", group: "core", sticky: 1 },
-  { key: "side", labelKey: "pgn_eval_side", group: "core", sticky: 2 },
-  { key: "move", labelKey: "pgn_eval_move", group: "core", sticky: 3 },
+  { key: "move", labelKey: "pgn_eval_move", group: "core", sticky: 2 },
   { key: "eval_score", labelKey: "pgn_eval_score", group: "engine" },
   { key: "bestmove", labelKey: "pgn_eval_bestmove", group: "engine" },
   { key: "bestmove_eval", labelKey: "pgn_eval_bestmove_eval", group: "engine" },
@@ -161,9 +160,16 @@ function renderMoveCell(td, row, column) {
   const wrap = document.createElement("div");
   wrap.className = "move-cell-content";
 
+  const sideKey = String(row?.side || "").toLowerCase() === "black" ? "black" : "white";
   const moveText = document.createElement("span");
   moveText.className = "move-cell-text";
   moveText.textContent = formatCellValue(row?.[column.key]);
+  if (moveText.textContent !== "-") {
+    const sideDot = document.createElement("span");
+    sideDot.className = `move-side-indicator move-side-${sideKey}`;
+    sideDot.setAttribute("aria-hidden", "true");
+    wrap.appendChild(sideDot);
+  }
   wrap.appendChild(moveText);
 
   const annotation = getMoveAnnotation(row);
