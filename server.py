@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import html
 import hashlib
 import hmac
 import json
@@ -74,6 +75,8 @@ DEBUG_RESET_TOKEN_RESPONSE = os.environ.get("DEBUG_RESET_TOKEN_RESPONSE", "0") =
 ADMIN_REPORT_TOKEN = os.environ.get("ADMIN_REPORT_TOKEN", "").strip()
 DAILY_REPORT_RECIPIENT = "chessalwaysfun@gmail.com"
 GEOIP_DB_PATH = os.environ.get("GEOIP_DB_PATH", "").strip()
+REPORT_PGN_PREVIEW_LIMIT = 10
+REPORT_PGN_PREVIEW_CHARS = 1200
 
 ARCHIVES_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archives/?$")
 ARCHIVE_MONTH_RE = re.compile(r"^/api/chesscom/player/([^/]+)/games/archive/(\d{4})/(\d{2})/?$")
@@ -640,6 +643,7 @@ def send_traffic_report_email(
     submitted_usernames: List[Tuple[str, int]],
     pgn_uploads_total: int,
     unique_pgn_uploads: int,
+    uploaded_pgn_previews: List[Dict[str, Any]],
     funnel_event_counts: List[Tuple[str, int]],
 ) -> bool:
     period_label_map = {
@@ -656,6 +660,34 @@ def send_traffic_report_email(
     country_html = "".join([f"<li>{country}: {count}</li>" for country, count in country_views]) or "<li>no country data</li>"
     username_lines = "\n".join([f"- {username}: {count}" for username, count in submitted_usernames]) or "- no usernames submitted"
     username_html = "".join([f"<li>{username}: {count}</li>" for username, count in submitted_usernames]) or "<li>no usernames submitted</li>"
+    pgn_preview_lines = (
+        "\n\n".join(
+            [
+                (
+                    f"- uploaded_at_utc: {item['uploaded_at_utc']}\n"
+                    f"  chars: {item['value_length']}\n"
+                    f"  pgn:\n{item['preview_text']}"
+                )
+                for item in uploaded_pgn_previews
+            ]
+        )
+        or "- no PGN uploads"
+    )
+    pgn_preview_html = (
+        "".join(
+            [
+                (
+                    "<li>"
+                    f"<strong>{html.escape(str(item['uploaded_at_utc']))}</strong> "
+                    f"(chars: {int(item['value_length'])})"
+                    f"<pre>{html.escape(str(item['preview_text']))}</pre>"
+                    "</li>"
+                )
+                for item in uploaded_pgn_previews
+            ]
+        )
+        or "<li>no PGN uploads</li>"
+    )
     funnel_lines = "\n".join([f"- {event_type}: {count}" for event_type, count in funnel_event_counts]) or "- no funnel events"
     funnel_html = "".join([f"<li>{event_type}: {count}</li>" for event_type, count in funnel_event_counts]) or "<li>no funnel events</li>"
     text_body = (
@@ -673,6 +705,8 @@ def send_traffic_report_email(
         f"{button_lines}\n"
         "\nSubmitted usernames:\n"
         f"{username_lines}\n"
+        "\nUploaded PGN content:\n"
+        f"{pgn_preview_lines}\n"
         "\nFunnel events:\n"
         f"{funnel_lines}\n"
     )
@@ -693,6 +727,8 @@ def send_traffic_report_email(
         f"<ul>{button_html}</ul>"
         "<p>Submitted usernames:</p>"
         f"<ul>{username_html}</ul>"
+        "<p>Uploaded PGN content:</p>"
+        f"<ul>{pgn_preview_html}</ul>"
         "<p>Funnel events:</p>"
         f"<ul>{funnel_html}</ul>"
     )
@@ -721,6 +757,22 @@ def get_client_ip(handler: SimpleHTTPRequestHandler) -> str:
     if forwarded_for:
         return forwarded_for.split(",")[0].strip()
     return handler.client_address[0] if handler.client_address else "unknown"
+
+
+def build_report_pgn_previews(rows: List[Tuple[Any, Any]]) -> List[Dict[str, Any]]:
+    previews: List[Dict[str, Any]] = []
+    for created_at, value_text in rows[:REPORT_PGN_PREVIEW_LIMIT]:
+        preview_text = str(value_text or "").strip()
+        if len(preview_text) > REPORT_PGN_PREVIEW_CHARS:
+            preview_text = preview_text[:REPORT_PGN_PREVIEW_CHARS].rstrip() + "\n...[truncated]"
+        previews.append(
+            {
+                "uploaded_at_utc": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(int(created_at or 0))),
+                "value_length": len(str(value_text or "")),
+                "preview_text": preview_text or "-",
+            }
+        )
+    return previews
 
 
 def get_country_code_from_headers(handler: SimpleHTTPRequestHandler) -> str:
@@ -2121,6 +2173,16 @@ class AppHandler(SimpleHTTPRequestHandler):
                 """,
                 (window_start, window_end),
             ).fetchone()[0]
+            uploaded_pgn_rows = conn.execute(
+                """
+                SELECT created_at, value_text
+                FROM input_events
+                WHERE event_type = 'pgn_uploaded' AND created_at >= ? AND created_at < ?
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+                """,
+                (window_start, window_end, REPORT_PGN_PREVIEW_LIMIT),
+            ).fetchall()
             funnel_rows = conn.execute(
                 """
                 SELECT event_type, COUNT(*) AS cnt
@@ -2132,6 +2194,7 @@ class AppHandler(SimpleHTTPRequestHandler):
             ).fetchall()
 
         funnel_counts_map: Dict[str, int] = {}
+        uploaded_pgn_previews = build_report_pgn_previews(uploaded_pgn_rows)
         for row in funnel_rows:
             funnel_counts_map[str(row[0] or "")] = int(row[1] or 0)
 
@@ -2155,6 +2218,7 @@ class AppHandler(SimpleHTTPRequestHandler):
             submitted_usernames=submitted_usernames,
             pgn_uploads_total=pgn_uploads_total,
             unique_pgn_uploads=unique_pgn_uploads,
+            uploaded_pgn_previews=uploaded_pgn_previews,
             funnel_event_counts=funnel_event_counts,
         )
         log_runtime(
@@ -2187,6 +2251,7 @@ class AppHandler(SimpleHTTPRequestHandler):
                 "submitted_usernames": [{"username": username, "count": count} for username, count in submitted_usernames],
                 "pgn_uploads_total": pgn_uploads_total,
                 "unique_pgn_uploads": unique_pgn_uploads,
+                "uploaded_pgn_previews": uploaded_pgn_previews,
                 "funnel_events": [{"event_type": event_type, "count": count} for event_type, count in funnel_event_counts],
                 "recipient": DAILY_REPORT_RECIPIENT,
             },
