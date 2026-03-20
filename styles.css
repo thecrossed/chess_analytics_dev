@@ -202,6 +202,90 @@ body::before {
   background: linear-gradient(180deg, rgba(252, 250, 246, 0.96) 0%, rgba(241, 239, 233, 0.98) 100%);
 }
 
+.analysis-preview-card {
+  margin: 14px 0 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(123, 138, 129, 0.26);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(242, 239, 232, 0.78) 100%);
+}
+
+.analysis-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.analysis-preview-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4a6258;
+}
+
+.analysis-preview-tag {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(77, 110, 94, 0.1);
+  color: #365246;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.analysis-preview-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(206, 210, 201, 0.65);
+}
+
+.analysis-preview-line:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.analysis-preview-label {
+  color: var(--subtle);
+  font-size: 13px;
+}
+
+.analysis-preview-value {
+  font-weight: 600;
+  color: #23302d;
+}
+
+.analysis-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1cfc8;
+  border: 1px solid #cd9185;
+  color: #7e2e26;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.analysis-preview-swing-values {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #24453c;
+}
+
+.analysis-preview-arrow {
+  color: #7f8f87;
+}
+
 h1 {
   margin: 0 0 10px;
   font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
