@@ -123,66 +123,85 @@
             <div class="entry-back-row">
               <button id="back-to-entry-from-pgn" type="button" class="secondary-link" data-track="false">Back</button>
             </div>
-            <h2 data-i18n="home_banner_pgn_title">Upload PGN + Stockfish Analysis</h2>
-            <p class="hint" data-i18n="home_banner_pgn_hint">Upload a PGN file and run engine analysis for move-by-move scoring.</p>
-            <div class="analysis-preview-card" aria-hidden="true">
-              <div class="analysis-preview-header">
-                <span class="analysis-preview-kicker" data-i18n="home_pgn_preview_kicker">Preview</span>
-                <span class="analysis-preview-tag" data-i18n="home_pgn_preview_tag">What you get</span>
-              </div>
-              <div class="analysis-preview-line">
-                <span class="analysis-preview-label" data-i18n="home_pgn_preview_move_label">Move</span>
-                <span class="analysis-preview-value">23. Qh4</span>
-              </div>
-              <div class="analysis-preview-line">
-                <span class="analysis-preview-label" data-i18n="home_pgn_preview_bestmove_label">Best move</span>
-                <span class="analysis-preview-value">23. f5</span>
-              </div>
-              <div class="analysis-preview-line">
-                <span class="analysis-preview-label" data-i18n="home_pgn_preview_mistake_label">Flag</span>
-                <span class="analysis-preview-badge">??</span>
-              </div>
-              <div class="analysis-preview-line analysis-preview-swing">
-                <span class="analysis-preview-label" data-i18n="home_pgn_preview_eval_label">Eval swing</span>
-                <span class="analysis-preview-swing-values">
-                  <span>-0.2</span>
-                  <span class="analysis-preview-arrow">→</span>
-                  <span>+1.6</span>
-                </span>
-              </div>
-            </div>
+            <div class="pgn-entry-layout">
+              <div class="pgn-entry-main">
+                <h2 data-i18n="home_banner_pgn_title">Upload PGN + Stockfish Analysis</h2>
+                <p class="hint" data-i18n="home_banner_pgn_hint">Upload a PGN file and run engine analysis for move-by-move scoring.</p>
 
-            <div class="row import-row">
-              <label for="pgn-upload" data-i18n="home_pgn_file_label">PGN File</label>
-              <input id="pgn-upload" type="file" accept=".pgn,text/plain" multiple />
-            </div>
-            <p class="hint-inline">
-              <span data-i18n="home_pgn_batch_hint_before">For multiple games in one file, place each game as a </span>
-              <strong data-i18n="home_pgn_batch_hint_block">full PGN block</strong>
-              <span data-i18n="home_pgn_batch_hint_middle"> and separate games with a </span>
-              <strong data-i18n="home_pgn_batch_hint_blank">blank line</strong>
-              <span data-i18n="home_pgn_batch_hint_after">.</span>
-            </p>
-            <div class="row import-row">
-              <label for="pgn-text" data-i18n="home_pgn_paste_label">Paste PGN</label>
-              <textarea
-                id="pgn-text"
-                rows="8"
-                data-i18n-placeholder="home_pgn_paste_placeholder"
-                placeholder="Paste PGN text here..."
-              ></textarea>
-            </div>
-            <div class="row import-row">
-              <label for="analysis-depth" data-i18n="home_pgn_depth_label">Analysis Depth</label>
-              <input id="analysis-depth" type="number" min="8" max="20" step="1" value="18" />
-            </div>
+                <div class="row import-row">
+                  <label for="pgn-upload" data-i18n="home_pgn_file_label">PGN File</label>
+                  <input id="pgn-upload" type="file" accept=".pgn,text/plain" multiple />
+                </div>
+                <p class="hint-inline">
+                  <span data-i18n="home_pgn_batch_hint_before">For multiple games in one file, place each game as a </span>
+                  <strong data-i18n="home_pgn_batch_hint_block">full PGN block</strong>
+                  <span data-i18n="home_pgn_batch_hint_middle"> and separate games with a </span>
+                  <strong data-i18n="home_pgn_batch_hint_blank">blank line</strong>
+                  <span data-i18n="home_pgn_batch_hint_after">.</span>
+                </p>
+                <div class="row import-row">
+                  <label for="pgn-text" data-i18n="home_pgn_paste_label">Paste PGN</label>
+                  <textarea
+                    id="pgn-text"
+                    rows="8"
+                    data-i18n-placeholder="home_pgn_paste_placeholder"
+                    placeholder="Paste PGN text here..."
+                  ></textarea>
+                </div>
+                <div class="row import-row">
+                  <label for="analysis-depth" data-i18n="home_pgn_depth_label">Analysis Depth</label>
+                  <input id="analysis-depth" type="number" min="8" max="20" step="1" value="18" />
+                </div>
 
-            <div class="actions">
-              <button id="pgn-analyze-btn" type="button" data-i18n="home_pgn_analyze_btn">Run Stockfish Analysis</button>
-              <button id="demo-pgn-load" type="button" class="secondary-link" data-i18n="home_demo_pgn">Try Sample PGN</button>
+                <div class="actions">
+                  <button id="pgn-analyze-btn" type="button" data-i18n="home_pgn_analyze_btn">Run Stockfish Analysis</button>
+                  <button id="demo-pgn-load" type="button" class="secondary-link" data-i18n="home_demo_pgn">Try Sample PGN</button>
+                </div>
+                <p id="pgn-status" class="hint-inline" data-i18n="home_pgn_auto_load_hint">PGN loads automatically from file or pasted text.</p>
+                <p class="hint-inline" data-i18n="home_pgn_eta_hint">Typical run time: ~20-40s</p>
+              </div>
+
+              <div class="analysis-preview-card" aria-hidden="true">
+                <div class="analysis-preview-header">
+                  <span class="analysis-preview-kicker" data-i18n="home_pgn_preview_kicker">Preview</span>
+                  <span class="analysis-preview-tag" data-i18n="home_pgn_preview_tag">What you get</span>
+                </div>
+                <div class="analysis-preview-line">
+                  <span class="analysis-preview-label" data-i18n="home_pgn_preview_move_label">Move</span>
+                  <span class="analysis-preview-move">
+                    <span class="analysis-preview-side analysis-preview-side-white" aria-hidden="true"></span>
+                    <span class="analysis-preview-value">23. Qh4</span>
+                  </span>
+                </div>
+                <div class="analysis-preview-line">
+                  <span class="analysis-preview-label" data-i18n="home_pgn_preview_bestmove_label">Best move</span>
+                  <span class="analysis-preview-move">
+                    <span class="analysis-preview-side analysis-preview-side-white" aria-hidden="true"></span>
+                    <span class="analysis-preview-value">23. f5</span>
+                  </span>
+                </div>
+                <div class="analysis-preview-line">
+                  <span class="analysis-preview-label" data-i18n="home_pgn_preview_mistake_label">Flag</span>
+                  <span class="analysis-preview-flag">
+                    <span class="analysis-preview-badge">??</span>
+                    <span class="analysis-preview-flag-text" data-i18n="home_pgn_preview_flag_value">Blunder</span>
+                  </span>
+                </div>
+                <div class="analysis-preview-line analysis-preview-swing">
+                  <span class="analysis-preview-label" data-i18n="home_pgn_preview_eval_label">Eval swing</span>
+                  <span class="analysis-preview-swing-wrap">
+                    <span class="analysis-preview-swing-values">
+                      <span>-0.2</span>
+                      <span class="analysis-preview-arrow">→</span>
+                      <span>+1.6</span>
+                    </span>
+                    <span class="analysis-preview-rail" aria-hidden="true">
+                      <span class="analysis-preview-rail-fill"></span>
+                    </span>
+                  </span>
+                </div>
+              </div>
             </div>
-            <p id="pgn-status" class="hint-inline" data-i18n="home_pgn_auto_load_hint">PGN loads automatically from file or pasted text.</p>
-            <p class="hint-inline" data-i18n="home_pgn_eta_hint">Typical run time: ~20-40s</p>
           </section>
         </div>
         <p class="hint-inline"><a href="faq.html">FAQ</a></p>
