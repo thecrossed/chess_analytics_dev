@@ -203,11 +203,22 @@ body::before {
 }
 
 .analysis-preview-card {
-  margin: 14px 0 18px;
+  margin: 0;
   padding: 14px 16px;
   border: 1px solid rgba(123, 138, 129, 0.26);
   border-radius: 12px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(242, 239, 232, 0.78) 100%);
+}
+
+.pgn-entry-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.7fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.pgn-entry-main {
+  min-width: 0;
 }
 
 .analysis-preview-header {
@@ -254,9 +265,34 @@ body::before {
   font-size: 13px;
 }
 
+.analysis-preview-move {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analysis-preview-side {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 10px;
+}
+
+.analysis-preview-side-white {
+  background: #fbfaf6;
+  border: 1px solid #9a9b92;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.analysis-preview-side-black {
+  background: #2b312d;
+  border: 1px solid #2b312d;
+}
+
 .analysis-preview-value {
   font-weight: 600;
   color: #23302d;
+  font-variant-numeric: tabular-nums;
 }
 
 .analysis-preview-badge {
@@ -274,16 +310,54 @@ body::before {
   letter-spacing: 0.04em;
 }
 
+.analysis-preview-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analysis-preview-flag-text {
+  color: #7e2e26;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.analysis-preview-swing-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
 .analysis-preview-swing-values {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-weight: 700;
   color: #24453c;
+  font-variant-numeric: tabular-nums;
 }
 
 .analysis-preview-arrow {
   color: #7f8f87;
+}
+
+.analysis-preview-rail {
+  display: block;
+  width: 120px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(116, 131, 123, 0.16);
+  overflow: hidden;
+}
+
+.analysis-preview-rail-fill {
+  display: block;
+  width: 68%;
+  height: 100%;
+  margin-left: 18%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d2b17d 0%, #4c7a66 100%);
 }
 
 h1 {
@@ -1315,6 +1389,10 @@ td small {
   .home-entry-chooser {
     grid-template-columns: 1fr;
     max-width: 480px;
+  }
+
+  .pgn-entry-layout {
+    grid-template-columns: 1fr;
   }
 
   th,
