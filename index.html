@@ -125,6 +125,32 @@
             </div>
             <h2 data-i18n="home_banner_pgn_title">Upload PGN + Stockfish Analysis</h2>
             <p class="hint" data-i18n="home_banner_pgn_hint">Upload a PGN file and run engine analysis for move-by-move scoring.</p>
+            <div class="analysis-preview-card" aria-hidden="true">
+              <div class="analysis-preview-header">
+                <span class="analysis-preview-kicker" data-i18n="home_pgn_preview_kicker">Preview</span>
+                <span class="analysis-preview-tag" data-i18n="home_pgn_preview_tag">What you get</span>
+              </div>
+              <div class="analysis-preview-line">
+                <span class="analysis-preview-label" data-i18n="home_pgn_preview_move_label">Move</span>
+                <span class="analysis-preview-value">23. Qh4</span>
+              </div>
+              <div class="analysis-preview-line">
+                <span class="analysis-preview-label" data-i18n="home_pgn_preview_bestmove_label">Best move</span>
+                <span class="analysis-preview-value">23. f5</span>
+              </div>
+              <div class="analysis-preview-line">
+                <span class="analysis-preview-label" data-i18n="home_pgn_preview_mistake_label">Flag</span>
+                <span class="analysis-preview-badge">??</span>
+              </div>
+              <div class="analysis-preview-line analysis-preview-swing">
+                <span class="analysis-preview-label" data-i18n="home_pgn_preview_eval_label">Eval swing</span>
+                <span class="analysis-preview-swing-values">
+                  <span>-0.2</span>
+                  <span class="analysis-preview-arrow">→</span>
+                  <span>+1.6</span>
+                </span>
+              </div>
+            </div>
 
             <div class="row import-row">
               <label for="pgn-upload" data-i18n="home_pgn_file_label">PGN File</label>
