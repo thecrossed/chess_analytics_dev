@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n-title="charts_title">Dashboard</title>
+    <meta
+      name="description"
+      content="Browse featured chess charts and dashboards, including long-range player trend visualizations."
+    />
+    <link rel="canonical" href="https://chess-data.com/charts.html" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Dashboard | Chess Data Stats" />
+    <meta
+      property="og:description"
+      content="Browse featured chess charts and dashboards, including long-range player trend visualizations."
+    />
+    <meta property="og:url" content="https://chess-data.com/charts.html" />
+    <meta property="og:site_name" content="Chess Data Stats" />
+    <meta property="og:image" content="https://chess-data.com/assets/og-default.svg" />
+    <meta property="og:image:alt" content="Chess Data Stats chart directory page" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Dashboard | Chess Data Stats" />
+    <meta
+      name="twitter:description"
+      content="Browse featured chess charts and dashboards, including long-range player trend visualizations."
+    />
+    <meta name="twitter:image" content="https://chess-data.com/assets/og-default.svg" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "Dashboard",
+        "url": "https://chess-data.com/charts.html",
+        "description": "Browse featured chess charts and dashboards, including long-range player trend visualizations."
+      }
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card wide dashboard-shell charts-shell">
+        <div class="dashboard-topbar">
+          <a class="button-link secondary-link" href="index.html" data-i18n="nav_back_home">Back to Home</a>
+        </div>
+
+        <header class="dashboard-header">
+          <div>
+            <p class="dashboard-kicker" data-i18n="charts_kicker">Chart Directory</p>
+            <h1 data-i18n="charts_title">Dashboard</h1>
+            <p class="dashboard-subtitle" data-i18n="charts_subtitle">
+              A home for long-range chess visuals. Start with a featured chart, and later we can add more side by side.
+            </p>
+          </div>
+        </header>
+
+        <section class="charts-grid" aria-label="Featured charts">
+          <article class="charts-card charts-card-featured">
+            <div class="economist-rule" aria-hidden="true"></div>
+            <p class="charts-card-kicker" data-i18n="charts_featured_kicker">Featured</p>
+            <h2 data-i18n="charts_magnus_title">Magnus Carlsen on Chess.com: weekly win rate</h2>
+            <p class="charts-card-desc" data-i18n="charts_magnus_desc">
+              A three-year weekly line chart styled like an Economist graphic, showing how Magnus's win rate moves over time.
+            </p>
+            <div class="charts-card-meta">
+              <span data-i18n="charts_magnus_meta_1">Chess.com</span>
+              <span data-i18n="charts_magnus_meta_2">Last 3 years</span>
+              <span data-i18n="charts_magnus_meta_3">Weekly</span>
+            </div>
+            <a class="button-link" href="dashboard.html" data-i18n="charts_open_featured">Open Chart</a>
+          </article>
+
+          <article class="charts-card charts-card-placeholder">
+            <p class="charts-card-kicker" data-i18n="charts_coming_kicker">Coming next</p>
+            <h2 data-i18n="charts_placeholder_title">More player and opening charts</h2>
+            <p class="charts-card-desc" data-i18n="charts_placeholder_desc">
+              This page is the new shelf for future visuals: win-rate splits, opening performance, rating trendlines, and more.
+            </p>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <script src="language.js"></script>
+    <script src="cookie-consent.js"></script>
+  </body>
+</html>

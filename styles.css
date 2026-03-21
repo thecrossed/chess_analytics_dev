@@ -221,16 +221,17 @@ body::before {
   color: #5e645f;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .dashboard-subtitle {
   margin: 10px 0 0;
-  max-width: 54rem;
+  max-width: 50rem;
   color: var(--subtle);
-  font-size: 17px;
-  line-height: 1.55;
+  font-size: 18px;
+  line-height: 1.62;
+  text-wrap: balance;
 }
 
 .dashboard-content {
@@ -242,7 +243,7 @@ body::before {
   position: relative;
   border: 1px solid rgba(123, 138, 129, 0.22);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(251, 248, 242, 0.98) 0%, rgba(246, 242, 235, 0.98) 100%);
+  background: linear-gradient(180deg, rgba(250, 248, 243, 0.98) 0%, rgba(243, 240, 232, 0.98) 100%);
   padding: 20px 22px 22px;
   box-shadow: 0 18px 34px rgba(37, 42, 39, 0.08);
 }
@@ -251,7 +252,7 @@ body::before {
   width: 92px;
   height: 4px;
   border-radius: 999px;
-  background: #d13c32;
+  background: linear-gradient(90deg, #355c52 0%, #6f8e83 100%);
   margin-bottom: 16px;
 }
 
@@ -268,23 +269,26 @@ body::before {
   margin: 0 0 6px;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #7a4a41;
+  color: #4d665d;
 }
 
 .dashboard-card-header h2 {
   margin: 0;
-  font-size: clamp(24px, 2vw, 34px);
-  line-height: 1.08;
+  max-width: 18ch;
+  font-size: clamp(28px, 2.3vw, 38px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
 .dashboard-chart-desc {
   margin: 0;
-  max-width: 28rem;
+  max-width: 30rem;
   color: var(--subtle);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .dashboard-summary-grid {
@@ -295,10 +299,11 @@ body::before {
 }
 
 .dashboard-summary-card {
-  border: 1px solid rgba(205, 196, 184, 0.9);
+  border: 1px solid rgba(191, 198, 189, 0.95);
   border-radius: 12px;
-  background: rgba(255, 252, 247, 0.84);
+  background: rgba(255, 253, 248, 0.84);
   padding: 12px 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .dashboard-summary-label,
@@ -308,10 +313,10 @@ body::before {
 }
 
 .dashboard-summary-label {
-  color: #6b6a64;
+  color: #61706a;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -331,9 +336,9 @@ body::before {
 }
 
 .economist-chart-frame {
-  border: 1px solid rgba(205, 196, 184, 0.95);
+  border: 1px solid rgba(191, 198, 189, 0.9);
   border-radius: 12px;
-  background: #faf8f2;
+  background: #f7f4ee;
   overflow: hidden;
 }
 
@@ -343,10 +348,115 @@ body::before {
   height: auto;
 }
 
+.dashboard-latest-note {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-left: 3px solid #52786e;
+  background: rgba(255, 253, 248, 0.74);
+}
+
+.dashboard-latest-kicker,
+.dashboard-latest-body {
+  margin: 0;
+}
+
+.dashboard-latest-kicker {
+  color: #4d665d;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.dashboard-latest-body {
+  margin-top: 6px;
+  color: #2a3431;
+  font-size: 15px;
+  line-height: 1.62;
+  max-width: 44rem;
+}
+
 .dashboard-chart-note {
   margin-top: 12px;
-  color: #6d6a63;
+  color: #66706a;
   font-size: 13px;
+  line-height: 1.6;
+  font-style: italic;
+  max-width: 54rem;
+}
+
+.charts-shell .dashboard-header {
+  margin-bottom: 26px;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  gap: 18px;
+}
+
+.charts-card {
+  border: 1px solid rgba(123, 138, 129, 0.22);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(250, 248, 243, 0.98) 0%, rgba(243, 240, 232, 0.98) 100%);
+  padding: 20px 22px 22px;
+  box-shadow: 0 18px 34px rgba(37, 42, 39, 0.08);
+}
+
+.charts-card-featured {
+  position: relative;
+}
+
+.charts-card-kicker {
+  color: #4d665d;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+
+.charts-card h2 {
+  max-width: 17ch;
+  font-size: clamp(26px, 2.2vw, 36px);
+  line-height: 1.03;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.charts-card-desc {
+  margin: 12px 0 0;
+  color: var(--subtle);
+  font-size: 15px;
+  line-height: 1.62;
+}
+
+.charts-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 20px;
+}
+
+.charts-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(77, 110, 94, 0.09);
+  border: 1px solid rgba(112, 132, 118, 0.26);
+  color: #365246;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.charts-card-placeholder {
+  background: linear-gradient(180deg, rgba(245, 242, 235, 0.96) 0%, rgba(238, 235, 227, 0.96) 100%);
+}
+
+.charts-card .button-link {
+  min-width: 160px;
 }
 
 .analysis-preview-card {
@@ -1539,6 +1649,10 @@ td small {
     padding: 18px 16px 18px;
   }
 
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
   .dashboard-summary-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1636,6 +1750,10 @@ td small {
 @media (max-width: 480px) {
   .dashboard-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .charts-card {
+    padding: 16px;
   }
 
   .card {

@@ -651,7 +651,7 @@ if (choosePgnEntryButton) {
 if (chooseDashboardEntryButton) {
   chooseDashboardEntryButton.addEventListener("click", () => {
     trackFunnelEvent("funnel_open_dashboard_entry");
-    window.location.href = "dashboard.html";
+    window.location.href = "charts.html";
   });
 }
 
