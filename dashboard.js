@@ -3,13 +3,15 @@ const contentEl = document.getElementById("dashboard-content");
 const errorEl = document.getElementById("dashboard-error");
 const summaryGridEl = document.getElementById("dashboard-summary-grid");
 const latestNoteEl = document.getElementById("dashboard-latest-note");
+const legendEl = document.getElementById("dashboard-legend");
 const chartEl = document.getElementById("weekly-winrate-chart");
 const chartNoteEl = document.getElementById("dashboard-chart-note");
 
 const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-const DATA_URL = "data/dashboard/magnus_chesscom_weekly_winrate_3y.json";
+const DATA_URL = "data/dashboard/top5_chesscom_weekly_winrate_3y.json";
+let dashboardPayload = null;
 const DASHBOARD_COLORS = {
   background: "#f7f4ee",
   gridStrong: "#c5c9c1",
@@ -17,12 +19,9 @@ const DASHBOARD_COLORS = {
   axis: "#a8aea5",
   axisLabel: "#66706a",
   quarterGrid: "#ece8e0",
-  line: "#355c52",
-  lineSoft: "#52786e",
-  lineText: "#23302d",
-  lineHalo: "#f7f4ee"
+  lineHalo: "#f7f4ee",
+  lineText: "#23302d"
 };
-let dashboardPayload = null;
 
 function formatPercent(value) {
   if (typeof value !== "number" || Number.isNaN(value)) return "–";
@@ -78,64 +77,144 @@ function buildSummaryCard(label, value, detail) {
   return card;
 }
 
-function getNonEmptyPoints(payload) {
-  return payload.points.filter((point) => point.games > 0 && typeof point.win_rate === "number");
+function getPointSeries(point, username) {
+  return point?.series?.[username] || null;
+}
+
+function getNonEmptyWeeks(payload) {
+  return payload.points.filter((point) =>
+    payload.players.some((player) => (getPointSeries(point, player.username)?.games || 0) > 0)
+  );
+}
+
+function getLatestWeekLeader(payload) {
+  const latestWeek = [...getNonEmptyWeeks(payload)].reverse()[0];
+  if (!latestWeek) return null;
+
+  const ranked = payload.players
+    .map((player) => {
+      const series = getPointSeries(latestWeek, player.username);
+      return { player, series };
+    })
+    .filter(({ series }) => series && series.games > 0 && typeof series.win_rate === "number")
+    .sort((a, b) => {
+      if (b.series.win_rate !== a.series.win_rate) return b.series.win_rate - a.series.win_rate;
+      return b.series.games - a.series.games;
+    });
+
+  if (!ranked.length) return null;
+  return { week: latestWeek.week_start, player: ranked[0].player, series: ranked[0].series };
+}
+
+function getOverallLeader(payload) {
+  return [...payload.players]
+    .filter((player) => typeof player.overall_win_rate === "number")
+    .sort((a, b) => {
+      if (b.overall_win_rate !== a.overall_win_rate) return b.overall_win_rate - a.overall_win_rate;
+      return b.total_games - a.total_games;
+    })[0] || null;
+}
+
+function getBestSingleWeek(payload) {
+  const candidates = [];
+  payload.points.forEach((point) => {
+    payload.players.forEach((player) => {
+      const series = getPointSeries(point, player.username);
+      if (!series || series.games <= 0 || typeof series.win_rate !== "number") return;
+      candidates.push({ week: point.week_start, player, series });
+    });
+  });
+
+  return (
+    candidates.sort((a, b) => {
+      if (b.series.win_rate !== a.series.win_rate) return b.series.win_rate - a.series.win_rate;
+      return b.series.games - a.series.games;
+    })[0] || null
+  );
+}
+
+function renderLegend(payload) {
+  if (!legendEl) return;
+  clearChildren(legendEl);
+  payload.players.forEach((player) => {
+    const item = document.createElement("div");
+    item.className = "dashboard-legend-item";
+
+    const swatch = document.createElement("span");
+    swatch.className = "dashboard-legend-swatch";
+    swatch.style.backgroundColor = player.color;
+
+    const name = document.createElement("span");
+    name.className = "dashboard-legend-name";
+    name.textContent = player.full_name;
+
+    const meta = document.createElement("span");
+    meta.className = "dashboard-legend-meta";
+    meta.textContent = `${formatPercent(player.overall_win_rate)} • ${formatInteger(player.total_games)} ${t("dashboard_games_suffix")}`;
+
+    item.append(swatch, name, meta);
+    legendEl.appendChild(item);
+  });
 }
 
 function renderLatestNote(payload) {
   if (!latestNoteEl) return;
-  const nonEmptyPoints = getNonEmptyPoints(payload);
-  const latestPoint = nonEmptyPoints[nonEmptyPoints.length - 1];
-  if (!latestPoint) {
+  const leader = getLatestWeekLeader(payload);
+  if (!leader) {
     latestNoteEl.classList.add("hidden");
-    latestNoteEl.innerHTML = "";
+    latestNoteEl.textContent = "";
     return;
   }
 
   latestNoteEl.classList.remove("hidden");
-  latestNoteEl.innerHTML = "";
-
-  const kicker = document.createElement("p");
-  kicker.className = "dashboard-latest-kicker";
-  kicker.textContent = t("dashboard_latest_note_kicker");
-
-  const body = document.createElement("p");
-  body.className = "dashboard-latest-body";
-  body.textContent = t("dashboard_latest_note_body", {
-    week: formatWeekLabel(latestPoint.week_start),
-    win_rate: formatPercent(latestPoint.win_rate),
-    games: formatInteger(latestPoint.games)
-  });
-
-  latestNoteEl.append(kicker, body);
+  latestNoteEl.innerHTML =
+    `<p class="dashboard-latest-kicker">${t("dashboard_latest_note_kicker")}</p>` +
+    `<p class="dashboard-latest-body">${t("dashboard_latest_note_body", {
+      player: leader.player.full_name,
+      week: formatWeekLabel(leader.week),
+      win_rate: formatPercent(leader.series.win_rate),
+      games: formatInteger(leader.series.games)
+    })}</p>`;
 }
 
 function renderSummary(payload) {
   if (!summaryGridEl) return;
   clearChildren(summaryGridEl);
 
-  const nonEmptyPoints = getNonEmptyPoints(payload);
-  const latestPoint = nonEmptyPoints[nonEmptyPoints.length - 1];
-  const bestPoint = [...nonEmptyPoints].sort((a, b) => {
-    if ((b.win_rate || 0) !== (a.win_rate || 0)) {
-      return (b.win_rate || 0) - (a.win_rate || 0);
-    }
-    return (b.games || 0) - (a.games || 0);
-  })[0];
+  const overallLeader = getOverallLeader(payload);
+  const latestLeader = getLatestWeekLeader(payload);
+  const bestSingleWeek = getBestSingleWeek(payload);
 
   summaryGridEl.append(
-    buildSummaryCard(t("dashboard_summary_window"), payload.window_label, t("dashboard_summary_window_detail")),
-    buildSummaryCard(t("dashboard_summary_games"), formatInteger(payload.total_games), t("dashboard_summary_games_detail")),
-    buildSummaryCard(t("dashboard_summary_overall"), formatPercent(payload.overall_win_rate), t("dashboard_summary_overall_detail")),
+    buildSummaryCard(
+      t("dashboard_summary_window"),
+      payload.window_label,
+      t("dashboard_summary_window_detail")
+    ),
+    buildSummaryCard(
+      t("dashboard_summary_players"),
+      formatInteger(payload.player_count),
+      t("dashboard_summary_players_detail")
+    ),
+    buildSummaryCard(
+      t("dashboard_summary_games"),
+      formatInteger(payload.total_games),
+      t("dashboard_summary_games_detail")
+    ),
+    buildSummaryCard(
+      t("dashboard_summary_overall"),
+      overallLeader ? overallLeader.short_name : "–",
+      overallLeader ? `${formatPercent(overallLeader.overall_win_rate)} • ${formatInteger(overallLeader.total_games)} ${t("dashboard_games_suffix")}` : t("dashboard_no_data")
+    ),
     buildSummaryCard(
       t("dashboard_summary_latest"),
-      latestPoint ? formatPercent(latestPoint.win_rate) : "–",
-      latestPoint ? `${formatWeekLabel(latestPoint.week_start)} • ${formatInteger(latestPoint.games)} ${t("dashboard_games_suffix")}` : t("dashboard_no_data")
+      latestLeader ? latestLeader.player.short_name : "–",
+      latestLeader ? `${formatPercent(latestLeader.series.win_rate)} • ${formatWeekLabel(latestLeader.week)}` : t("dashboard_no_data")
     ),
     buildSummaryCard(
       t("dashboard_summary_best"),
-      bestPoint ? formatPercent(bestPoint.win_rate) : "–",
-      bestPoint ? `${formatWeekLabel(bestPoint.week_start)} • ${formatInteger(bestPoint.games)} ${t("dashboard_games_suffix")}` : t("dashboard_no_data")
+      bestSingleWeek ? bestSingleWeek.player.short_name : "–",
+      bestSingleWeek ? `${formatPercent(bestSingleWeek.series.win_rate)} • ${formatWeekLabel(bestSingleWeek.week)}` : t("dashboard_no_data")
     )
   );
 }
@@ -211,57 +290,60 @@ function renderChart(payload) {
     chartEl.appendChild(label);
   });
 
-  let path = "";
-  points.forEach((point, index) => {
-    if (typeof point.win_rate !== "number") return;
-    const x = xForIndex(index);
-    const y = yForValue(point.win_rate);
-    path += path ? ` L ${x} ${y}` : `M ${x} ${y}`;
-  });
+  payload.players.forEach((player) => {
+    let path = "";
+    points.forEach((point, index) => {
+      const series = getPointSeries(point, player.username);
+      if (!series || typeof series.win_rate !== "number") return;
+      const x = xForIndex(index);
+      const y = yForValue(series.win_rate);
+      path += path ? ` L ${x} ${y}` : `M ${x} ${y}`;
+    });
 
-  if (path) {
+    if (!path) return;
     chartEl.appendChild(
       svgEl("path", {
         d: path,
         fill: "none",
-        stroke: DASHBOARD_COLORS.line,
-        "stroke-width": 3,
+        stroke: player.color,
+        "stroke-width": 2.5,
         "stroke-linejoin": "round",
         "stroke-linecap": "round"
       })
     );
-  }
+  });
 
-  const lastIndex = [...points.keys()].reverse().find((index) => typeof points[index].win_rate === "number");
-  if (typeof lastIndex === "number") {
-    const point = points[lastIndex];
-    const x = xForIndex(lastIndex);
-    const y = yForValue(point.win_rate);
-    chartEl.appendChild(
-      svgEl("circle", {
-        cx: x,
-        cy: y,
-        r: 5.5,
-        fill: DASHBOARD_COLORS.line,
-        stroke: DASHBOARD_COLORS.lineHalo,
-        "stroke-width": 2
-      })
-    );
+  const latestLeader = getLatestWeekLeader(payload);
+  if (!latestLeader) return;
+  const pointIndex = points.findIndex((point) => point.week_start === latestLeader.week);
+  if (pointIndex === -1) return;
+  const x = xForIndex(pointIndex);
+  const y = yForValue(latestLeader.series.win_rate);
 
-    const calloutLineY = Math.max(y - 42, margin.top + 18);
-    chartEl.appendChild(svgEl("line", { x1: x, y1: y - 6, x2: x, y2: calloutLineY, stroke: DASHBOARD_COLORS.lineSoft, "stroke-width": 1.5 }));
+  chartEl.appendChild(
+    svgEl("circle", {
+      cx: x,
+      cy: y,
+      r: 5.5,
+      fill: latestLeader.player.color,
+      stroke: DASHBOARD_COLORS.lineHalo,
+      "stroke-width": 2
+    })
+  );
 
-    const latestLabel = svgEl("text", {
-      x,
-      y: calloutLineY - 8,
-      fill: DASHBOARD_COLORS.lineText,
-      "font-size": 12,
-      "font-weight": 700,
-      "text-anchor": "middle"
-    });
-    latestLabel.textContent = `${t("dashboard_latest_week")} ${formatPercent(point.win_rate)}`;
-    chartEl.appendChild(latestLabel);
-  }
+  const calloutLineY = Math.max(y - 42, margin.top + 18);
+  chartEl.appendChild(svgEl("line", { x1: x, y1: y - 6, x2: x, y2: calloutLineY, stroke: latestLeader.player.color, "stroke-width": 1.5 }));
+
+  const latestLabel = svgEl("text", {
+    x,
+    y: calloutLineY - 8,
+    fill: DASHBOARD_COLORS.lineText,
+    "font-size": 12,
+    "font-weight": 700,
+    "text-anchor": "middle"
+  });
+  latestLabel.textContent = `${latestLeader.player.short_name} ${formatPercent(latestLeader.series.win_rate)}`;
+  chartEl.appendChild(latestLabel);
 }
 
 async function loadDashboard() {
@@ -274,10 +356,11 @@ async function loadDashboard() {
     dashboardPayload = payload;
     renderSummary(payload);
     renderLatestNote(payload);
+    renderLegend(payload);
     renderChart(payload);
     if (chartNoteEl) {
       chartNoteEl.textContent = t("dashboard_chart_caption", {
-        source: "Chess.com PubAPI",
+        source: payload.source,
         range: payload.window_label,
         games: formatInteger(payload.total_games),
         games_suffix: t("dashboard_games_suffix")
@@ -297,10 +380,11 @@ window.addEventListener("languagechange", () => {
   if (!dashboardPayload) return;
   renderSummary(dashboardPayload);
   renderLatestNote(dashboardPayload);
+  renderLegend(dashboardPayload);
   renderChart(dashboardPayload);
   if (chartNoteEl) {
     chartNoteEl.textContent = t("dashboard_chart_caption", {
-      source: "Chess.com PubAPI",
+      source: dashboardPayload.source,
       range: dashboardPayload.window_label,
       games: formatInteger(dashboardPayload.total_games),
       games_suffix: t("dashboard_games_suffix")

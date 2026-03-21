@@ -16,6 +16,38 @@ API_ROOT = "https://api.chess.com/pub/player/{username}/games"
 USER_AGENT = "chess-data-dashboard/1.0"
 DRAW_RESULTS = {"agreed", "repetition", "stalemate", "insufficient", "50move", "timevsinsufficient"}
 OUTCOME_BUCKETS = {"win": "wins", "draw": "draws", "loss": "losses"}
+PLAYERS = [
+    {
+        "username": "MagnusCarlsen",
+        "full_name": "Magnus Carlsen",
+        "short_name": "Carlsen",
+        "color": "#355c52",
+    },
+    {
+        "username": "Hikaru",
+        "full_name": "Hikaru Nakamura",
+        "short_name": "Nakamura",
+        "color": "#8f6c51",
+    },
+    {
+        "username": "FabianoCaruana",
+        "full_name": "Fabiano Caruana",
+        "short_name": "Caruana",
+        "color": "#4d6a87",
+    },
+    {
+        "username": "VincentKeymer",
+        "full_name": "Vincent Keymer",
+        "short_name": "Keymer",
+        "color": "#7a8f62",
+    },
+    {
+        "username": "ChessWarrior7197",
+        "full_name": "Nodirbek Abdusattorov",
+        "short_name": "Abdusattorov",
+        "color": "#7f5d78",
+    },
+]
 
 
 @dataclass(frozen=True)
@@ -40,7 +72,6 @@ def latest_three_year_window(today_utc: date | None = None) -> Window:
     try:
         start_date = end_date.replace(year=end_date.year - 3)
     except ValueError:
-        # Only relevant around leap days.
         start_date = end_date.replace(month=2, day=28, year=end_date.year - 3)
     start_dt = datetime.combine(start_date, time.min, UTC)
     end_dt = datetime.combine(end_date, time.max, UTC)
@@ -98,74 +129,97 @@ def generate_week_starts(window: Window) -> list[date]:
     return weeks
 
 
-def build_payload(username: str, games: list[dict[str, Any]], window: Window) -> dict[str, Any]:
-    weekly: dict[date, dict[str, int]] = defaultdict(lambda: {"wins": 0, "draws": 0, "losses": 0, "games": 0})
-    included_games = 0
+def fetch_games_for_window(username: str, window: Window) -> list[dict[str, Any]]:
+    games: list[dict[str, Any]] = []
+    for archive_url in fetch_archives_for_window(username, window):
+        try:
+            month_payload = fetch_json(archive_url)
+        except HTTPError as exc:
+            if exc.code == 404:
+                print(f"Skipping missing archive for {username}: {archive_url}")
+                continue
+            raise
+        games.extend(month_payload.get("games", []))
+    return games
 
-    for game in games:
-        end_time = game.get("end_time")
-        if not end_time:
-            continue
-        ended_at = datetime.fromtimestamp(int(end_time), UTC)
-        if ended_at < window.start or ended_at > window.end:
-            continue
-        outcome = classify_player_result(game, username)
-        if outcome is None:
-            continue
-        week_start = iso_week_start(ended_at)
-        bucket = weekly[week_start]
-        bucket[OUTCOME_BUCKETS[outcome]] += 1
-        bucket["games"] += 1
-        included_games += 1
+
+def build_payload(players: list[dict[str, str]], all_games: dict[str, list[dict[str, Any]]], window: Window) -> dict[str, Any]:
+    weekly_by_player: dict[str, dict[date, dict[str, int]]] = {}
+    player_summaries: list[dict[str, Any]] = []
+    total_games = 0
+
+    for player in players:
+        username = player["username"]
+        weekly: dict[date, dict[str, int]] = defaultdict(lambda: {"wins": 0, "draws": 0, "losses": 0, "games": 0})
+        included_games = 0
+
+        for game in all_games[username]:
+            end_time = game.get("end_time")
+            if not end_time:
+                continue
+            ended_at = datetime.fromtimestamp(int(end_time), UTC)
+            if ended_at < window.start or ended_at > window.end:
+                continue
+            outcome = classify_player_result(game, username)
+            if outcome is None:
+                continue
+            week_start = iso_week_start(ended_at)
+            bucket = weekly[week_start]
+            bucket[OUTCOME_BUCKETS[outcome]] += 1
+            bucket["games"] += 1
+            included_games += 1
+
+        weekly_by_player[username] = weekly
+        total_games += included_games
+        total_wins = sum(bucket["wins"] for bucket in weekly.values())
+        player_summaries.append(
+            {
+                **player,
+                "total_games": included_games,
+                "overall_win_rate": round(total_wins / included_games, 4) if included_games else None,
+            }
+        )
 
     points = []
     for week_start in generate_week_starts(window):
-        bucket = weekly[week_start]
-        games_count = bucket["games"]
-        win_rate = round(bucket["wins"] / games_count, 4) if games_count else None
-        points.append(
-            {
-                "week_start": week_start.isoformat(),
+        week_series: dict[str, Any] = {}
+        week_games = 0
+        for player in players:
+            username = player["username"]
+            bucket = weekly_by_player[username][week_start]
+            games_count = bucket["games"]
+            week_games += games_count
+            week_series[username] = {
                 "games": games_count,
                 "wins": bucket["wins"],
                 "draws": bucket["draws"],
                 "losses": bucket["losses"],
-                "win_rate": win_rate,
+                "win_rate": round(bucket["wins"] / games_count, 4) if games_count else None,
             }
-        )
-
-    non_empty = [point for point in points if point["games"] > 0]
-    overall_win_rate = round(sum(point["wins"] for point in non_empty) / included_games, 4) if included_games else None
+        points.append({"week_start": week_start.isoformat(), "total_games": week_games, "series": week_series})
 
     return {
         "source": "Chess.com PubAPI",
-        "username": username,
         "generated_at_utc": datetime.now(UTC).isoformat(),
         "range_start_utc": window.start.isoformat(),
         "range_end_utc": window.end.isoformat(),
         "window_label": f"{window.start.date().isoformat()} to {window.end.date().isoformat()}",
         "metric": "weekly_win_rate",
-        "total_games": included_games,
-        "overall_win_rate": overall_win_rate,
+        "total_games": total_games,
+        "player_count": len(players),
+        "players": player_summaries,
         "points": points,
     }
 
 
-def fetch_games_for_window(username: str, window: Window) -> list[dict[str, Any]]:
-    games: list[dict[str, Any]] = []
-    for archive_url in fetch_archives_for_window(username, window):
-        month_payload = fetch_json(archive_url)
-        games.extend(month_payload.get("games", []))
-    return games
-
-
 def main() -> int:
-    username = "MagnusCarlsen"
     window = latest_three_year_window()
-    output_path = Path("data/dashboard/magnus_chesscom_weekly_winrate_3y.json")
+    output_path = Path("data/dashboard/top5_chesscom_weekly_winrate_3y.json")
+    all_games: dict[str, list[dict[str, Any]]] = {}
 
     try:
-        games = fetch_games_for_window(username, window)
+        for player in PLAYERS:
+            all_games[player["username"]] = fetch_games_for_window(player["username"], window)
     except HTTPError as exc:
         print(f"HTTP error while fetching Chess.com API: {exc.code} {exc.reason}")
         return 1
@@ -173,10 +227,10 @@ def main() -> int:
         print(f"Network error while fetching Chess.com API: {exc.reason}")
         return 1
 
-    payload = build_payload(username, games, window)
+    payload = build_payload(PLAYERS, all_games, window)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"Wrote {payload['total_games']} games into {output_path}")
+    print(f"Wrote {payload['total_games']} games across {payload['player_count']} players into {output_path}")
     return 0
 
 

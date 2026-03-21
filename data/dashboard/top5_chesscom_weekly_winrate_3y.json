@@ -1,0 +1,6491 @@
+{
+  "source": "Chess.com PubAPI",
+  "generated_at_utc": "2026-03-21T19:29:10.130917+00:00",
+  "range_start_utc": "2023-03-21T00:00:00+00:00",
+  "range_end_utc": "2026-03-21T23:59:59.999999+00:00",
+  "window_label": "2023-03-21 to 2026-03-21",
+  "metric": "weekly_win_rate",
+  "total_games": 36984,
+  "player_count": 5,
+  "players": [
+    {
+      "username": "MagnusCarlsen",
+      "full_name": "Magnus Carlsen",
+      "short_name": "Carlsen",
+      "color": "#355c52",
+      "total_games": 6837,
+      "overall_win_rate": 0.7133
+    },
+    {
+      "username": "Hikaru",
+      "full_name": "Hikaru Nakamura",
+      "short_name": "Nakamura",
+      "color": "#8f6c51",
+      "total_games": 20965,
+      "overall_win_rate": 0.8119
+    },
+    {
+      "username": "FabianoCaruana",
+      "full_name": "Fabiano Caruana",
+      "short_name": "Caruana",
+      "color": "#4d6a87",
+      "total_games": 3833,
+      "overall_win_rate": 0.6739
+    },
+    {
+      "username": "VincentKeymer",
+      "full_name": "Vincent Keymer",
+      "short_name": "Keymer",
+      "color": "#7a8f62",
+      "total_games": 4209,
+      "overall_win_rate": 0.5486
+    },
+    {
+      "username": "ChessWarrior7197",
+      "full_name": "Nodirbek Abdusattorov",
+      "short_name": "Abdusattorov",
+      "color": "#7f5d78",
+      "total_games": 1140,
+      "overall_win_rate": 0.5342
+    }
+  ],
+  "points": [
+    {
+      "week_start": "2023-03-20",
+      "total_games": 183,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 152,
+          "wins": 105,
+          "draws": 19,
+          "losses": 28,
+          "win_rate": 0.6908
+        },
+        "Hikaru": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "FabianoCaruana": {
+          "games": 31,
+          "wins": 20,
+          "draws": 3,
+          "losses": 8,
+          "win_rate": 0.6452
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-03-27",
+      "total_games": 319,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 66,
+          "wins": 37,
+          "draws": 7,
+          "losses": 22,
+          "win_rate": 0.5606
+        },
+        "Hikaru": {
+          "games": 236,
+          "wins": 189,
+          "draws": 18,
+          "losses": 29,
+          "win_rate": 0.8008
+        },
+        "FabianoCaruana": {
+          "games": 10,
+          "wins": 7,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.7
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 7,
+          "wins": 3,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.4286
+        }
+      }
+    },
+    {
+      "week_start": "2023-04-03",
+      "total_games": 106,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 15,
+          "wins": 5,
+          "draws": 6,
+          "losses": 4,
+          "win_rate": 0.3333
+        },
+        "Hikaru": {
+          "games": 38,
+          "wins": 19,
+          "draws": 10,
+          "losses": 9,
+          "win_rate": 0.5
+        },
+        "FabianoCaruana": {
+          "games": 20,
+          "wins": 6,
+          "draws": 8,
+          "losses": 6,
+          "win_rate": 0.3
+        },
+        "VincentKeymer": {
+          "games": 14,
+          "wins": 6,
+          "draws": 3,
+          "losses": 5,
+          "win_rate": 0.4286
+        },
+        "ChessWarrior7197": {
+          "games": 19,
+          "wins": 12,
+          "draws": 3,
+          "losses": 4,
+          "win_rate": 0.6316
+        }
+      }
+    },
+    {
+      "week_start": "2023-04-10",
+      "total_games": 200,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 4,
+          "wins": 4,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 1.0
+        },
+        "Hikaru": {
+          "games": 155,
+          "wins": 122,
+          "draws": 10,
+          "losses": 23,
+          "win_rate": 0.7871
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 10,
+          "draws": 1,
+          "losses": 0,
+          "win_rate": 0.9091
+        },
+        "VincentKeymer": {
+          "games": 30,
+          "wins": 21,
+          "draws": 5,
+          "losses": 4,
+          "win_rate": 0.7
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-04-17",
+      "total_games": 191,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 13,
+          "wins": 10,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.7692
+        },
+        "Hikaru": {
+          "games": 149,
+          "wins": 108,
+          "draws": 17,
+          "losses": 24,
+          "win_rate": 0.7248
+        },
+        "FabianoCaruana": {
+          "games": 22,
+          "wins": 16,
+          "draws": 0,
+          "losses": 6,
+          "win_rate": 0.7273
+        },
+        "VincentKeymer": {
+          "games": 7,
+          "wins": 6,
+          "draws": 0,
+          "losses": 1,
+          "win_rate": 0.8571
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-04-24",
+      "total_games": 297,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 68,
+          "wins": 44,
+          "draws": 9,
+          "losses": 15,
+          "win_rate": 0.6471
+        },
+        "Hikaru": {
+          "games": 201,
+          "wins": 162,
+          "draws": 16,
+          "losses": 23,
+          "win_rate": 0.806
+        },
+        "FabianoCaruana": {
+          "games": 22,
+          "wins": 17,
+          "draws": 0,
+          "losses": 5,
+          "win_rate": 0.7727
+        },
+        "VincentKeymer": {
+          "games": 6,
+          "wins": 4,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.6667
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-05-01",
+      "total_games": 331,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 31,
+          "wins": 26,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.8387
+        },
+        "Hikaru": {
+          "games": 267,
+          "wins": 232,
+          "draws": 20,
+          "losses": 15,
+          "win_rate": 0.8689
+        },
+        "FabianoCaruana": {
+          "games": 22,
+          "wins": 17,
+          "draws": 2,
+          "losses": 3,
+          "win_rate": 0.7727
+        },
+        "VincentKeymer": {
+          "games": 11,
+          "wins": 4,
+          "draws": 4,
+          "losses": 3,
+          "win_rate": 0.3636
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-05-08",
+      "total_games": 277,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 43,
+          "wins": 31,
+          "draws": 8,
+          "losses": 4,
+          "win_rate": 0.7209
+        },
+        "Hikaru": {
+          "games": 230,
+          "wins": 179,
+          "draws": 19,
+          "losses": 32,
+          "win_rate": 0.7783
+        },
+        "FabianoCaruana": {
+          "games": 4,
+          "wins": 2,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.5
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-05-15",
+      "total_games": 65,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 2,
+          "wins": 2,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 1.0
+        },
+        "Hikaru": {
+          "games": 36,
+          "wins": 23,
+          "draws": 7,
+          "losses": 6,
+          "win_rate": 0.6389
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 7,
+          "draws": 3,
+          "losses": 1,
+          "win_rate": 0.6364
+        },
+        "VincentKeymer": {
+          "games": 16,
+          "wins": 9,
+          "draws": 1,
+          "losses": 6,
+          "win_rate": 0.5625
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-05-22",
+      "total_games": 198,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 61,
+          "wins": 46,
+          "draws": 8,
+          "losses": 7,
+          "win_rate": 0.7541
+        },
+        "Hikaru": {
+          "games": 29,
+          "wins": 20,
+          "draws": 6,
+          "losses": 3,
+          "win_rate": 0.6897
+        },
+        "FabianoCaruana": {
+          "games": 78,
+          "wins": 55,
+          "draws": 10,
+          "losses": 13,
+          "win_rate": 0.7051
+        },
+        "VincentKeymer": {
+          "games": 15,
+          "wins": 5,
+          "draws": 4,
+          "losses": 6,
+          "win_rate": 0.3333
+        },
+        "ChessWarrior7197": {
+          "games": 15,
+          "wins": 7,
+          "draws": 6,
+          "losses": 2,
+          "win_rate": 0.4667
+        }
+      }
+    },
+    {
+      "week_start": "2023-05-29",
+      "total_games": 19,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 4,
+          "wins": 4,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 1.0
+        },
+        "Hikaru": {
+          "games": 15,
+          "wins": 13,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.8667
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-06-05",
+      "total_games": 126,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 79,
+          "wins": 53,
+          "draws": 13,
+          "losses": 13,
+          "win_rate": 0.6709
+        },
+        "Hikaru": {
+          "games": 14,
+          "wins": 12,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.8571
+        },
+        "FabianoCaruana": {
+          "games": 7,
+          "wins": 4,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.5714
+        },
+        "VincentKeymer": {
+          "games": 26,
+          "wins": 16,
+          "draws": 3,
+          "losses": 7,
+          "win_rate": 0.6154
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-06-12",
+      "total_games": 345,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 23,
+          "wins": 15,
+          "draws": 6,
+          "losses": 2,
+          "win_rate": 0.6522
+        },
+        "Hikaru": {
+          "games": 291,
+          "wins": 217,
+          "draws": 27,
+          "losses": 47,
+          "win_rate": 0.7457
+        },
+        "FabianoCaruana": {
+          "games": 18,
+          "wins": 11,
+          "draws": 5,
+          "losses": 2,
+          "win_rate": 0.6111
+        },
+        "VincentKeymer": {
+          "games": 13,
+          "wins": 10,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.7692
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-06-19",
+      "total_games": 330,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 51,
+          "wins": 40,
+          "draws": 4,
+          "losses": 7,
+          "win_rate": 0.7843
+        },
+        "Hikaru": {
+          "games": 279,
+          "wins": 227,
+          "draws": 19,
+          "losses": 33,
+          "win_rate": 0.8136
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-06-26",
+      "total_games": 331,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 115,
+          "wins": 90,
+          "draws": 11,
+          "losses": 14,
+          "win_rate": 0.7826
+        },
+        "Hikaru": {
+          "games": 216,
+          "wins": 161,
+          "draws": 24,
+          "losses": 31,
+          "win_rate": 0.7454
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-07-03",
+      "total_games": 540,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 48,
+          "wins": 40,
+          "draws": 3,
+          "losses": 5,
+          "win_rate": 0.8333
+        },
+        "Hikaru": {
+          "games": 464,
+          "wins": 363,
+          "draws": 36,
+          "losses": 65,
+          "win_rate": 0.7823
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 8,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.7273
+        },
+        "VincentKeymer": {
+          "games": 17,
+          "wins": 10,
+          "draws": 1,
+          "losses": 6,
+          "win_rate": 0.5882
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-07-10",
+      "total_games": 515,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 102,
+          "wins": 74,
+          "draws": 17,
+          "losses": 11,
+          "win_rate": 0.7255
+        },
+        "Hikaru": {
+          "games": 244,
+          "wins": 207,
+          "draws": 12,
+          "losses": 25,
+          "win_rate": 0.8484
+        },
+        "FabianoCaruana": {
+          "games": 20,
+          "wins": 10,
+          "draws": 6,
+          "losses": 4,
+          "win_rate": 0.5
+        },
+        "VincentKeymer": {
+          "games": 136,
+          "wins": 80,
+          "draws": 8,
+          "losses": 48,
+          "win_rate": 0.5882
+        },
+        "ChessWarrior7197": {
+          "games": 13,
+          "wins": 4,
+          "draws": 5,
+          "losses": 4,
+          "win_rate": 0.3077
+        }
+      }
+    },
+    {
+      "week_start": "2023-07-17",
+      "total_games": 590,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 173,
+          "wins": 85,
+          "draws": 37,
+          "losses": 51,
+          "win_rate": 0.4913
+        },
+        "Hikaru": {
+          "games": 357,
+          "wins": 263,
+          "draws": 35,
+          "losses": 59,
+          "win_rate": 0.7367
+        },
+        "FabianoCaruana": {
+          "games": 40,
+          "wins": 13,
+          "draws": 3,
+          "losses": 24,
+          "win_rate": 0.325
+        },
+        "VincentKeymer": {
+          "games": 20,
+          "wins": 9,
+          "draws": 1,
+          "losses": 10,
+          "win_rate": 0.45
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-07-24",
+      "total_games": 111,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 66,
+          "wins": 48,
+          "draws": 8,
+          "losses": 10,
+          "win_rate": 0.7273
+        },
+        "Hikaru": {
+          "games": 22,
+          "wins": 16,
+          "draws": 1,
+          "losses": 5,
+          "win_rate": 0.7273
+        },
+        "FabianoCaruana": {
+          "games": 19,
+          "wins": 12,
+          "draws": 4,
+          "losses": 3,
+          "win_rate": 0.6316
+        },
+        "VincentKeymer": {
+          "games": 4,
+          "wins": 2,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.5
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-07-31",
+      "total_games": 22,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 22,
+          "wins": 17,
+          "draws": 5,
+          "losses": 0,
+          "win_rate": 0.7727
+        },
+        "Hikaru": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-08-07",
+      "total_games": 114,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 32,
+          "wins": 25,
+          "draws": 4,
+          "losses": 3,
+          "win_rate": 0.7812
+        },
+        "Hikaru": {
+          "games": 71,
+          "wins": 60,
+          "draws": 3,
+          "losses": 8,
+          "win_rate": 0.8451
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 8,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.7273
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-08-14",
+      "total_games": 177,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 29,
+          "wins": 22,
+          "draws": 0,
+          "losses": 7,
+          "win_rate": 0.7586
+        },
+        "Hikaru": {
+          "games": 129,
+          "wins": 112,
+          "draws": 7,
+          "losses": 10,
+          "win_rate": 0.8682
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 19,
+          "wins": 12,
+          "draws": 2,
+          "losses": 5,
+          "win_rate": 0.6316
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-08-21",
+      "total_games": 238,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 18,
+          "wins": 14,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.7778
+        },
+        "Hikaru": {
+          "games": 195,
+          "wins": 162,
+          "draws": 12,
+          "losses": 21,
+          "win_rate": 0.8308
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 10,
+          "wins": 6,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.6
+        },
+        "ChessWarrior7197": {
+          "games": 15,
+          "wins": 8,
+          "draws": 2,
+          "losses": 5,
+          "win_rate": 0.5333
+        }
+      }
+    },
+    {
+      "week_start": "2023-08-28",
+      "total_games": 189,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 15,
+          "wins": 9,
+          "draws": 4,
+          "losses": 2,
+          "win_rate": 0.6
+        },
+        "Hikaru": {
+          "games": 80,
+          "wins": 72,
+          "draws": 2,
+          "losses": 6,
+          "win_rate": 0.9
+        },
+        "FabianoCaruana": {
+          "games": 12,
+          "wins": 4,
+          "draws": 3,
+          "losses": 5,
+          "win_rate": 0.3333
+        },
+        "VincentKeymer": {
+          "games": 72,
+          "wins": 41,
+          "draws": 8,
+          "losses": 23,
+          "win_rate": 0.5694
+        },
+        "ChessWarrior7197": {
+          "games": 10,
+          "wins": 3,
+          "draws": 2,
+          "losses": 5,
+          "win_rate": 0.3
+        }
+      }
+    },
+    {
+      "week_start": "2023-09-04",
+      "total_games": 200,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 27,
+          "wins": 16,
+          "draws": 4,
+          "losses": 7,
+          "win_rate": 0.5926
+        },
+        "Hikaru": {
+          "games": 97,
+          "wins": 66,
+          "draws": 15,
+          "losses": 16,
+          "win_rate": 0.6804
+        },
+        "FabianoCaruana": {
+          "games": 18,
+          "wins": 8,
+          "draws": 6,
+          "losses": 4,
+          "win_rate": 0.4444
+        },
+        "VincentKeymer": {
+          "games": 58,
+          "wins": 30,
+          "draws": 5,
+          "losses": 23,
+          "win_rate": 0.5172
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-09-11",
+      "total_games": 487,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 179,
+          "wins": 128,
+          "draws": 24,
+          "losses": 27,
+          "win_rate": 0.7151
+        },
+        "Hikaru": {
+          "games": 174,
+          "wins": 137,
+          "draws": 17,
+          "losses": 20,
+          "win_rate": 0.7874
+        },
+        "FabianoCaruana": {
+          "games": 88,
+          "wins": 38,
+          "draws": 19,
+          "losses": 31,
+          "win_rate": 0.4318
+        },
+        "VincentKeymer": {
+          "games": 18,
+          "wins": 8,
+          "draws": 4,
+          "losses": 6,
+          "win_rate": 0.4444
+        },
+        "ChessWarrior7197": {
+          "games": 28,
+          "wins": 10,
+          "draws": 6,
+          "losses": 12,
+          "win_rate": 0.3571
+        }
+      }
+    },
+    {
+      "week_start": "2023-09-18",
+      "total_games": 380,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 71,
+          "wins": 39,
+          "draws": 20,
+          "losses": 12,
+          "win_rate": 0.5493
+        },
+        "Hikaru": {
+          "games": 233,
+          "wins": 158,
+          "draws": 31,
+          "losses": 44,
+          "win_rate": 0.6781
+        },
+        "FabianoCaruana": {
+          "games": 22,
+          "wins": 12,
+          "draws": 4,
+          "losses": 6,
+          "win_rate": 0.5455
+        },
+        "VincentKeymer": {
+          "games": 17,
+          "wins": 11,
+          "draws": 3,
+          "losses": 3,
+          "win_rate": 0.6471
+        },
+        "ChessWarrior7197": {
+          "games": 37,
+          "wins": 24,
+          "draws": 4,
+          "losses": 9,
+          "win_rate": 0.6486
+        }
+      }
+    },
+    {
+      "week_start": "2023-09-25",
+      "total_games": 325,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 57,
+          "wins": 37,
+          "draws": 13,
+          "losses": 7,
+          "win_rate": 0.6491
+        },
+        "Hikaru": {
+          "games": 193,
+          "wins": 160,
+          "draws": 12,
+          "losses": 21,
+          "win_rate": 0.829
+        },
+        "FabianoCaruana": {
+          "games": 15,
+          "wins": 8,
+          "draws": 3,
+          "losses": 4,
+          "win_rate": 0.5333
+        },
+        "VincentKeymer": {
+          "games": 60,
+          "wins": 28,
+          "draws": 10,
+          "losses": 22,
+          "win_rate": 0.4667
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-10-02",
+      "total_games": 241,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "Hikaru": {
+          "games": 156,
+          "wins": 130,
+          "draws": 11,
+          "losses": 15,
+          "win_rate": 0.8333
+        },
+        "FabianoCaruana": {
+          "games": 20,
+          "wins": 15,
+          "draws": 4,
+          "losses": 1,
+          "win_rate": 0.75
+        },
+        "VincentKeymer": {
+          "games": 65,
+          "wins": 43,
+          "draws": 7,
+          "losses": 15,
+          "win_rate": 0.6615
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-10-09",
+      "total_games": 108,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 13,
+          "wins": 10,
+          "draws": 0,
+          "losses": 3,
+          "win_rate": 0.7692
+        },
+        "Hikaru": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 95,
+          "wins": 54,
+          "draws": 14,
+          "losses": 27,
+          "win_rate": 0.5684
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-10-16",
+      "total_games": 304,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 110,
+          "wins": 80,
+          "draws": 12,
+          "losses": 18,
+          "win_rate": 0.7273
+        },
+        "Hikaru": {
+          "games": 83,
+          "wins": 70,
+          "draws": 5,
+          "losses": 8,
+          "win_rate": 0.8434
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 8,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.7273
+        },
+        "VincentKeymer": {
+          "games": 100,
+          "wins": 56,
+          "draws": 10,
+          "losses": 34,
+          "win_rate": 0.56
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-10-23",
+      "total_games": 92,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 11,
+          "wins": 9,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.8182
+        },
+        "Hikaru": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "FabianoCaruana": {
+          "games": 9,
+          "wins": 6,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.6667
+        },
+        "VincentKeymer": {
+          "games": 72,
+          "wins": 31,
+          "draws": 6,
+          "losses": 35,
+          "win_rate": 0.4306
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-10-30",
+      "total_games": 108,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 30,
+          "wins": 21,
+          "draws": 6,
+          "losses": 3,
+          "win_rate": 0.7
+        },
+        "Hikaru": {
+          "games": 11,
+          "wins": 9,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.8182
+        },
+        "FabianoCaruana": {
+          "games": 4,
+          "wins": 2,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.5
+        },
+        "VincentKeymer": {
+          "games": 59,
+          "wins": 32,
+          "draws": 13,
+          "losses": 14,
+          "win_rate": 0.5424
+        },
+        "ChessWarrior7197": {
+          "games": 4,
+          "wins": 2,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.5
+        }
+      }
+    },
+    {
+      "week_start": "2023-11-06",
+      "total_games": 323,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 22,
+          "wins": 18,
+          "draws": 3,
+          "losses": 1,
+          "win_rate": 0.8182
+        },
+        "Hikaru": {
+          "games": 137,
+          "wins": 125,
+          "draws": 6,
+          "losses": 6,
+          "win_rate": 0.9124
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 164,
+          "wins": 96,
+          "draws": 16,
+          "losses": 52,
+          "win_rate": 0.5854
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-11-13",
+      "total_games": 335,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 20,
+          "wins": 18,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.9
+        },
+        "Hikaru": {
+          "games": 299,
+          "wins": 249,
+          "draws": 17,
+          "losses": 33,
+          "win_rate": 0.8328
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 16,
+          "wins": 8,
+          "draws": 3,
+          "losses": 5,
+          "win_rate": 0.5
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-11-20",
+      "total_games": 329,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 22,
+          "wins": 18,
+          "draws": 4,
+          "losses": 0,
+          "win_rate": 0.8182
+        },
+        "Hikaru": {
+          "games": 227,
+          "wins": 196,
+          "draws": 12,
+          "losses": 19,
+          "win_rate": 0.8634
+        },
+        "FabianoCaruana": {
+          "games": 26,
+          "wins": 16,
+          "draws": 4,
+          "losses": 6,
+          "win_rate": 0.6154
+        },
+        "VincentKeymer": {
+          "games": 54,
+          "wins": 25,
+          "draws": 8,
+          "losses": 21,
+          "win_rate": 0.463
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-11-27",
+      "total_games": 191,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "Hikaru": {
+          "games": 165,
+          "wins": 143,
+          "draws": 7,
+          "losses": 15,
+          "win_rate": 0.8667
+        },
+        "FabianoCaruana": {
+          "games": 3,
+          "wins": 3,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 1.0
+        },
+        "VincentKeymer": {
+          "games": 23,
+          "wins": 13,
+          "draws": 3,
+          "losses": 7,
+          "win_rate": 0.5652
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-12-04",
+      "total_games": 277,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 70,
+          "wins": 55,
+          "draws": 4,
+          "losses": 11,
+          "win_rate": 0.7857
+        },
+        "Hikaru": {
+          "games": 98,
+          "wins": 70,
+          "draws": 14,
+          "losses": 14,
+          "win_rate": 0.7143
+        },
+        "FabianoCaruana": {
+          "games": 32,
+          "wins": 27,
+          "draws": 1,
+          "losses": 4,
+          "win_rate": 0.8438
+        },
+        "VincentKeymer": {
+          "games": 60,
+          "wins": 30,
+          "draws": 8,
+          "losses": 22,
+          "win_rate": 0.5
+        },
+        "ChessWarrior7197": {
+          "games": 17,
+          "wins": 5,
+          "draws": 1,
+          "losses": 11,
+          "win_rate": 0.2941
+        }
+      }
+    },
+    {
+      "week_start": "2023-12-11",
+      "total_games": 345,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 55,
+          "wins": 48,
+          "draws": 2,
+          "losses": 5,
+          "win_rate": 0.8727
+        },
+        "Hikaru": {
+          "games": 247,
+          "wins": 199,
+          "draws": 19,
+          "losses": 29,
+          "win_rate": 0.8057
+        },
+        "FabianoCaruana": {
+          "games": 4,
+          "wins": 3,
+          "draws": 1,
+          "losses": 0,
+          "win_rate": 0.75
+        },
+        "VincentKeymer": {
+          "games": 25,
+          "wins": 13,
+          "draws": 3,
+          "losses": 9,
+          "win_rate": 0.52
+        },
+        "ChessWarrior7197": {
+          "games": 14,
+          "wins": 7,
+          "draws": 1,
+          "losses": 6,
+          "win_rate": 0.5
+        }
+      }
+    },
+    {
+      "week_start": "2023-12-18",
+      "total_games": 273,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 17,
+          "wins": 15,
+          "draws": 2,
+          "losses": 0,
+          "win_rate": 0.8824
+        },
+        "Hikaru": {
+          "games": 120,
+          "wins": 97,
+          "draws": 11,
+          "losses": 12,
+          "win_rate": 0.8083
+        },
+        "FabianoCaruana": {
+          "games": 19,
+          "wins": 16,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.8421
+        },
+        "VincentKeymer": {
+          "games": 117,
+          "wins": 65,
+          "draws": 8,
+          "losses": 44,
+          "win_rate": 0.5556
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2023-12-25",
+      "total_games": 126,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "Hikaru": {
+          "games": 87,
+          "wins": 74,
+          "draws": 9,
+          "losses": 4,
+          "win_rate": 0.8506
+        },
+        "FabianoCaruana": {
+          "games": 12,
+          "wins": 10,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.8333
+        },
+        "VincentKeymer": {
+          "games": 27,
+          "wins": 12,
+          "draws": 7,
+          "losses": 8,
+          "win_rate": 0.4444
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-01-01",
+      "total_games": 611,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 20,
+          "wins": 17,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.85
+        },
+        "Hikaru": {
+          "games": 347,
+          "wins": 282,
+          "draws": 35,
+          "losses": 30,
+          "win_rate": 0.8127
+        },
+        "FabianoCaruana": {
+          "games": 105,
+          "wins": 67,
+          "draws": 11,
+          "losses": 27,
+          "win_rate": 0.6381
+        },
+        "VincentKeymer": {
+          "games": 139,
+          "wins": 61,
+          "draws": 15,
+          "losses": 63,
+          "win_rate": 0.4388
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-01-08",
+      "total_games": 254,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 27,
+          "wins": 19,
+          "draws": 4,
+          "losses": 4,
+          "win_rate": 0.7037
+        },
+        "Hikaru": {
+          "games": 149,
+          "wins": 107,
+          "draws": 18,
+          "losses": 24,
+          "win_rate": 0.7181
+        },
+        "FabianoCaruana": {
+          "games": 25,
+          "wins": 14,
+          "draws": 2,
+          "losses": 9,
+          "win_rate": 0.56
+        },
+        "VincentKeymer": {
+          "games": 53,
+          "wins": 28,
+          "draws": 5,
+          "losses": 20,
+          "win_rate": 0.5283
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-01-15",
+      "total_games": 289,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 11,
+          "wins": 7,
+          "draws": 2,
+          "losses": 2,
+          "win_rate": 0.6364
+        },
+        "Hikaru": {
+          "games": 246,
+          "wins": 212,
+          "draws": 15,
+          "losses": 19,
+          "win_rate": 0.8618
+        },
+        "FabianoCaruana": {
+          "games": 15,
+          "wins": 8,
+          "draws": 3,
+          "losses": 4,
+          "win_rate": 0.5333
+        },
+        "VincentKeymer": {
+          "games": 17,
+          "wins": 13,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.7647
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-01-22",
+      "total_games": 283,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 19,
+          "wins": 14,
+          "draws": 2,
+          "losses": 3,
+          "win_rate": 0.7368
+        },
+        "Hikaru": {
+          "games": 240,
+          "wins": 207,
+          "draws": 17,
+          "losses": 16,
+          "win_rate": 0.8625
+        },
+        "FabianoCaruana": {
+          "games": 20,
+          "wins": 13,
+          "draws": 2,
+          "losses": 5,
+          "win_rate": 0.65
+        },
+        "VincentKeymer": {
+          "games": 4,
+          "wins": 0,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.0
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-01-29",
+      "total_games": 428,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 63,
+          "wins": 47,
+          "draws": 12,
+          "losses": 4,
+          "win_rate": 0.746
+        },
+        "Hikaru": {
+          "games": 270,
+          "wins": 230,
+          "draws": 20,
+          "losses": 20,
+          "win_rate": 0.8519
+        },
+        "FabianoCaruana": {
+          "games": 28,
+          "wins": 16,
+          "draws": 4,
+          "losses": 8,
+          "win_rate": 0.5714
+        },
+        "VincentKeymer": {
+          "games": 67,
+          "wins": 40,
+          "draws": 13,
+          "losses": 14,
+          "win_rate": 0.597
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-02-05",
+      "total_games": 402,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 29,
+          "wins": 22,
+          "draws": 3,
+          "losses": 4,
+          "win_rate": 0.7586
+        },
+        "Hikaru": {
+          "games": 343,
+          "wins": 304,
+          "draws": 19,
+          "losses": 20,
+          "win_rate": 0.8863
+        },
+        "FabianoCaruana": {
+          "games": 20,
+          "wins": 11,
+          "draws": 6,
+          "losses": 3,
+          "win_rate": 0.55
+        },
+        "VincentKeymer": {
+          "games": 10,
+          "wins": 5,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.5
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-02-12",
+      "total_games": 372,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 2,
+          "wins": 2,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 1.0
+        },
+        "Hikaru": {
+          "games": 359,
+          "wins": 293,
+          "draws": 29,
+          "losses": 37,
+          "win_rate": 0.8162
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 7,
+          "draws": 2,
+          "losses": 2,
+          "win_rate": 0.6364
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-02-19",
+      "total_games": 129,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 19,
+          "wins": 15,
+          "draws": 0,
+          "losses": 4,
+          "win_rate": 0.7895
+        },
+        "Hikaru": {
+          "games": 75,
+          "wins": 58,
+          "draws": 9,
+          "losses": 8,
+          "win_rate": 0.7733
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 35,
+          "wins": 19,
+          "draws": 7,
+          "losses": 9,
+          "win_rate": 0.5429
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-02-26",
+      "total_games": 170,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 24,
+          "wins": 15,
+          "draws": 3,
+          "losses": 6,
+          "win_rate": 0.625
+        },
+        "Hikaru": {
+          "games": 78,
+          "wins": 67,
+          "draws": 3,
+          "losses": 8,
+          "win_rate": 0.859
+        },
+        "FabianoCaruana": {
+          "games": 13,
+          "wins": 8,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.6154
+        },
+        "VincentKeymer": {
+          "games": 55,
+          "wins": 31,
+          "draws": 9,
+          "losses": 15,
+          "win_rate": 0.5636
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-03-04",
+      "total_games": 203,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 43,
+          "wins": 32,
+          "draws": 6,
+          "losses": 5,
+          "win_rate": 0.7442
+        },
+        "Hikaru": {
+          "games": 137,
+          "wins": 104,
+          "draws": 14,
+          "losses": 19,
+          "win_rate": 0.7591
+        },
+        "FabianoCaruana": {
+          "games": 8,
+          "wins": 5,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.625
+        },
+        "VincentKeymer": {
+          "games": 15,
+          "wins": 8,
+          "draws": 0,
+          "losses": 7,
+          "win_rate": 0.5333
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-03-11",
+      "total_games": 177,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 2,
+          "wins": 2,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 1.0
+        },
+        "Hikaru": {
+          "games": 132,
+          "wins": 121,
+          "draws": 6,
+          "losses": 5,
+          "win_rate": 0.9167
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 43,
+          "wins": 29,
+          "draws": 2,
+          "losses": 12,
+          "win_rate": 0.6744
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-03-18",
+      "total_games": 377,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 85,
+          "wins": 61,
+          "draws": 10,
+          "losses": 14,
+          "win_rate": 0.7176
+        },
+        "Hikaru": {
+          "games": 126,
+          "wins": 100,
+          "draws": 12,
+          "losses": 14,
+          "win_rate": 0.7937
+        },
+        "FabianoCaruana": {
+          "games": 27,
+          "wins": 18,
+          "draws": 5,
+          "losses": 4,
+          "win_rate": 0.6667
+        },
+        "VincentKeymer": {
+          "games": 139,
+          "wins": 85,
+          "draws": 16,
+          "losses": 38,
+          "win_rate": 0.6115
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-03-25",
+      "total_games": 138,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 19,
+          "wins": 12,
+          "draws": 2,
+          "losses": 5,
+          "win_rate": 0.6316
+        },
+        "Hikaru": {
+          "games": 64,
+          "wins": 51,
+          "draws": 9,
+          "losses": 4,
+          "win_rate": 0.7969
+        },
+        "FabianoCaruana": {
+          "games": 10,
+          "wins": 8,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.8
+        },
+        "VincentKeymer": {
+          "games": 45,
+          "wins": 24,
+          "draws": 4,
+          "losses": 17,
+          "win_rate": 0.5333
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-04-01",
+      "total_games": 80,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 51,
+          "wins": 37,
+          "draws": 7,
+          "losses": 7,
+          "win_rate": 0.7255
+        },
+        "Hikaru": {
+          "games": 22,
+          "wins": 17,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.7727
+        },
+        "FabianoCaruana": {
+          "games": 5,
+          "wins": 5,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 1.0
+        },
+        "VincentKeymer": {
+          "games": 2,
+          "wins": 1,
+          "draws": 0,
+          "losses": 1,
+          "win_rate": 0.5
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-04-08",
+      "total_games": 50,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 11,
+          "wins": 9,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.8182
+        },
+        "Hikaru": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 39,
+          "wins": 22,
+          "draws": 4,
+          "losses": 13,
+          "win_rate": 0.5641
+        }
+      }
+    },
+    {
+      "week_start": "2024-04-15",
+      "total_games": 119,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "Hikaru": {
+          "games": 35,
+          "wins": 30,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.8571
+        },
+        "FabianoCaruana": {
+          "games": 13,
+          "wins": 11,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.8462
+        },
+        "VincentKeymer": {
+          "games": 8,
+          "wins": 5,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.625
+        },
+        "ChessWarrior7197": {
+          "games": 63,
+          "wins": 39,
+          "draws": 4,
+          "losses": 20,
+          "win_rate": 0.619
+        }
+      }
+    },
+    {
+      "week_start": "2024-04-22",
+      "total_games": 223,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 67,
+          "wins": 49,
+          "draws": 6,
+          "losses": 12,
+          "win_rate": 0.7313
+        },
+        "Hikaru": {
+          "games": 145,
+          "wins": 129,
+          "draws": 9,
+          "losses": 7,
+          "win_rate": 0.8897
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 1,
+          "wins": 0,
+          "draws": 0,
+          "losses": 1,
+          "win_rate": 0.0
+        },
+        "ChessWarrior7197": {
+          "games": 10,
+          "wins": 6,
+          "draws": 0,
+          "losses": 4,
+          "win_rate": 0.6
+        }
+      }
+    },
+    {
+      "week_start": "2024-04-29",
+      "total_games": 349,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 8,
+          "wins": 6,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.75
+        },
+        "Hikaru": {
+          "games": 330,
+          "wins": 268,
+          "draws": 22,
+          "losses": 40,
+          "win_rate": 0.8121
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 8,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.7273
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-05-06",
+      "total_games": 374,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 37,
+          "wins": 23,
+          "draws": 12,
+          "losses": 2,
+          "win_rate": 0.6216
+        },
+        "Hikaru": {
+          "games": 206,
+          "wins": 168,
+          "draws": 18,
+          "losses": 20,
+          "win_rate": 0.8155
+        },
+        "FabianoCaruana": {
+          "games": 38,
+          "wins": 20,
+          "draws": 9,
+          "losses": 9,
+          "win_rate": 0.5263
+        },
+        "VincentKeymer": {
+          "games": 70,
+          "wins": 30,
+          "draws": 11,
+          "losses": 29,
+          "win_rate": 0.4286
+        },
+        "ChessWarrior7197": {
+          "games": 23,
+          "wins": 14,
+          "draws": 6,
+          "losses": 3,
+          "win_rate": 0.6087
+        }
+      }
+    },
+    {
+      "week_start": "2024-05-13",
+      "total_games": 208,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 19,
+          "wins": 10,
+          "draws": 4,
+          "losses": 5,
+          "win_rate": 0.5263
+        },
+        "Hikaru": {
+          "games": 27,
+          "wins": 22,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.8148
+        },
+        "FabianoCaruana": {
+          "games": 153,
+          "wins": 125,
+          "draws": 19,
+          "losses": 9,
+          "win_rate": 0.817
+        },
+        "VincentKeymer": {
+          "games": 9,
+          "wins": 5,
+          "draws": 0,
+          "losses": 4,
+          "win_rate": 0.5556
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-05-20",
+      "total_games": 332,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 21,
+          "wins": 16,
+          "draws": 1,
+          "losses": 4,
+          "win_rate": 0.7619
+        },
+        "Hikaru": {
+          "games": 155,
+          "wins": 128,
+          "draws": 18,
+          "losses": 9,
+          "win_rate": 0.8258
+        },
+        "FabianoCaruana": {
+          "games": 110,
+          "wins": 78,
+          "draws": 14,
+          "losses": 18,
+          "win_rate": 0.7091
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 46,
+          "wins": 34,
+          "draws": 5,
+          "losses": 7,
+          "win_rate": 0.7391
+        }
+      }
+    },
+    {
+      "week_start": "2024-05-27",
+      "total_games": 22,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "Hikaru": {
+          "games": 11,
+          "wins": 8,
+          "draws": 3,
+          "losses": 0,
+          "win_rate": 0.7273
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 11,
+          "wins": 4,
+          "draws": 2,
+          "losses": 5,
+          "win_rate": 0.3636
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-06-03",
+      "total_games": 58,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 31,
+          "wins": 22,
+          "draws": 3,
+          "losses": 6,
+          "win_rate": 0.7097
+        },
+        "Hikaru": {
+          "games": 21,
+          "wins": 13,
+          "draws": 4,
+          "losses": 4,
+          "win_rate": 0.619
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 6,
+          "wins": 4,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.6667
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-06-10",
+      "total_games": 642,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 43,
+          "wins": 31,
+          "draws": 4,
+          "losses": 8,
+          "win_rate": 0.7209
+        },
+        "Hikaru": {
+          "games": 318,
+          "wins": 212,
+          "draws": 39,
+          "losses": 67,
+          "win_rate": 0.6667
+        },
+        "FabianoCaruana": {
+          "games": 221,
+          "wins": 127,
+          "draws": 24,
+          "losses": 70,
+          "win_rate": 0.5747
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 60,
+          "wins": 26,
+          "draws": 5,
+          "losses": 29,
+          "win_rate": 0.4333
+        }
+      }
+    },
+    {
+      "week_start": "2024-06-17",
+      "total_games": 214,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 22,
+          "wins": 17,
+          "draws": 2,
+          "losses": 3,
+          "win_rate": 0.7727
+        },
+        "Hikaru": {
+          "games": 79,
+          "wins": 62,
+          "draws": 7,
+          "losses": 10,
+          "win_rate": 0.7848
+        },
+        "FabianoCaruana": {
+          "games": 105,
+          "wins": 79,
+          "draws": 8,
+          "losses": 18,
+          "win_rate": 0.7524
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 8,
+          "wins": 6,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.75
+        }
+      }
+    },
+    {
+      "week_start": "2024-06-24",
+      "total_games": 235,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 80,
+          "wins": 56,
+          "draws": 10,
+          "losses": 14,
+          "win_rate": 0.7
+        },
+        "Hikaru": {
+          "games": 55,
+          "wins": 37,
+          "draws": 8,
+          "losses": 10,
+          "win_rate": 0.6727
+        },
+        "FabianoCaruana": {
+          "games": 18,
+          "wins": 12,
+          "draws": 3,
+          "losses": 3,
+          "win_rate": 0.6667
+        },
+        "VincentKeymer": {
+          "games": 68,
+          "wins": 40,
+          "draws": 2,
+          "losses": 26,
+          "win_rate": 0.5882
+        },
+        "ChessWarrior7197": {
+          "games": 14,
+          "wins": 6,
+          "draws": 2,
+          "losses": 6,
+          "win_rate": 0.4286
+        }
+      }
+    },
+    {
+      "week_start": "2024-07-01",
+      "total_games": 395,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 50,
+          "wins": 35,
+          "draws": 3,
+          "losses": 12,
+          "win_rate": 0.7
+        },
+        "Hikaru": {
+          "games": 227,
+          "wins": 180,
+          "draws": 18,
+          "losses": 29,
+          "win_rate": 0.793
+        },
+        "FabianoCaruana": {
+          "games": 39,
+          "wins": 33,
+          "draws": 1,
+          "losses": 5,
+          "win_rate": 0.8462
+        },
+        "VincentKeymer": {
+          "games": 69,
+          "wins": 40,
+          "draws": 3,
+          "losses": 26,
+          "win_rate": 0.5797
+        },
+        "ChessWarrior7197": {
+          "games": 10,
+          "wins": 1,
+          "draws": 0,
+          "losses": 9,
+          "win_rate": 0.1
+        }
+      }
+    },
+    {
+      "week_start": "2024-07-08",
+      "total_games": 352,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 19,
+          "wins": 16,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.8421
+        },
+        "Hikaru": {
+          "games": 284,
+          "wins": 237,
+          "draws": 16,
+          "losses": 31,
+          "win_rate": 0.8345
+        },
+        "FabianoCaruana": {
+          "games": 15,
+          "wins": 12,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.8
+        },
+        "VincentKeymer": {
+          "games": 34,
+          "wins": 14,
+          "draws": 6,
+          "losses": 14,
+          "win_rate": 0.4118
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-07-15",
+      "total_games": 311,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 45,
+          "wins": 29,
+          "draws": 7,
+          "losses": 9,
+          "win_rate": 0.6444
+        },
+        "Hikaru": {
+          "games": 135,
+          "wins": 100,
+          "draws": 16,
+          "losses": 19,
+          "win_rate": 0.7407
+        },
+        "FabianoCaruana": {
+          "games": 113,
+          "wins": 77,
+          "draws": 16,
+          "losses": 20,
+          "win_rate": 0.6814
+        },
+        "VincentKeymer": {
+          "games": 18,
+          "wins": 9,
+          "draws": 2,
+          "losses": 7,
+          "win_rate": 0.5
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-07-22",
+      "total_games": 347,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 67,
+          "wins": 51,
+          "draws": 6,
+          "losses": 10,
+          "win_rate": 0.7612
+        },
+        "Hikaru": {
+          "games": 104,
+          "wins": 73,
+          "draws": 20,
+          "losses": 11,
+          "win_rate": 0.7019
+        },
+        "FabianoCaruana": {
+          "games": 98,
+          "wins": 69,
+          "draws": 6,
+          "losses": 23,
+          "win_rate": 0.7041
+        },
+        "VincentKeymer": {
+          "games": 6,
+          "wins": 2,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.3333
+        },
+        "ChessWarrior7197": {
+          "games": 72,
+          "wins": 35,
+          "draws": 14,
+          "losses": 23,
+          "win_rate": 0.4861
+        }
+      }
+    },
+    {
+      "week_start": "2024-07-29",
+      "total_games": 331,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 20,
+          "wins": 17,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.85
+        },
+        "Hikaru": {
+          "games": 147,
+          "wins": 124,
+          "draws": 8,
+          "losses": 15,
+          "win_rate": 0.8435
+        },
+        "FabianoCaruana": {
+          "games": 146,
+          "wins": 105,
+          "draws": 15,
+          "losses": 26,
+          "win_rate": 0.7192
+        },
+        "VincentKeymer": {
+          "games": 18,
+          "wins": 9,
+          "draws": 3,
+          "losses": 6,
+          "win_rate": 0.5
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-08-05",
+      "total_games": 296,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 89,
+          "wins": 71,
+          "draws": 5,
+          "losses": 13,
+          "win_rate": 0.7978
+        },
+        "Hikaru": {
+          "games": 131,
+          "wins": 91,
+          "draws": 18,
+          "losses": 22,
+          "win_rate": 0.6947
+        },
+        "FabianoCaruana": {
+          "games": 48,
+          "wins": 28,
+          "draws": 6,
+          "losses": 14,
+          "win_rate": 0.5833
+        },
+        "VincentKeymer": {
+          "games": 28,
+          "wins": 15,
+          "draws": 2,
+          "losses": 11,
+          "win_rate": 0.5357
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-08-12",
+      "total_games": 120,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 57,
+          "wins": 37,
+          "draws": 6,
+          "losses": 14,
+          "win_rate": 0.6491
+        },
+        "Hikaru": {
+          "games": 4,
+          "wins": 3,
+          "draws": 1,
+          "losses": 0,
+          "win_rate": 0.75
+        },
+        "FabianoCaruana": {
+          "games": 4,
+          "wins": 3,
+          "draws": 1,
+          "losses": 0,
+          "win_rate": 0.75
+        },
+        "VincentKeymer": {
+          "games": 28,
+          "wins": 14,
+          "draws": 3,
+          "losses": 11,
+          "win_rate": 0.5
+        },
+        "ChessWarrior7197": {
+          "games": 27,
+          "wins": 21,
+          "draws": 1,
+          "losses": 5,
+          "win_rate": 0.7778
+        }
+      }
+    },
+    {
+      "week_start": "2024-08-19",
+      "total_games": 318,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 128,
+          "wins": 90,
+          "draws": 13,
+          "losses": 25,
+          "win_rate": 0.7031
+        },
+        "Hikaru": {
+          "games": 189,
+          "wins": 154,
+          "draws": 15,
+          "losses": 20,
+          "win_rate": 0.8148
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 1,
+          "wins": 1,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 1.0
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-08-26",
+      "total_games": 293,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 38,
+          "wins": 31,
+          "draws": 3,
+          "losses": 4,
+          "win_rate": 0.8158
+        },
+        "Hikaru": {
+          "games": 222,
+          "wins": 161,
+          "draws": 34,
+          "losses": 27,
+          "win_rate": 0.7252
+        },
+        "FabianoCaruana": {
+          "games": 1,
+          "wins": 0,
+          "draws": 1,
+          "losses": 0,
+          "win_rate": 0.0
+        },
+        "VincentKeymer": {
+          "games": 32,
+          "wins": 19,
+          "draws": 2,
+          "losses": 11,
+          "win_rate": 0.5938
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-09-02",
+      "total_games": 209,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 127,
+          "wins": 81,
+          "draws": 15,
+          "losses": 31,
+          "win_rate": 0.6378
+        },
+        "Hikaru": {
+          "games": 80,
+          "wins": 40,
+          "draws": 17,
+          "losses": 23,
+          "win_rate": 0.5
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 2,
+          "wins": 1,
+          "draws": 0,
+          "losses": 1,
+          "win_rate": 0.5
+        }
+      }
+    },
+    {
+      "week_start": "2024-09-09",
+      "total_games": 265,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 22,
+          "wins": 17,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.7727
+        },
+        "Hikaru": {
+          "games": 222,
+          "wins": 181,
+          "draws": 18,
+          "losses": 23,
+          "win_rate": 0.8153
+        },
+        "FabianoCaruana": {
+          "games": 16,
+          "wins": 11,
+          "draws": 1,
+          "losses": 4,
+          "win_rate": 0.6875
+        },
+        "VincentKeymer": {
+          "games": 5,
+          "wins": 1,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.2
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-09-16",
+      "total_games": 241,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 68,
+          "wins": 51,
+          "draws": 9,
+          "losses": 8,
+          "win_rate": 0.75
+        },
+        "Hikaru": {
+          "games": 173,
+          "wins": 146,
+          "draws": 11,
+          "losses": 16,
+          "win_rate": 0.8439
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-09-23",
+      "total_games": 358,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 110,
+          "wins": 75,
+          "draws": 21,
+          "losses": 14,
+          "win_rate": 0.6818
+        },
+        "Hikaru": {
+          "games": 165,
+          "wins": 144,
+          "draws": 10,
+          "losses": 11,
+          "win_rate": 0.8727
+        },
+        "FabianoCaruana": {
+          "games": 50,
+          "wins": 34,
+          "draws": 7,
+          "losses": 9,
+          "win_rate": 0.68
+        },
+        "VincentKeymer": {
+          "games": 33,
+          "wins": 21,
+          "draws": 5,
+          "losses": 7,
+          "win_rate": 0.6364
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-09-30",
+      "total_games": 130,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 55,
+          "wins": 33,
+          "draws": 11,
+          "losses": 11,
+          "win_rate": 0.6
+        },
+        "Hikaru": {
+          "games": 11,
+          "wins": 8,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.7273
+        },
+        "FabianoCaruana": {
+          "games": 21,
+          "wins": 15,
+          "draws": 4,
+          "losses": 2,
+          "win_rate": 0.7143
+        },
+        "VincentKeymer": {
+          "games": 43,
+          "wins": 22,
+          "draws": 6,
+          "losses": 15,
+          "win_rate": 0.5116
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-10-07",
+      "total_games": 82,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 24,
+          "wins": 17,
+          "draws": 2,
+          "losses": 5,
+          "win_rate": 0.7083
+        },
+        "Hikaru": {
+          "games": 7,
+          "wins": 6,
+          "draws": 0,
+          "losses": 1,
+          "win_rate": 0.8571
+        },
+        "FabianoCaruana": {
+          "games": 25,
+          "wins": 18,
+          "draws": 3,
+          "losses": 4,
+          "win_rate": 0.72
+        },
+        "VincentKeymer": {
+          "games": 26,
+          "wins": 11,
+          "draws": 1,
+          "losses": 14,
+          "win_rate": 0.4231
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-10-14",
+      "total_games": 282,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 38,
+          "wins": 27,
+          "draws": 5,
+          "losses": 6,
+          "win_rate": 0.7105
+        },
+        "Hikaru": {
+          "games": 183,
+          "wins": 162,
+          "draws": 10,
+          "losses": 11,
+          "win_rate": 0.8852
+        },
+        "FabianoCaruana": {
+          "games": 10,
+          "wins": 6,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.6
+        },
+        "VincentKeymer": {
+          "games": 51,
+          "wins": 26,
+          "draws": 4,
+          "losses": 21,
+          "win_rate": 0.5098
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-10-21",
+      "total_games": 145,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 11,
+          "wins": 9,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.8182
+        },
+        "Hikaru": {
+          "games": 132,
+          "wins": 112,
+          "draws": 5,
+          "losses": 15,
+          "win_rate": 0.8485
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 2,
+          "wins": 0,
+          "draws": 2,
+          "losses": 0,
+          "win_rate": 0.0
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-10-28",
+      "total_games": 153,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 65,
+          "wins": 49,
+          "draws": 10,
+          "losses": 6,
+          "win_rate": 0.7538
+        },
+        "Hikaru": {
+          "games": 88,
+          "wins": 78,
+          "draws": 5,
+          "losses": 5,
+          "win_rate": 0.8864
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-11-04",
+      "total_games": 301,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 14,
+          "wins": 11,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.7857
+        },
+        "Hikaru": {
+          "games": 200,
+          "wins": 171,
+          "draws": 10,
+          "losses": 19,
+          "win_rate": 0.855
+        },
+        "FabianoCaruana": {
+          "games": 24,
+          "wins": 17,
+          "draws": 2,
+          "losses": 5,
+          "win_rate": 0.7083
+        },
+        "VincentKeymer": {
+          "games": 45,
+          "wins": 23,
+          "draws": 5,
+          "losses": 17,
+          "win_rate": 0.5111
+        },
+        "ChessWarrior7197": {
+          "games": 18,
+          "wins": 10,
+          "draws": 0,
+          "losses": 8,
+          "win_rate": 0.5556
+        }
+      }
+    },
+    {
+      "week_start": "2024-11-11",
+      "total_games": 275,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 21,
+          "wins": 18,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.8571
+        },
+        "Hikaru": {
+          "games": 202,
+          "wins": 172,
+          "draws": 12,
+          "losses": 18,
+          "win_rate": 0.8515
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 42,
+          "wins": 15,
+          "draws": 9,
+          "losses": 18,
+          "win_rate": 0.3571
+        },
+        "ChessWarrior7197": {
+          "games": 10,
+          "wins": 6,
+          "draws": 0,
+          "losses": 4,
+          "win_rate": 0.6
+        }
+      }
+    },
+    {
+      "week_start": "2024-11-18",
+      "total_games": 327,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 33,
+          "wins": 23,
+          "draws": 7,
+          "losses": 3,
+          "win_rate": 0.697
+        },
+        "Hikaru": {
+          "games": 218,
+          "wins": 186,
+          "draws": 17,
+          "losses": 15,
+          "win_rate": 0.8532
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 76,
+          "wins": 37,
+          "draws": 3,
+          "losses": 36,
+          "win_rate": 0.4868
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-11-25",
+      "total_games": 238,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 18,
+          "wins": 16,
+          "draws": 2,
+          "losses": 0,
+          "win_rate": 0.8889
+        },
+        "Hikaru": {
+          "games": 184,
+          "wins": 153,
+          "draws": 5,
+          "losses": 26,
+          "win_rate": 0.8315
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 36,
+          "wins": 16,
+          "draws": 4,
+          "losses": 16,
+          "win_rate": 0.4444
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-12-02",
+      "total_games": 176,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 47,
+          "wins": 33,
+          "draws": 4,
+          "losses": 10,
+          "win_rate": 0.7021
+        },
+        "Hikaru": {
+          "games": 114,
+          "wins": 99,
+          "draws": 7,
+          "losses": 8,
+          "win_rate": 0.8684
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 15,
+          "wins": 8,
+          "draws": 1,
+          "losses": 6,
+          "win_rate": 0.5333
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-12-09",
+      "total_games": 180,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 17,
+          "wins": 12,
+          "draws": 2,
+          "losses": 3,
+          "win_rate": 0.7059
+        },
+        "Hikaru": {
+          "games": 120,
+          "wins": 97,
+          "draws": 7,
+          "losses": 16,
+          "win_rate": 0.8083
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 9,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.8182
+        },
+        "VincentKeymer": {
+          "games": 32,
+          "wins": 12,
+          "draws": 5,
+          "losses": 15,
+          "win_rate": 0.375
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2024-12-16",
+      "total_games": 143,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 4,
+          "wins": 4,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 1.0
+        },
+        "Hikaru": {
+          "games": 82,
+          "wins": 71,
+          "draws": 3,
+          "losses": 8,
+          "win_rate": 0.8659
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 47,
+          "wins": 24,
+          "draws": 4,
+          "losses": 19,
+          "win_rate": 0.5106
+        },
+        "ChessWarrior7197": {
+          "games": 10,
+          "wins": 4,
+          "draws": 2,
+          "losses": 4,
+          "win_rate": 0.4
+        }
+      }
+    },
+    {
+      "week_start": "2024-12-23",
+      "total_games": 162,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 61,
+          "wins": 47,
+          "draws": 8,
+          "losses": 6,
+          "win_rate": 0.7705
+        },
+        "Hikaru": {
+          "games": 61,
+          "wins": 50,
+          "draws": 4,
+          "losses": 7,
+          "win_rate": 0.8197
+        },
+        "FabianoCaruana": {
+          "games": 10,
+          "wins": 6,
+          "draws": 2,
+          "losses": 2,
+          "win_rate": 0.6
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 30,
+          "wins": 18,
+          "draws": 6,
+          "losses": 6,
+          "win_rate": 0.6
+        }
+      }
+    },
+    {
+      "week_start": "2024-12-30",
+      "total_games": 168,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 25,
+          "wins": 12,
+          "draws": 9,
+          "losses": 4,
+          "win_rate": 0.48
+        },
+        "Hikaru": {
+          "games": 24,
+          "wins": 18,
+          "draws": 3,
+          "losses": 3,
+          "win_rate": 0.75
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 27,
+          "wins": 14,
+          "draws": 6,
+          "losses": 7,
+          "win_rate": 0.5185
+        },
+        "ChessWarrior7197": {
+          "games": 92,
+          "wins": 49,
+          "draws": 17,
+          "losses": 26,
+          "win_rate": 0.5326
+        }
+      }
+    },
+    {
+      "week_start": "2025-01-06",
+      "total_games": 149,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 42,
+          "wins": 32,
+          "draws": 5,
+          "losses": 5,
+          "win_rate": 0.7619
+        },
+        "Hikaru": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "FabianoCaruana": {
+          "games": 28,
+          "wins": 20,
+          "draws": 3,
+          "losses": 5,
+          "win_rate": 0.7143
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 79,
+          "wins": 37,
+          "draws": 9,
+          "losses": 33,
+          "win_rate": 0.4684
+        }
+      }
+    },
+    {
+      "week_start": "2025-01-13",
+      "total_games": 170,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 145,
+          "wins": 114,
+          "draws": 16,
+          "losses": 15,
+          "win_rate": 0.7862
+        },
+        "Hikaru": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 8,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.7273
+        },
+        "VincentKeymer": {
+          "games": 14,
+          "wins": 4,
+          "draws": 3,
+          "losses": 7,
+          "win_rate": 0.2857
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-01-20",
+      "total_games": 132,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 91,
+          "wins": 69,
+          "draws": 6,
+          "losses": 16,
+          "win_rate": 0.7582
+        },
+        "Hikaru": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "FabianoCaruana": {
+          "games": 41,
+          "wins": 30,
+          "draws": 4,
+          "losses": 7,
+          "win_rate": 0.7317
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-01-27",
+      "total_games": 215,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 61,
+          "wins": 41,
+          "draws": 6,
+          "losses": 14,
+          "win_rate": 0.6721
+        },
+        "Hikaru": {
+          "games": 81,
+          "wins": 72,
+          "draws": 0,
+          "losses": 9,
+          "win_rate": 0.8889
+        },
+        "FabianoCaruana": {
+          "games": 72,
+          "wins": 50,
+          "draws": 6,
+          "losses": 16,
+          "win_rate": 0.6944
+        },
+        "VincentKeymer": {
+          "games": 1,
+          "wins": 0,
+          "draws": 0,
+          "losses": 1,
+          "win_rate": 0.0
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-02-03",
+      "total_games": 135,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 32,
+          "wins": 19,
+          "draws": 5,
+          "losses": 8,
+          "win_rate": 0.5938
+        },
+        "Hikaru": {
+          "games": 59,
+          "wins": 39,
+          "draws": 5,
+          "losses": 15,
+          "win_rate": 0.661
+        },
+        "FabianoCaruana": {
+          "games": 25,
+          "wins": 15,
+          "draws": 3,
+          "losses": 7,
+          "win_rate": 0.6
+        },
+        "VincentKeymer": {
+          "games": 4,
+          "wins": 2,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.5
+        },
+        "ChessWarrior7197": {
+          "games": 15,
+          "wins": 6,
+          "draws": 6,
+          "losses": 3,
+          "win_rate": 0.4
+        }
+      }
+    },
+    {
+      "week_start": "2025-02-10",
+      "total_games": 68,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 19,
+          "wins": 18,
+          "draws": 1,
+          "losses": 0,
+          "win_rate": 0.9474
+        },
+        "Hikaru": {
+          "games": 25,
+          "wins": 19,
+          "draws": 3,
+          "losses": 3,
+          "win_rate": 0.76
+        },
+        "FabianoCaruana": {
+          "games": 24,
+          "wins": 13,
+          "draws": 3,
+          "losses": 8,
+          "win_rate": 0.5417
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-02-17",
+      "total_games": 277,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 37,
+          "wins": 18,
+          "draws": 15,
+          "losses": 4,
+          "win_rate": 0.4865
+        },
+        "Hikaru": {
+          "games": 135,
+          "wins": 107,
+          "draws": 12,
+          "losses": 16,
+          "win_rate": 0.7926
+        },
+        "FabianoCaruana": {
+          "games": 77,
+          "wins": 55,
+          "draws": 5,
+          "losses": 17,
+          "win_rate": 0.7143
+        },
+        "VincentKeymer": {
+          "games": 17,
+          "wins": 8,
+          "draws": 3,
+          "losses": 6,
+          "win_rate": 0.4706
+        },
+        "ChessWarrior7197": {
+          "games": 11,
+          "wins": 5,
+          "draws": 2,
+          "losses": 4,
+          "win_rate": 0.4545
+        }
+      }
+    },
+    {
+      "week_start": "2025-02-24",
+      "total_games": 498,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 106,
+          "wins": 78,
+          "draws": 14,
+          "losses": 14,
+          "win_rate": 0.7358
+        },
+        "Hikaru": {
+          "games": 220,
+          "wins": 191,
+          "draws": 12,
+          "losses": 17,
+          "win_rate": 0.8682
+        },
+        "FabianoCaruana": {
+          "games": 148,
+          "wins": 112,
+          "draws": 15,
+          "losses": 21,
+          "win_rate": 0.7568
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 24,
+          "wins": 16,
+          "draws": 3,
+          "losses": 5,
+          "win_rate": 0.6667
+        }
+      }
+    },
+    {
+      "week_start": "2025-03-03",
+      "total_games": 144,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 23,
+          "wins": 17,
+          "draws": 3,
+          "losses": 3,
+          "win_rate": 0.7391
+        },
+        "Hikaru": {
+          "games": 85,
+          "wins": 68,
+          "draws": 3,
+          "losses": 14,
+          "win_rate": 0.8
+        },
+        "FabianoCaruana": {
+          "games": 14,
+          "wins": 12,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.8571
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 22,
+          "wins": 14,
+          "draws": 2,
+          "losses": 6,
+          "win_rate": 0.6364
+        }
+      }
+    },
+    {
+      "week_start": "2025-03-10",
+      "total_games": 199,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 47,
+          "wins": 34,
+          "draws": 6,
+          "losses": 7,
+          "win_rate": 0.7234
+        },
+        "Hikaru": {
+          "games": 128,
+          "wins": 99,
+          "draws": 13,
+          "losses": 16,
+          "win_rate": 0.7734
+        },
+        "FabianoCaruana": {
+          "games": 19,
+          "wins": 14,
+          "draws": 0,
+          "losses": 5,
+          "win_rate": 0.7368
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 5,
+          "wins": 2,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.4
+        }
+      }
+    },
+    {
+      "week_start": "2025-03-17",
+      "total_games": 153,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 48,
+          "wins": 32,
+          "draws": 6,
+          "losses": 10,
+          "win_rate": 0.6667
+        },
+        "Hikaru": {
+          "games": 77,
+          "wins": 63,
+          "draws": 5,
+          "losses": 9,
+          "win_rate": 0.8182
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 8,
+          "wins": 5,
+          "draws": 0,
+          "losses": 3,
+          "win_rate": 0.625
+        },
+        "ChessWarrior7197": {
+          "games": 20,
+          "wins": 12,
+          "draws": 2,
+          "losses": 6,
+          "win_rate": 0.6
+        }
+      }
+    },
+    {
+      "week_start": "2025-03-24",
+      "total_games": 304,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 120,
+          "wins": 96,
+          "draws": 7,
+          "losses": 17,
+          "win_rate": 0.8
+        },
+        "Hikaru": {
+          "games": 128,
+          "wins": 116,
+          "draws": 2,
+          "losses": 10,
+          "win_rate": 0.9062
+        },
+        "FabianoCaruana": {
+          "games": 45,
+          "wins": 34,
+          "draws": 4,
+          "losses": 7,
+          "win_rate": 0.7556
+        },
+        "VincentKeymer": {
+          "games": 11,
+          "wins": 8,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.7273
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-03-31",
+      "total_games": 130,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 11,
+          "wins": 9,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.8182
+        },
+        "Hikaru": {
+          "games": 90,
+          "wins": 72,
+          "draws": 10,
+          "losses": 8,
+          "win_rate": 0.8
+        },
+        "FabianoCaruana": {
+          "games": 17,
+          "wins": 13,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.7647
+        },
+        "VincentKeymer": {
+          "games": 12,
+          "wins": 7,
+          "draws": 1,
+          "losses": 4,
+          "win_rate": 0.5833
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-04-07",
+      "total_games": 49,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 23,
+          "wins": 20,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.8696
+        },
+        "Hikaru": {
+          "games": 26,
+          "wins": 21,
+          "draws": 2,
+          "losses": 3,
+          "win_rate": 0.8077
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-04-14",
+      "total_games": 99,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 30,
+          "wins": 20,
+          "draws": 3,
+          "losses": 7,
+          "win_rate": 0.6667
+        },
+        "Hikaru": {
+          "games": 69,
+          "wins": 55,
+          "draws": 6,
+          "losses": 8,
+          "win_rate": 0.7971
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-04-21",
+      "total_games": 157,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 35,
+          "wins": 28,
+          "draws": 4,
+          "losses": 3,
+          "win_rate": 0.8
+        },
+        "Hikaru": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "FabianoCaruana": {
+          "games": 122,
+          "wins": 86,
+          "draws": 13,
+          "losses": 23,
+          "win_rate": 0.7049
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-04-28",
+      "total_games": 317,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 17,
+          "wins": 12,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.7059
+        },
+        "Hikaru": {
+          "games": 127,
+          "wins": 95,
+          "draws": 12,
+          "losses": 20,
+          "win_rate": 0.748
+        },
+        "FabianoCaruana": {
+          "games": 66,
+          "wins": 48,
+          "draws": 5,
+          "losses": 13,
+          "win_rate": 0.7273
+        },
+        "VincentKeymer": {
+          "games": 107,
+          "wins": 65,
+          "draws": 8,
+          "losses": 34,
+          "win_rate": 0.6075
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-05-05",
+      "total_games": 304,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 39,
+          "wins": 30,
+          "draws": 4,
+          "losses": 5,
+          "win_rate": 0.7692
+        },
+        "Hikaru": {
+          "games": 205,
+          "wins": 175,
+          "draws": 17,
+          "losses": 13,
+          "win_rate": 0.8537
+        },
+        "FabianoCaruana": {
+          "games": 23,
+          "wins": 18,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.7826
+        },
+        "VincentKeymer": {
+          "games": 37,
+          "wins": 26,
+          "draws": 2,
+          "losses": 9,
+          "win_rate": 0.7027
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-05-12",
+      "total_games": 290,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 51,
+          "wins": 36,
+          "draws": 8,
+          "losses": 7,
+          "win_rate": 0.7059
+        },
+        "Hikaru": {
+          "games": 141,
+          "wins": 128,
+          "draws": 4,
+          "losses": 9,
+          "win_rate": 0.9078
+        },
+        "FabianoCaruana": {
+          "games": 98,
+          "wins": 64,
+          "draws": 12,
+          "losses": 22,
+          "win_rate": 0.6531
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-05-19",
+      "total_games": 246,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 29,
+          "wins": 18,
+          "draws": 9,
+          "losses": 2,
+          "win_rate": 0.6207
+        },
+        "Hikaru": {
+          "games": 114,
+          "wins": 87,
+          "draws": 13,
+          "losses": 14,
+          "win_rate": 0.7632
+        },
+        "FabianoCaruana": {
+          "games": 86,
+          "wins": 53,
+          "draws": 23,
+          "losses": 10,
+          "win_rate": 0.6163
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 17,
+          "wins": 4,
+          "draws": 8,
+          "losses": 5,
+          "win_rate": 0.2353
+        }
+      }
+    },
+    {
+      "week_start": "2025-05-26",
+      "total_games": 57,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "Hikaru": {
+          "games": 48,
+          "wins": 38,
+          "draws": 3,
+          "losses": 7,
+          "win_rate": 0.7917
+        },
+        "FabianoCaruana": {
+          "games": 9,
+          "wins": 7,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.7778
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-06-02",
+      "total_games": 123,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "Hikaru": {
+          "games": 123,
+          "wins": 107,
+          "draws": 7,
+          "losses": 9,
+          "win_rate": 0.8699
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-06-09",
+      "total_games": 173,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 52,
+          "wins": 44,
+          "draws": 4,
+          "losses": 4,
+          "win_rate": 0.8462
+        },
+        "Hikaru": {
+          "games": 52,
+          "wins": 42,
+          "draws": 3,
+          "losses": 7,
+          "win_rate": 0.8077
+        },
+        "FabianoCaruana": {
+          "games": 13,
+          "wins": 8,
+          "draws": 1,
+          "losses": 4,
+          "win_rate": 0.6154
+        },
+        "VincentKeymer": {
+          "games": 56,
+          "wins": 37,
+          "draws": 7,
+          "losses": 12,
+          "win_rate": 0.6607
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-06-16",
+      "total_games": 490,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 108,
+          "wins": 78,
+          "draws": 7,
+          "losses": 23,
+          "win_rate": 0.7222
+        },
+        "Hikaru": {
+          "games": 322,
+          "wins": 267,
+          "draws": 21,
+          "losses": 34,
+          "win_rate": 0.8292
+        },
+        "FabianoCaruana": {
+          "games": 33,
+          "wins": 24,
+          "draws": 1,
+          "losses": 8,
+          "win_rate": 0.7273
+        },
+        "VincentKeymer": {
+          "games": 27,
+          "wins": 18,
+          "draws": 1,
+          "losses": 8,
+          "win_rate": 0.6667
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-06-23",
+      "total_games": 174,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 21,
+          "wins": 16,
+          "draws": 2,
+          "losses": 3,
+          "win_rate": 0.7619
+        },
+        "Hikaru": {
+          "games": 129,
+          "wins": 105,
+          "draws": 13,
+          "losses": 11,
+          "win_rate": 0.814
+        },
+        "FabianoCaruana": {
+          "games": 24,
+          "wins": 16,
+          "draws": 5,
+          "losses": 3,
+          "win_rate": 0.6667
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-06-30",
+      "total_games": 236,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 11,
+          "wins": 7,
+          "draws": 3,
+          "losses": 1,
+          "win_rate": 0.6364
+        },
+        "Hikaru": {
+          "games": 206,
+          "wins": 182,
+          "draws": 8,
+          "losses": 16,
+          "win_rate": 0.8835
+        },
+        "FabianoCaruana": {
+          "games": 9,
+          "wins": 6,
+          "draws": 0,
+          "losses": 3,
+          "win_rate": 0.6667
+        },
+        "VincentKeymer": {
+          "games": 10,
+          "wins": 5,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.5
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-07-07",
+      "total_games": 347,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 11,
+          "wins": 9,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.8182
+        },
+        "Hikaru": {
+          "games": 275,
+          "wins": 233,
+          "draws": 14,
+          "losses": 28,
+          "win_rate": 0.8473
+        },
+        "FabianoCaruana": {
+          "games": 22,
+          "wins": 14,
+          "draws": 2,
+          "losses": 6,
+          "win_rate": 0.6364
+        },
+        "VincentKeymer": {
+          "games": 39,
+          "wins": 26,
+          "draws": 4,
+          "losses": 9,
+          "win_rate": 0.6667
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-07-14",
+      "total_games": 87,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "Hikaru": {
+          "games": 77,
+          "wins": 69,
+          "draws": 2,
+          "losses": 6,
+          "win_rate": 0.8961
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 10,
+          "wins": 5,
+          "draws": 1,
+          "losses": 4,
+          "win_rate": 0.5
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-07-21",
+      "total_games": 307,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 85,
+          "wins": 52,
+          "draws": 10,
+          "losses": 23,
+          "win_rate": 0.6118
+        },
+        "Hikaru": {
+          "games": 199,
+          "wins": 167,
+          "draws": 12,
+          "losses": 20,
+          "win_rate": 0.8392
+        },
+        "FabianoCaruana": {
+          "games": 4,
+          "wins": 3,
+          "draws": 0,
+          "losses": 1,
+          "win_rate": 0.75
+        },
+        "VincentKeymer": {
+          "games": 19,
+          "wins": 8,
+          "draws": 0,
+          "losses": 11,
+          "win_rate": 0.4211
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-07-28",
+      "total_games": 277,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 28,
+          "wins": 18,
+          "draws": 7,
+          "losses": 3,
+          "win_rate": 0.6429
+        },
+        "Hikaru": {
+          "games": 163,
+          "wins": 139,
+          "draws": 12,
+          "losses": 12,
+          "win_rate": 0.8528
+        },
+        "FabianoCaruana": {
+          "games": 16,
+          "wins": 9,
+          "draws": 3,
+          "losses": 4,
+          "win_rate": 0.5625
+        },
+        "VincentKeymer": {
+          "games": 44,
+          "wins": 26,
+          "draws": 3,
+          "losses": 15,
+          "win_rate": 0.5909
+        },
+        "ChessWarrior7197": {
+          "games": 26,
+          "wins": 11,
+          "draws": 5,
+          "losses": 10,
+          "win_rate": 0.4231
+        }
+      }
+    },
+    {
+      "week_start": "2025-08-04",
+      "total_games": 374,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 30,
+          "wins": 22,
+          "draws": 3,
+          "losses": 5,
+          "win_rate": 0.7333
+        },
+        "Hikaru": {
+          "games": 294,
+          "wins": 256,
+          "draws": 17,
+          "losses": 21,
+          "win_rate": 0.8707
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 50,
+          "wins": 32,
+          "draws": 0,
+          "losses": 18,
+          "win_rate": 0.64
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-08-11",
+      "total_games": 145,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 22,
+          "wins": 20,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.9091
+        },
+        "Hikaru": {
+          "games": 123,
+          "wins": 102,
+          "draws": 9,
+          "losses": 12,
+          "win_rate": 0.8293
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-08-18",
+      "total_games": 178,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 32,
+          "wins": 29,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.9062
+        },
+        "Hikaru": {
+          "games": 135,
+          "wins": 117,
+          "draws": 7,
+          "losses": 11,
+          "win_rate": 0.8667
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 11,
+          "wins": 8,
+          "draws": 0,
+          "losses": 3,
+          "win_rate": 0.7273
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-08-25",
+      "total_games": 203,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 37,
+          "wins": 30,
+          "draws": 1,
+          "losses": 6,
+          "win_rate": 0.8108
+        },
+        "Hikaru": {
+          "games": 87,
+          "wins": 75,
+          "draws": 8,
+          "losses": 4,
+          "win_rate": 0.8621
+        },
+        "FabianoCaruana": {
+          "games": 13,
+          "wins": 10,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.7692
+        },
+        "VincentKeymer": {
+          "games": 66,
+          "wins": 45,
+          "draws": 7,
+          "losses": 14,
+          "win_rate": 0.6818
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-09-01",
+      "total_games": 195,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 83,
+          "wins": 56,
+          "draws": 8,
+          "losses": 19,
+          "win_rate": 0.6747
+        },
+        "Hikaru": {
+          "games": 47,
+          "wins": 42,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.8936
+        },
+        "FabianoCaruana": {
+          "games": 24,
+          "wins": 19,
+          "draws": 1,
+          "losses": 4,
+          "win_rate": 0.7917
+        },
+        "VincentKeymer": {
+          "games": 41,
+          "wins": 23,
+          "draws": 2,
+          "losses": 16,
+          "win_rate": 0.561
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-09-08",
+      "total_games": 209,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 25,
+          "wins": 22,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.88
+        },
+        "Hikaru": {
+          "games": 174,
+          "wins": 143,
+          "draws": 15,
+          "losses": 16,
+          "win_rate": 0.8218
+        },
+        "FabianoCaruana": {
+          "games": 10,
+          "wins": 5,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.5
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-09-15",
+      "total_games": 305,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 63,
+          "wins": 41,
+          "draws": 6,
+          "losses": 16,
+          "win_rate": 0.6508
+        },
+        "Hikaru": {
+          "games": 167,
+          "wins": 132,
+          "draws": 15,
+          "losses": 20,
+          "win_rate": 0.7904
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 75,
+          "wins": 41,
+          "draws": 11,
+          "losses": 23,
+          "win_rate": 0.5467
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-09-22",
+      "total_games": 233,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 55,
+          "wins": 36,
+          "draws": 5,
+          "losses": 14,
+          "win_rate": 0.6545
+        },
+        "Hikaru": {
+          "games": 99,
+          "wins": 89,
+          "draws": 5,
+          "losses": 5,
+          "win_rate": 0.899
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 8,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.7273
+        },
+        "VincentKeymer": {
+          "games": 68,
+          "wins": 36,
+          "draws": 4,
+          "losses": 28,
+          "win_rate": 0.5294
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-09-29",
+      "total_games": 160,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 58,
+          "wins": 39,
+          "draws": 4,
+          "losses": 15,
+          "win_rate": 0.6724
+        },
+        "Hikaru": {
+          "games": 86,
+          "wins": 76,
+          "draws": 6,
+          "losses": 4,
+          "win_rate": 0.8837
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 16,
+          "wins": 4,
+          "draws": 4,
+          "losses": 8,
+          "win_rate": 0.25
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-10-06",
+      "total_games": 288,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 97,
+          "wins": 69,
+          "draws": 10,
+          "losses": 18,
+          "win_rate": 0.7113
+        },
+        "Hikaru": {
+          "games": 138,
+          "wins": 114,
+          "draws": 14,
+          "losses": 10,
+          "win_rate": 0.8261
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 7,
+          "draws": 3,
+          "losses": 1,
+          "win_rate": 0.6364
+        },
+        "VincentKeymer": {
+          "games": 42,
+          "wins": 27,
+          "draws": 7,
+          "losses": 8,
+          "win_rate": 0.6429
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-10-13",
+      "total_games": 217,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 82,
+          "wins": 62,
+          "draws": 4,
+          "losses": 16,
+          "win_rate": 0.7561
+        },
+        "Hikaru": {
+          "games": 50,
+          "wins": 24,
+          "draws": 12,
+          "losses": 14,
+          "win_rate": 0.48
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 85,
+          "wins": 41,
+          "draws": 10,
+          "losses": 34,
+          "win_rate": 0.4824
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-10-20",
+      "total_games": 102,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 11,
+          "wins": 8,
+          "draws": 2,
+          "losses": 1,
+          "win_rate": 0.7273
+        },
+        "Hikaru": {
+          "games": 82,
+          "wins": 73,
+          "draws": 4,
+          "losses": 5,
+          "win_rate": 0.8902
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 9,
+          "wins": 7,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.7778
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-10-27",
+      "total_games": 225,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 18,
+          "wins": 10,
+          "draws": 2,
+          "losses": 6,
+          "win_rate": 0.5556
+        },
+        "Hikaru": {
+          "games": 163,
+          "wins": 134,
+          "draws": 10,
+          "losses": 19,
+          "win_rate": 0.8221
+        },
+        "FabianoCaruana": {
+          "games": 33,
+          "wins": 18,
+          "draws": 5,
+          "losses": 10,
+          "win_rate": 0.5455
+        },
+        "VincentKeymer": {
+          "games": 11,
+          "wins": 8,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.7273
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-11-03",
+      "total_games": 182,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 32,
+          "wins": 22,
+          "draws": 3,
+          "losses": 7,
+          "win_rate": 0.6875
+        },
+        "Hikaru": {
+          "games": 124,
+          "wins": 102,
+          "draws": 12,
+          "losses": 10,
+          "win_rate": 0.8226
+        },
+        "FabianoCaruana": {
+          "games": 26,
+          "wins": 20,
+          "draws": 2,
+          "losses": 4,
+          "win_rate": 0.7692
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-11-10",
+      "total_games": 362,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 90,
+          "wins": 63,
+          "draws": 8,
+          "losses": 19,
+          "win_rate": 0.7
+        },
+        "Hikaru": {
+          "games": 152,
+          "wins": 114,
+          "draws": 19,
+          "losses": 19,
+          "win_rate": 0.75
+        },
+        "FabianoCaruana": {
+          "games": 24,
+          "wins": 5,
+          "draws": 5,
+          "losses": 14,
+          "win_rate": 0.2083
+        },
+        "VincentKeymer": {
+          "games": 31,
+          "wins": 17,
+          "draws": 2,
+          "losses": 12,
+          "win_rate": 0.5484
+        },
+        "ChessWarrior7197": {
+          "games": 65,
+          "wins": 33,
+          "draws": 6,
+          "losses": 26,
+          "win_rate": 0.5077
+        }
+      }
+    },
+    {
+      "week_start": "2025-11-17",
+      "total_games": 285,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 107,
+          "wins": 75,
+          "draws": 8,
+          "losses": 24,
+          "win_rate": 0.7009
+        },
+        "Hikaru": {
+          "games": 54,
+          "wins": 35,
+          "draws": 9,
+          "losses": 10,
+          "win_rate": 0.6481
+        },
+        "FabianoCaruana": {
+          "games": 64,
+          "wins": 47,
+          "draws": 6,
+          "losses": 11,
+          "win_rate": 0.7344
+        },
+        "VincentKeymer": {
+          "games": 50,
+          "wins": 32,
+          "draws": 7,
+          "losses": 11,
+          "win_rate": 0.64
+        },
+        "ChessWarrior7197": {
+          "games": 10,
+          "wins": 9,
+          "draws": 0,
+          "losses": 1,
+          "win_rate": 0.9
+        }
+      }
+    },
+    {
+      "week_start": "2025-11-24",
+      "total_games": 286,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 63,
+          "wins": 50,
+          "draws": 5,
+          "losses": 8,
+          "win_rate": 0.7937
+        },
+        "Hikaru": {
+          "games": 186,
+          "wins": 143,
+          "draws": 17,
+          "losses": 26,
+          "win_rate": 0.7688
+        },
+        "FabianoCaruana": {
+          "games": 26,
+          "wins": 18,
+          "draws": 1,
+          "losses": 7,
+          "win_rate": 0.6923
+        },
+        "VincentKeymer": {
+          "games": 11,
+          "wins": 7,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.6364
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-12-01",
+      "total_games": 181,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 17,
+          "wins": 12,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.7059
+        },
+        "Hikaru": {
+          "games": 160,
+          "wins": 126,
+          "draws": 16,
+          "losses": 18,
+          "win_rate": 0.7875
+        },
+        "FabianoCaruana": {
+          "games": 4,
+          "wins": 4,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 1.0
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-12-08",
+      "total_games": 77,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 39,
+          "wins": 28,
+          "draws": 3,
+          "losses": 8,
+          "win_rate": 0.7179
+        },
+        "Hikaru": {
+          "games": 38,
+          "wins": 32,
+          "draws": 5,
+          "losses": 1,
+          "win_rate": 0.8421
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2025-12-15",
+      "total_games": 229,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 134,
+          "wins": 89,
+          "draws": 25,
+          "losses": 20,
+          "win_rate": 0.6642
+        },
+        "Hikaru": {
+          "games": 57,
+          "wins": 52,
+          "draws": 2,
+          "losses": 3,
+          "win_rate": 0.9123
+        },
+        "FabianoCaruana": {
+          "games": 4,
+          "wins": 1,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.25
+        },
+        "VincentKeymer": {
+          "games": 23,
+          "wins": 14,
+          "draws": 3,
+          "losses": 6,
+          "win_rate": 0.6087
+        },
+        "ChessWarrior7197": {
+          "games": 11,
+          "wins": 6,
+          "draws": 3,
+          "losses": 2,
+          "win_rate": 0.5455
+        }
+      }
+    },
+    {
+      "week_start": "2025-12-22",
+      "total_games": 124,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 11,
+          "wins": 8,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.7273
+        },
+        "Hikaru": {
+          "games": 80,
+          "wins": 71,
+          "draws": 7,
+          "losses": 2,
+          "win_rate": 0.8875
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 22,
+          "wins": 14,
+          "draws": 3,
+          "losses": 5,
+          "win_rate": 0.6364
+        },
+        "ChessWarrior7197": {
+          "games": 11,
+          "wins": 7,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.6364
+        }
+      }
+    },
+    {
+      "week_start": "2025-12-29",
+      "total_games": 182,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 11,
+          "wins": 9,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.8182
+        },
+        "Hikaru": {
+          "games": 110,
+          "wins": 86,
+          "draws": 9,
+          "losses": 15,
+          "win_rate": 0.7818
+        },
+        "FabianoCaruana": {
+          "games": 38,
+          "wins": 26,
+          "draws": 4,
+          "losses": 8,
+          "win_rate": 0.6842
+        },
+        "VincentKeymer": {
+          "games": 23,
+          "wins": 15,
+          "draws": 5,
+          "losses": 3,
+          "win_rate": 0.6522
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2026-01-05",
+      "total_games": 269,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 38,
+          "wins": 29,
+          "draws": 3,
+          "losses": 6,
+          "win_rate": 0.7632
+        },
+        "Hikaru": {
+          "games": 179,
+          "wins": 152,
+          "draws": 7,
+          "losses": 20,
+          "win_rate": 0.8492
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 41,
+          "wins": 23,
+          "draws": 9,
+          "losses": 9,
+          "win_rate": 0.561
+        },
+        "ChessWarrior7197": {
+          "games": 11,
+          "wins": 7,
+          "draws": 3,
+          "losses": 1,
+          "win_rate": 0.6364
+        }
+      }
+    },
+    {
+      "week_start": "2026-01-12",
+      "total_games": 345,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 50,
+          "wins": 36,
+          "draws": 2,
+          "losses": 12,
+          "win_rate": 0.72
+        },
+        "Hikaru": {
+          "games": 209,
+          "wins": 172,
+          "draws": 15,
+          "losses": 22,
+          "win_rate": 0.823
+        },
+        "FabianoCaruana": {
+          "games": 35,
+          "wins": 25,
+          "draws": 4,
+          "losses": 6,
+          "win_rate": 0.7143
+        },
+        "VincentKeymer": {
+          "games": 27,
+          "wins": 15,
+          "draws": 4,
+          "losses": 8,
+          "win_rate": 0.5556
+        },
+        "ChessWarrior7197": {
+          "games": 24,
+          "wins": 17,
+          "draws": 5,
+          "losses": 2,
+          "win_rate": 0.7083
+        }
+      }
+    },
+    {
+      "week_start": "2026-01-19",
+      "total_games": 240,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 75,
+          "wins": 48,
+          "draws": 9,
+          "losses": 18,
+          "win_rate": 0.64
+        },
+        "Hikaru": {
+          "games": 152,
+          "wins": 118,
+          "draws": 12,
+          "losses": 22,
+          "win_rate": 0.7763
+        },
+        "FabianoCaruana": {
+          "games": 7,
+          "wins": 4,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.5714
+        },
+        "VincentKeymer": {
+          "games": 6,
+          "wins": 2,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.3333
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2026-01-26",
+      "total_games": 391,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 88,
+          "wins": 64,
+          "draws": 8,
+          "losses": 16,
+          "win_rate": 0.7273
+        },
+        "Hikaru": {
+          "games": 203,
+          "wins": 166,
+          "draws": 10,
+          "losses": 27,
+          "win_rate": 0.8177
+        },
+        "FabianoCaruana": {
+          "games": 49,
+          "wins": 31,
+          "draws": 8,
+          "losses": 10,
+          "win_rate": 0.6327
+        },
+        "VincentKeymer": {
+          "games": 51,
+          "wins": 22,
+          "draws": 8,
+          "losses": 21,
+          "win_rate": 0.4314
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2026-02-02",
+      "total_games": 293,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 94,
+          "wins": 54,
+          "draws": 20,
+          "losses": 20,
+          "win_rate": 0.5745
+        },
+        "Hikaru": {
+          "games": 160,
+          "wins": 101,
+          "draws": 24,
+          "losses": 35,
+          "win_rate": 0.6312
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 39,
+          "wins": 21,
+          "draws": 6,
+          "losses": 12,
+          "win_rate": 0.5385
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2026-02-09",
+      "total_games": 168,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "Hikaru": {
+          "games": 114,
+          "wins": 93,
+          "draws": 4,
+          "losses": 17,
+          "win_rate": 0.8158
+        },
+        "FabianoCaruana": {
+          "games": 11,
+          "wins": 7,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.6364
+        },
+        "VincentKeymer": {
+          "games": 11,
+          "wins": 7,
+          "draws": 3,
+          "losses": 1,
+          "win_rate": 0.6364
+        },
+        "ChessWarrior7197": {
+          "games": 32,
+          "wins": 18,
+          "draws": 4,
+          "losses": 10,
+          "win_rate": 0.5625
+        }
+      }
+    },
+    {
+      "week_start": "2026-02-16",
+      "total_games": 134,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 16,
+          "wins": 12,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.75
+        },
+        "Hikaru": {
+          "games": 28,
+          "wins": 22,
+          "draws": 3,
+          "losses": 3,
+          "win_rate": 0.7857
+        },
+        "FabianoCaruana": {
+          "games": 68,
+          "wins": 53,
+          "draws": 5,
+          "losses": 10,
+          "win_rate": 0.7794
+        },
+        "VincentKeymer": {
+          "games": 22,
+          "wins": 14,
+          "draws": 2,
+          "losses": 6,
+          "win_rate": 0.6364
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2026-02-23",
+      "total_games": 133,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 37,
+          "wins": 28,
+          "draws": 5,
+          "losses": 4,
+          "win_rate": 0.7568
+        },
+        "Hikaru": {
+          "games": 69,
+          "wins": 57,
+          "draws": 7,
+          "losses": 5,
+          "win_rate": 0.8261
+        },
+        "FabianoCaruana": {
+          "games": 22,
+          "wins": 19,
+          "draws": 1,
+          "losses": 2,
+          "win_rate": 0.8636
+        },
+        "VincentKeymer": {
+          "games": 5,
+          "wins": 3,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 0.6
+        },
+        "ChessWarrior7197": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        }
+      }
+    },
+    {
+      "week_start": "2026-03-02",
+      "total_games": 110,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 26,
+          "wins": 20,
+          "draws": 1,
+          "losses": 5,
+          "win_rate": 0.7692
+        },
+        "Hikaru": {
+          "games": 64,
+          "wins": 46,
+          "draws": 10,
+          "losses": 8,
+          "win_rate": 0.7188
+        },
+        "FabianoCaruana": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 20,
+          "wins": 7,
+          "draws": 5,
+          "losses": 8,
+          "win_rate": 0.35
+        }
+      }
+    },
+    {
+      "week_start": "2026-03-09",
+      "total_games": 152,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 11,
+          "wins": 9,
+          "draws": 1,
+          "losses": 1,
+          "win_rate": 0.8182
+        },
+        "Hikaru": {
+          "games": 95,
+          "wins": 79,
+          "draws": 5,
+          "losses": 11,
+          "win_rate": 0.8316
+        },
+        "FabianoCaruana": {
+          "games": 33,
+          "wins": 23,
+          "draws": 1,
+          "losses": 9,
+          "win_rate": 0.697
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 13,
+          "wins": 9,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 0.6923
+        }
+      }
+    },
+    {
+      "week_start": "2026-03-16",
+      "total_games": 105,
+      "series": {
+        "MagnusCarlsen": {
+          "games": 1,
+          "wins": 1,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 1.0
+        },
+        "Hikaru": {
+          "games": 58,
+          "wins": 53,
+          "draws": 2,
+          "losses": 3,
+          "win_rate": 0.9138
+        },
+        "FabianoCaruana": {
+          "games": 35,
+          "wins": 19,
+          "draws": 3,
+          "losses": 13,
+          "win_rate": 0.5429
+        },
+        "VincentKeymer": {
+          "games": 0,
+          "wins": 0,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": null
+        },
+        "ChessWarrior7197": {
+          "games": 11,
+          "wins": 6,
+          "draws": 5,
+          "losses": 0,
+          "win_rate": 0.5455
+        }
+      }
+    }
+  ]
+}
