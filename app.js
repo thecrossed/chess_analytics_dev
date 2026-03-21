@@ -18,6 +18,7 @@ const pgnStatus = document.getElementById("pgn-status");
 const homeEntryChooser = document.getElementById("home-entry-chooser");
 const chooseFetchEntryButton = document.getElementById("choose-fetch-entry");
 const choosePgnEntryButton = document.getElementById("choose-pgn-entry");
+const chooseDashboardEntryButton = document.getElementById("choose-dashboard-entry");
 const fetchEntrySection = document.getElementById("fetch-entry-section");
 const pgnEntrySection = document.getElementById("pgn-entry-section");
 const backToEntryFromFetch = document.getElementById("back-to-entry-from-fetch");
@@ -644,6 +645,13 @@ if (choosePgnEntryButton) {
   choosePgnEntryButton.addEventListener("click", () => {
     trackFunnelEvent("funnel_open_pgn_entry");
     setHomeMode("pgn");
+  });
+}
+
+if (chooseDashboardEntryButton) {
+  chooseDashboardEntryButton.addEventListener("click", () => {
+    trackFunnelEvent("funnel_open_dashboard_entry");
+    window.location.href = "dashboard.html";
   });
 }
 
