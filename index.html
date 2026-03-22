@@ -55,9 +55,17 @@
             <span class="entry-choice-title" data-i18n="home_entry_fetch_title">Fetch Game Data</span>
             <span class="entry-choice-desc" data-i18n="home_entry_fetch_desc">Pull online games and build player stats tables.</span>
           </button>
-          <button id="choose-dashboard-entry" type="button" class="entry-choice-banner" data-track-id="home_entry_dashboard">
+          <button
+            id="choose-dashboard-entry"
+            type="button"
+            class="entry-choice-banner entry-choice-banner-disabled"
+            data-track-id="home_entry_dashboard"
+            disabled
+            aria-disabled="true"
+          >
+            <span class="entry-choice-badge entry-choice-badge-upcoming" data-i18n="home_entry_upcoming_badge">Upcoming</span>
             <span class="entry-choice-title" data-i18n="home_entry_dashboard_title">Dashboard</span>
-            <span class="entry-choice-desc" data-i18n="home_entry_dashboard_desc">Browse long-range charts and featured player trends.</span>
+            <span class="entry-choice-desc" data-i18n="home_entry_dashboard_desc">Long-range charts and player comparisons are in progress. This section is not open yet.</span>
           </button>
         </div>
         <p class="home-trust-line" data-i18n="home_trust_line">Powered by Stockfish • No account required • Free</p>

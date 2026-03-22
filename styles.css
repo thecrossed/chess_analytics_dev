@@ -156,10 +156,38 @@ body::before {
   text-transform: uppercase;
 }
 
+.entry-choice-badge-upcoming {
+  color: #4f5551;
+  background: #e1e0db;
+  border-color: #c5c7bf;
+}
+
 .entry-choice-desc {
   font-size: 13px;
   color: var(--subtle);
   line-height: 1.3;
+}
+
+.entry-choice-banner-disabled {
+  cursor: not-allowed;
+  opacity: 0.76;
+  box-shadow: none;
+}
+
+.entry-choice-banner-disabled::after {
+  width: 30px;
+  background: rgba(95, 101, 97, 0.24);
+}
+
+.entry-choice-banner-disabled:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--line);
+}
+
+.entry-choice-banner-disabled:hover::after {
+  width: 30px;
+  background: rgba(95, 101, 97, 0.24);
 }
 
 .entry-back-row {
