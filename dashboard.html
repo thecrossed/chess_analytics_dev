@@ -6,14 +6,14 @@
     <title data-i18n-title="dashboard_title">Dashboard</title>
     <meta
       name="description"
-      content="Explore chess dashboards and long-range charts, starting with Magnus Carlsen's weekly Chess.com win rate over the last three years."
+      content="Explore chess dashboards and long-range charts, starting with a weekly Chess.com win-rate comparison for five elite players over the last three years."
     />
     <link rel="canonical" href="https://chess-data.com/dashboard.html" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Dashboard | Chess Data Stats" />
     <meta
       property="og:description"
-      content="Explore chess dashboards and long-range charts, starting with Magnus Carlsen's weekly Chess.com win rate over the last three years."
+      content="Explore chess dashboards and long-range charts, starting with a weekly Chess.com win-rate comparison for five elite players over the last three years."
     />
     <meta property="og:url" content="https://chess-data.com/dashboard.html" />
     <meta property="og:site_name" content="Chess Data Stats" />
@@ -25,7 +25,7 @@
     <meta name="twitter:title" content="Dashboard | Chess Data Stats" />
     <meta
       name="twitter:description"
-      content="Explore chess dashboards and long-range charts, starting with Magnus Carlsen's weekly Chess.com win rate over the last three years."
+      content="Explore chess dashboards and long-range charts, starting with a weekly Chess.com win-rate comparison for five elite players over the last three years."
     />
     <meta name="twitter:image" content="https://chess-data.com/assets/og-default.svg" />
     <script type="application/ld+json">
@@ -34,7 +34,7 @@
         "@type": "WebPage",
         "name": "Dashboard",
         "url": "https://chess-data.com/dashboard.html",
-        "description": "Explore chess dashboards and long-range charts, starting with Magnus Carlsen's weekly Chess.com win rate over the last three years."
+        "description": "Explore chess dashboards and long-range charts, starting with a weekly Chess.com win-rate comparison for five elite players over the last three years."
       }
     </script>
     <link rel="stylesheet" href="styles.css" />
@@ -52,7 +52,7 @@
             <p class="dashboard-kicker" data-i18n="dashboard_kicker">Dashboard</p>
             <h1 data-i18n="dashboard_title">Dashboard</h1>
             <p class="dashboard-subtitle" data-i18n="dashboard_subtitle">
-              A growing set of chess charts. First up: Magnus Carlsen's weekly Chess.com win rate over the last three years.
+              A growing set of chess charts. First up: a weekly Chess.com win-rate comparison across Carlsen, Nakamura, Caruana, Keymer, and Abdusattorov over the last three years.
             </p>
           </div>
         </header>
@@ -68,20 +68,22 @@
             <div class="dashboard-card-header">
               <div>
                 <p class="dashboard-chart-kicker" data-i18n="dashboard_chart_kicker">Weekly Win Rate</p>
-                <h2 data-i18n="dashboard_chart_title">Magnus Carlsen on Chess.com: weekly win rate</h2>
+                <h2 data-i18n="dashboard_chart_title">Top Chess.com players: weekly win rate</h2>
               </div>
               <p class="dashboard-chart-desc" data-i18n="dashboard_chart_desc">
-                Weekly wins divided by total games, grouped by UTC week, from the last three years.
+                Weekly wins divided by total games, grouped by UTC week, comparing Carlsen, Nakamura, Caruana, Keymer, and Abdusattorov over the last three years.
               </p>
             </div>
 
             <div id="dashboard-summary-grid" class="dashboard-summary-grid" aria-live="polite"></div>
+
             <div id="dashboard-latest-note" class="dashboard-latest-note hidden" aria-live="polite"></div>
+            <div id="dashboard-legend" class="dashboard-legend" aria-live="polite"></div>
 
             <div class="economist-chart-frame">
               <svg id="weekly-winrate-chart" class="economist-chart" viewBox="0 0 960 440" role="img" aria-labelledby="weekly-winrate-chart-title weekly-winrate-chart-desc">
-                <title id="weekly-winrate-chart-title">Magnus Carlsen weekly Chess.com win rate</title>
-                <desc id="weekly-winrate-chart-desc">Line chart showing Magnus Carlsen's weekly Chess.com win rate from 2023 to 2026.</desc>
+                <title id="weekly-winrate-chart-title">Top Chess.com players weekly win rate</title>
+                <desc id="weekly-winrate-chart-desc">Line chart comparing five elite players' weekly Chess.com win rates from 2023 to 2026.</desc>
               </svg>
             </div>
 
