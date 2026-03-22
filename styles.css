@@ -391,10 +391,28 @@ body::before {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  width: 100%;
   padding: 10px 12px;
   border: 1px solid rgba(191, 198, 189, 0.8);
   border-radius: 12px;
   background: rgba(255, 253, 248, 0.76);
+  text-align: left;
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+
+.dashboard-legend-item:hover {
+  border-color: rgba(115, 129, 121, 0.78);
+  background: rgba(255, 253, 248, 0.9);
+}
+
+.dashboard-legend-item.is-active {
+  border-color: rgba(67, 90, 81, 0.8);
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(92, 122, 110, 0.12);
+}
+
+.dashboard-legend-item.is-dimmed {
+  opacity: 0.62;
 }
 
 .dashboard-legend-swatch {
