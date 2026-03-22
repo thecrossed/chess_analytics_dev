@@ -152,7 +152,11 @@ function renderLegend(payload) {
     meta.className = "dashboard-legend-meta";
     meta.textContent = `${formatPercent(player.overall_win_rate)} • ${formatInteger(player.total_games)} ${t("dashboard_games_suffix")}`;
 
-    item.append(swatch, name, meta);
+    const copy = document.createElement("div");
+    copy.className = "dashboard-legend-copy";
+    copy.append(name, meta);
+
+    item.append(swatch, copy);
     legendEl.appendChild(item);
   });
 }
@@ -251,10 +255,11 @@ function renderChart(payload) {
 
     const label = svgEl("text", {
       x: margin.left - 10,
-      y: y + 4,
+      y,
       fill: DASHBOARD_COLORS.axisLabel,
       "font-size": 12,
-      "text-anchor": "end"
+      "text-anchor": "end",
+      "dominant-baseline": "middle"
     });
     label.textContent = `${Math.round(tick * 100)}%`;
     chartEl.appendChild(label);
@@ -281,10 +286,11 @@ function renderChart(payload) {
     chartEl.appendChild(svgEl("line", { x1: x, y1: margin.top, x2: x, y2: xAxisY, stroke: DASHBOARD_COLORS.quarterGrid, "stroke-width": 1 }));
     const label = svgEl("text", {
       x,
-      y: height - margin.bottom + 22,
+      y: height - margin.bottom + 16,
       fill: DASHBOARD_COLORS.axisLabel,
       "font-size": 12,
-      "text-anchor": "middle"
+      "text-anchor": "middle",
+      "dominant-baseline": "hanging"
     });
     label.textContent = week.toLocaleDateString("en-US", { year: "2-digit", month: "short", timeZone: "UTC" });
     chartEl.appendChild(label);
@@ -331,16 +337,25 @@ function renderChart(payload) {
     })
   );
 
-  const calloutLineY = Math.max(y - 42, margin.top + 18);
+  const calloutLineY = Math.max(y - 52, margin.top + 20);
   chartEl.appendChild(svgEl("line", { x1: x, y1: y - 6, x2: x, y2: calloutLineY, stroke: latestLeader.player.color, "stroke-width": 1.5 }));
 
+  const latestLabelAnchor =
+    x > width - margin.right - 120 ? "end" :
+    x < margin.left + 120 ? "start" :
+    "middle";
+  const latestLabelX =
+    latestLabelAnchor === "end" ? x - 14 :
+    latestLabelAnchor === "start" ? x + 14 :
+    x;
+
   const latestLabel = svgEl("text", {
-    x,
-    y: calloutLineY - 8,
+    x: latestLabelX,
+    y: calloutLineY - 12,
     fill: DASHBOARD_COLORS.lineText,
     "font-size": 12,
     "font-weight": 700,
-    "text-anchor": "middle"
+    "text-anchor": latestLabelAnchor
   });
   latestLabel.textContent = `${latestLeader.player.short_name} ${formatPercent(latestLeader.series.win_rate)}`;
   chartEl.appendChild(latestLabel);
