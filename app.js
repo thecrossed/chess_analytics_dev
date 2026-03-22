@@ -648,7 +648,7 @@ if (choosePgnEntryButton) {
   });
 }
 
-if (chooseDashboardEntryButton) {
+if (chooseDashboardEntryButton && !chooseDashboardEntryButton.disabled) {
   chooseDashboardEntryButton.addEventListener("click", () => {
     trackFunnelEvent("funnel_open_dashboard_entry");
     window.location.href = "charts.html";
