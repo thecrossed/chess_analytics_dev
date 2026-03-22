@@ -12,6 +12,7 @@ const t = (key, params) => (window.i18n ? window.i18n.t(key, params) : key);
 const SVG_NS = "http://www.w3.org/2000/svg";
 const DATA_URL = "data/dashboard/top5_chesscom_weekly_winrate_3y.json";
 let dashboardPayload = null;
+let activePlayerUsername = null;
 const DASHBOARD_COLORS = {
   background: "#f7f4ee",
   gridStrong: "#c5c9c1",
@@ -106,6 +107,19 @@ function getLatestWeekLeader(payload) {
   return { week: latestWeek.week_start, player: ranked[0].player, series: ranked[0].series };
 }
 
+function getLatestPointForPlayer(payload, username) {
+  for (let index = payload.points.length - 1; index >= 0; index -= 1) {
+    const point = payload.points[index];
+    const series = getPointSeries(point, username);
+    if (series && series.games > 0 && typeof series.win_rate === "number") {
+      const player = payload.players.find((entry) => entry.username === username);
+      if (!player) return null;
+      return { week: point.week_start, player, series };
+    }
+  }
+  return null;
+}
+
 function getOverallLeader(payload) {
   return [...payload.players]
     .filter((player) => typeof player.overall_win_rate === "number")
@@ -133,12 +147,35 @@ function getBestSingleWeek(payload) {
   );
 }
 
+function isPlayerHighlighted(username) {
+  return !activePlayerUsername || activePlayerUsername === username;
+}
+
+function setActivePlayer(username) {
+  activePlayerUsername = activePlayerUsername === username ? null : username;
+  if (!dashboardPayload) return;
+  renderLegend(dashboardPayload);
+  renderLatestNote(dashboardPayload);
+  renderChart(dashboardPayload);
+}
+
 function renderLegend(payload) {
   if (!legendEl) return;
   clearChildren(legendEl);
   payload.players.forEach((player) => {
-    const item = document.createElement("div");
+    const item = document.createElement("button");
+    const highlighted = isPlayerHighlighted(player.username);
     item.className = "dashboard-legend-item";
+    item.type = "button";
+    item.setAttribute("aria-pressed", activePlayerUsername === player.username ? "true" : "false");
+    if (activePlayerUsername === player.username) {
+      item.classList.add("is-active");
+    } else if (!highlighted) {
+      item.classList.add("is-dimmed");
+    }
+    item.addEventListener("click", () => {
+      setActivePlayer(player.username);
+    });
 
     const swatch = document.createElement("span");
     swatch.className = "dashboard-legend-swatch";
@@ -163,7 +200,7 @@ function renderLegend(payload) {
 
 function renderLatestNote(payload) {
   if (!latestNoteEl) return;
-  const leader = getLatestWeekLeader(payload);
+  const leader = activePlayerUsername ? getLatestPointForPlayer(payload, activePlayerUsername) : getLatestWeekLeader(payload);
   if (!leader) {
     latestNoteEl.classList.add("hidden");
     latestNoteEl.textContent = "";
@@ -298,6 +335,7 @@ function renderChart(payload) {
 
   payload.players.forEach((player) => {
     let path = "";
+    const highlighted = isPlayerHighlighted(player.username);
     points.forEach((point, index) => {
       const series = getPointSeries(point, player.username);
       if (!series || typeof series.win_rate !== "number") return;
@@ -312,14 +350,15 @@ function renderChart(payload) {
         d: path,
         fill: "none",
         stroke: player.color,
-        "stroke-width": 2.5,
+        "stroke-width": highlighted ? 4 : 2.5,
+        "stroke-opacity": highlighted ? 1 : 0.18,
         "stroke-linejoin": "round",
         "stroke-linecap": "round"
       })
     );
   });
 
-  const latestLeader = getLatestWeekLeader(payload);
+  const latestLeader = activePlayerUsername ? getLatestPointForPlayer(payload, activePlayerUsername) : getLatestWeekLeader(payload);
   if (!latestLeader) return;
   const pointIndex = points.findIndex((point) => point.week_start === latestLeader.week);
   if (pointIndex === -1) return;
