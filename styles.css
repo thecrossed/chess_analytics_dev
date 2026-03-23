@@ -678,6 +678,25 @@ body::before {
   line-height: 1.12;
 }
 
+.journal-resource-copy {
+  margin: 12px 0 14px;
+  color: var(--subtle);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.journal-resource-link {
+  color: var(--accent-dark);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(39, 70, 62, 0.22);
+  padding-bottom: 2px;
+}
+
+.journal-resource-link:hover {
+  border-bottom-color: rgba(39, 70, 62, 0.48);
+}
+
 .analysis-preview-card {
   margin: 14px 0 0;
   padding: 14px 16px;
