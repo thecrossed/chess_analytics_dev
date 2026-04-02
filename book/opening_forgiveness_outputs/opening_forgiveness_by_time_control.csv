@@ -1,0 +1,7 @@
+opening_family,time_control,n_games,n_clean,n_error,score_clean,score_error,drop
+Benoni Defense,blitz,4,2,2,0.5,0.5,0.0
+English Opening,blitz,2,1,1,0.0,1.0,-1.0
+Nimzo-Larsen Attack,blitz,2,2,0,0.5,,
+Queen's Pawn Game,blitz,2,2,0,0.5,,
+Scandinavian Defense,blitz,2,1,1,1.0,0.0,1.0
+Sicilian Defense,blitz,6,3,3,0.3333333333333333,0.6666666666666666,-0.3333333333333333

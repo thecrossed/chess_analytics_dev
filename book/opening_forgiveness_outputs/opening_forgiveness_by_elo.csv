@@ -1,0 +1,10 @@
+opening_family,elo_bucket,n_games,n_clean,n_error,score_clean,score_error,drop
+Benoni Defense,1400-1799,3,2,1,0.5,1.0,-0.5
+Benoni Defense,1800-2199,1,0,1,,0.0,
+English Opening,2200+,2,1,1,0.0,1.0,-1.0
+Nimzo-Larsen Attack,2200+,2,2,0,0.5,,
+Queen's Pawn Game,2200+,2,2,0,0.5,,
+Scandinavian Defense,2200+,2,1,1,1.0,0.0,1.0
+Sicilian Defense,1400-1799,3,1,2,0.0,1.0,-1.0
+Sicilian Defense,1800-2199,1,0,1,,0.0,
+Sicilian Defense,2200+,2,2,0,0.5,,

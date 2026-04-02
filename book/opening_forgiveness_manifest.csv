@@ -1,0 +1,10 @@
+game_id,pgn_path,eval_csv_path,source,source_date_or_month,opening_family,notes
+sample_game_1,../sample-pgn.md,../sample-pgn-eval.csv,local_sample,2026-02,Sicilian Defense,repo sample PGN
+YgWpDQe5,opening_forgiveness_pgn/YgWpDQe5.pgn,opening_forgiveness_eval/YgWpDQe5.csv,lichess_api,2026-04,Sicilian Defense,"user=thibault; rated=true; standard=true; perf=blitz,rapid; since=; until=; eval generated locally for first 30 ply"
+K9DieFc2,opening_forgiveness_pgn/K9DieFc2.pgn,opening_forgiveness_eval/K9DieFc2.csv,lichess_api,2026-04,Benoni Defense,"user=thibault; rated=true; standard=true; perf=blitz,rapid; since=; until=; eval generated locally for first 30 ply"
+T9R4YNzM,opening_forgiveness_pgn/T9R4YNzM.pgn,opening_forgiveness_eval/T9R4YNzM.csv,lichess_api,2026-04,Sicilian Defense,"user=thibault; rated=true; standard=true; perf=blitz,rapid; since=; until=; eval generated locally for first 30 ply"
+34k22Fjf,opening_forgiveness_pgn/34k22Fjf.pgn,opening_forgiveness_eval/34k22Fjf.csv,lichess_api,2026-04,Benoni Defense,"user=thibault; rated=true; standard=true; perf=blitz,rapid; since=; until=; eval generated locally for first 30 ply"
+IyFe2k8U,opening_forgiveness_pgn/IyFe2k8U.pgn,opening_forgiveness_eval/IyFe2k8U.csv,lichess_api,2024-03,English Opening,"user=DrNykterstein; rated=true; standard=true; perf=blitz,rapid; since=; until=; eval generated locally for first 30 ply"
+FdVI4HR4,opening_forgiveness_pgn/FdVI4HR4.pgn,opening_forgiveness_eval/FdVI4HR4.csv,lichess_api,2023-12,Queen's Pawn Game,"user=DrNykterstein; rated=true; standard=true; perf=blitz,rapid; since=; until=; eval generated locally for first 30 ply"
+kx7aGZB0,opening_forgiveness_pgn/kx7aGZB0.pgn,opening_forgiveness_eval/kx7aGZB0.csv,lichess_api,2023-07,Nimzo-Larsen Attack,"user=DrNykterstein; rated=true; standard=true; perf=blitz,rapid; since=; until=; eval generated locally for first 30 ply"
+kHzZLMXD,opening_forgiveness_pgn/kHzZLMXD.pgn,opening_forgiveness_eval/kHzZLMXD.csv,lichess_api,2023-07,Scandinavian Defense,"user=DrNykterstein; rated=true; standard=true; perf=blitz,rapid; since=; until=; eval generated locally for first 30 ply"

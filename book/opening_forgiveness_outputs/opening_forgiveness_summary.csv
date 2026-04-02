@@ -1,0 +1,7 @@
+opening_family,n_games,n_clean,n_error,score_clean,score_error,drop
+Benoni Defense,4,2,2,0.5,0.5,0.0
+English Opening,2,1,1,0.0,1.0,-1.0
+Nimzo-Larsen Attack,2,2,0,0.5,,
+Queen's Pawn Game,2,2,0,0.5,,
+Scandinavian Defense,2,1,1,1.0,0.0,1.0
+Sicilian Defense,6,3,3,0.3333333333333333,0.6666666666666666,-0.3333333333333333
