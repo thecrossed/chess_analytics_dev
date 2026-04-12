@@ -3,3 +3,5 @@ __pycache__/
 scripts/__pycache__/
 data/lichess_monthly/
 data/lichess_perf_subsets/
+data/pgn_parquet_rapid/
+data/pgn_parquet_rapid_sample/
