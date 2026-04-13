@@ -1,0 +1,57 @@
+section,label,count
+top_opening,Queen's Pawn Game,108509
+top_opening,Philidor Defense,107766
+top_opening,Queen's Pawn Game: Accelerated London System,92808
+top_opening,Caro-Kann Defense,76718
+top_opening,Pirc Defense,67603
+top_opening,Scandinavian Defense,67526
+top_opening,Van't Kruijs Opening,61276
+top_opening,Bishop's Opening,56321
+top_opening,Queen's Pawn Game: Chigorin Variation,54618
+top_opening,Four Knights Game: Italian Variation,53487
+top_opening,Scotch Game,50343
+top_opening,Sicilian Defense: Bowdler Attack,49335
+top_opening,King's Pawn Game: Wayward Queen Attack,48474
+top_opening,Scandinavian Defense: Mieses-Kotroc Variation,47264
+top_opening,Indian Defense,44479
+top_opening,Horwitz Defense,43849
+top_opening,Modern Defense,43811
+top_opening,Italian Game: Anti-Fried Liver Defense,43230
+top_opening,French Defense: Knight Variation,40995
+top_opening,Sicilian Defense: Old Sicilian,39326
+result,1-0,2196321
+result,0-1,2035019
+result,1/2-1/2,212834
+result,*,25
+time_control,600+0,3165749
+time_control,600+5,698302
+time_control,900+10,186327
+time_control,900+0,64710
+time_control,300+5,35989
+time_control,480+0,34731
+time_control,600+2,30893
+time_control,600+3,29499
+time_control,420+2,20811
+time_control,420+3,17504
+time_control,1200+0,14461
+time_control,480+2,12542
+time_control,900+5,9451
+time_control,600+10,9163
+time_control,900+3,7994
+time_control,420+5,7582
+time_control,600+1,7556
+time_control,300+8,7218
+time_control,300+7,7013
+time_control,480+3,6685
+elo_bucket,<800,183153
+elo_bucket,800-999,377711
+elo_bucket,1000-1199,591711
+elo_bucket,1200-1399,769629
+elo_bucket,1400-1599,876359
+elo_bucket,1600-1799,814722
+elo_bucket,1800-1999,566595
+elo_bucket,2000-2199,212119
+elo_bucket,2200-2399,43875
+elo_bucket,2400-2599,5599
+elo_bucket,2600-2799,653
+elo_bucket,2800+,2073
