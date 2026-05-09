@@ -26,6 +26,12 @@ from opening_index import classify_book_moves
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", "8000"))
 USER_AGENT = "ChessAnalytics/1.0 (contact: chessalwaysfun@gmail.com)"
+APP_REVISION = (
+    os.environ.get("RAILWAY_GIT_COMMIT_SHA")
+    or os.environ.get("GIT_COMMIT_SHA")
+    or os.environ.get("SOURCE_VERSION")
+    or "local"
+).strip()
 SESSION_COOKIE = "chess_analytics_session"
 SESSION_TTL_SECONDS = 7 * 24 * 60 * 60
 ALLOW_MULTIPLE_SESSIONS_PER_USER = False
@@ -1537,7 +1543,14 @@ class AppHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if HEALTH_RE.match(self.path):
-            self._send_json(200, {"ok": True})
+            self._send_json(
+                200,
+                {
+                    "ok": True,
+                    "revision": APP_REVISION,
+                    "daily_report_diagnostics": True,
+                },
+            )
             return
 
         if AUTH_ME_RE.match(self.path):

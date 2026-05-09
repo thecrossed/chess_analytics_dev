@@ -20,6 +20,12 @@ jobs:
           fi
 
           response_file="$(mktemp)"
+          health_url="${DAILY_REPORT_ENDPOINT%/}"
+          health_url="${health_url%/api/admin/daily-report}/health"
+          echo "Endpoint health:"
+          curl --show-error --silent "$health_url" || true
+          echo
+
           http_code="$(
             curl --show-error --silent \
               --retry 3 \
@@ -35,5 +41,10 @@ jobs:
           echo "HTTP $http_code"
           cat "$response_file"
           if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            if grep -q '"email_send_failed"' "$response_file" && ! grep -q '"reason"' "$response_file"; then
+              echo
+              echo "The report endpoint returned the old email_send_failed shape without a reason."
+              echo "Check that DAILY_REPORT_ENDPOINT points to the deployment running the latest main commit."
+            fi
             exit 1
           fi
