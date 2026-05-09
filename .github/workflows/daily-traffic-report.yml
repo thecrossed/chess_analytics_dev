@@ -22,6 +22,9 @@ jobs:
           response_file="$(mktemp)"
           http_code="$(
             curl --show-error --silent \
+              --retry 3 \
+              --retry-delay 10 \
+              --retry-connrefused \
               --output "$response_file" \
               --write-out "%{http_code}" \
               -X POST "$DAILY_REPORT_ENDPOINT" \

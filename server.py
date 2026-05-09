@@ -73,7 +73,11 @@ SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "").strip()
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 DEBUG_RESET_TOKEN_RESPONSE = os.environ.get("DEBUG_RESET_TOKEN_RESPONSE", "0") == "1"
 ADMIN_REPORT_TOKEN = os.environ.get("ADMIN_REPORT_TOKEN", "").strip()
-DAILY_REPORT_RECIPIENT = "chessalwaysfun@gmail.com"
+DAILY_REPORT_PROVIDER = os.environ.get("DAILY_REPORT_PROVIDER", PASSWORD_RESET_PROVIDER).strip().lower()
+DAILY_REPORT_FROM_EMAIL = os.environ.get("DAILY_REPORT_FROM_EMAIL", PASSWORD_RESET_FROM_EMAIL).strip()
+DAILY_REPORT_SENDGRID_API_KEY = os.environ.get("DAILY_REPORT_SENDGRID_API_KEY", SENDGRID_API_KEY).strip()
+DAILY_REPORT_RESEND_API_KEY = os.environ.get("DAILY_REPORT_RESEND_API_KEY", RESEND_API_KEY).strip()
+DAILY_REPORT_RECIPIENT = os.environ.get("DAILY_REPORT_RECIPIENT", "chessalwaysfun@gmail.com").strip()
 GEOIP_DB_PATH = os.environ.get("GEOIP_DB_PATH", "").strip()
 REPORT_PGN_PREVIEW_LIMIT = 10
 REPORT_PGN_PREVIEW_CHARS = 1200
@@ -520,18 +524,28 @@ def build_password_reset_link(token: str) -> str:
     return f"{base}{separator}{urlencode({'reset_token': token})}"
 
 
-def send_email_via_provider(to_email: str, subject: str, text_body: str, html_body: str, context: str) -> bool:
-    if not PASSWORD_RESET_FROM_EMAIL:
-        log_runtime(f"{context} email not sent: PASSWORD_RESET_FROM_EMAIL is missing.")
-        return False
+def send_email_via_provider_with_result(
+    to_email: str,
+    subject: str,
+    text_body: str,
+    html_body: str,
+    context: str,
+    provider: str,
+    from_email: str,
+    sendgrid_api_key: str,
+    resend_api_key: str,
+) -> Tuple[bool, str]:
+    if not from_email:
+        log_runtime(f"{context} email not sent: from email is missing.")
+        return False, "missing_from_email"
 
-    if PASSWORD_RESET_PROVIDER == "sendgrid":
-        if not SENDGRID_API_KEY:
-            log_runtime(f"{context} email not sent: SENDGRID_API_KEY is missing.")
-            return False
+    if provider == "sendgrid":
+        if not sendgrid_api_key:
+            log_runtime(f"{context} email not sent: SENDGRID API key is missing.")
+            return False, "missing_sendgrid_api_key"
         payload = {
             "personalizations": [{"to": [{"email": to_email}]}],
-            "from": {"email": PASSWORD_RESET_FROM_EMAIL},
+            "from": {"email": from_email},
             "subject": subject,
             "content": [
                 {"type": "text/plain", "value": text_body},
@@ -542,18 +556,18 @@ def send_email_via_provider(to_email: str, subject: str, text_body: str, html_bo
             "https://api.sendgrid.com/v3/mail/send",
             data=json.dumps(payload).encode("utf-8"),
             headers={
-                "Authorization": f"Bearer {SENDGRID_API_KEY}",
+                "Authorization": f"Bearer {sendgrid_api_key}",
                 "Content-Type": "application/json",
                 "User-Agent": USER_AGENT,
             },
             method="POST",
         )
-    elif PASSWORD_RESET_PROVIDER == "resend":
-        if not RESEND_API_KEY:
-            log_runtime(f"{context} email not sent: RESEND_API_KEY is missing.")
-            return False
+    elif provider == "resend":
+        if not resend_api_key:
+            log_runtime(f"{context} email not sent: RESEND API key is missing.")
+            return False, "missing_resend_api_key"
         payload = {
-            "from": PASSWORD_RESET_FROM_EMAIL,
+            "from": from_email,
             "to": [to_email],
             "subject": subject,
             "text": text_body,
@@ -563,19 +577,21 @@ def send_email_via_provider(to_email: str, subject: str, text_body: str, html_bo
             "https://api.resend.com/emails",
             data=json.dumps(payload).encode("utf-8"),
             headers={
-                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Authorization": f"Bearer {resend_api_key}",
                 "Content-Type": "application/json",
                 "User-Agent": USER_AGENT,
             },
             method="POST",
         )
     else:
-        log_runtime(f"{context} email not sent: PASSWORD_RESET_PROVIDER not set to sendgrid/resend.")
-        return False
+        log_runtime(f"{context} email not sent: provider not set to sendgrid/resend.")
+        return False, "unsupported_email_provider"
 
     try:
         with urlopen(req, timeout=15) as response:
-            return 200 <= response.status < 300
+            if 200 <= response.status < 300:
+                return True, ""
+            return False, f"provider_http_{response.status}"
     except HTTPError as err:
         details = ""
         try:
@@ -583,10 +599,25 @@ def send_email_via_provider(to_email: str, subject: str, text_body: str, html_bo
         except Exception:
             details = ""
         log_runtime(f"{context} email send failed: status={err.code}, body={details}")
-        return False
+        return False, f"provider_http_{err.code}"
     except Exception as exc:
         log_runtime(f"{context} email send failed: {exc}")
-        return False
+        return False, "provider_request_failed"
+
+
+def send_email_via_provider(to_email: str, subject: str, text_body: str, html_body: str, context: str) -> bool:
+    sent, _ = send_email_via_provider_with_result(
+        to_email,
+        subject,
+        text_body,
+        html_body,
+        context,
+        PASSWORD_RESET_PROVIDER,
+        PASSWORD_RESET_FROM_EMAIL,
+        SENDGRID_API_KEY,
+        RESEND_API_KEY,
+    )
+    return sent
 
 
 def send_password_reset_email(email: str, username: str, token: str) -> bool:
@@ -645,7 +676,7 @@ def send_traffic_report_email(
     unique_pgn_uploads: int,
     uploaded_pgn_previews: List[Dict[str, Any]],
     funnel_event_counts: List[Tuple[str, int]],
-) -> bool:
+) -> Tuple[bool, str]:
     period_label_map = {
         "hourly": "hourly",
         "daily": "daily",
@@ -732,12 +763,16 @@ def send_traffic_report_email(
         "<p>Funnel events:</p>"
         f"<ul>{funnel_html}</ul>"
     )
-    return send_email_via_provider(
+    return send_email_via_provider_with_result(
         DAILY_REPORT_RECIPIENT,
         subject,
         text_body,
         html_body,
         f"{pretty_label} report",
+        DAILY_REPORT_PROVIDER,
+        DAILY_REPORT_FROM_EMAIL,
+        DAILY_REPORT_SENDGRID_API_KEY,
+        DAILY_REPORT_RESEND_API_KEY,
     )
 
 
@@ -2205,7 +2240,7 @@ class AppHandler(SimpleHTTPRequestHandler):
         for event_name in sorted(funnel_counts_map.keys()):
             funnel_event_counts.append((event_name, funnel_counts_map[event_name]))
 
-        email_sent = send_traffic_report_email(
+        email_sent, email_error = send_traffic_report_email(
             period=period,
             window_start_utc=window_start_utc,
             window_end_utc=window_end_utc,
@@ -2229,10 +2264,12 @@ class AppHandler(SimpleHTTPRequestHandler):
             + f"country_keys={len(country_views)}, button_click_keys={len(button_clicks)}, "
             + f"username_inputs={username_inputs_total}, unique_usernames={unique_usernames_submitted}, "
             + f"pgn_uploads={pgn_uploads_total}, unique_pgn_uploads={unique_pgn_uploads}, "
-            + f"funnel_event_keys={len(funnel_event_counts)}, sent={email_sent}"
+            + f"funnel_event_keys={len(funnel_event_counts)}, sent={email_sent}, "
+            + f"email_error={email_error or '-'}"
         )
         if not email_sent:
-            self._send_json(502, {"error": "email_send_failed"})
+            status = 503 if email_error.startswith("missing_") or email_error == "unsupported_email_provider" else 502
+            self._send_json(status, {"error": "email_send_failed", "reason": email_error or "unknown"})
             return
 
         self._send_json(
@@ -2749,6 +2786,8 @@ def main():
     log_runtime(
         "Daily report config: "
         + f"admin_token_set={bool(ADMIN_REPORT_TOKEN)}, "
+        + f"provider={DAILY_REPORT_PROVIDER or '-'}, "
+        + f"from_set={bool(DAILY_REPORT_FROM_EMAIL)}, "
         + f"recipient={DAILY_REPORT_RECIPIENT}"
     )
     log_runtime(
