@@ -55,14 +55,20 @@ class BlindfoldGame:
             self.last_message = message
             return False, message, parsed
 
-        san = self.board.san(parsed.move)
+        message = self.apply_user_move(parsed.move)
+        return True, message, parsed
+
+    def apply_user_move(self, move: chess.Move) -> str:
+        if move not in self.board.legal_moves:
+            raise ValueError("That move is illegal in the current position.")
+        san = self.board.san(move)
         side = side_name(self.board.turn)
-        self.board.push(parsed.move)
-        self._record(side=side, san=san, uci=parsed.move.uci(), source="user")
+        self.board.push(move)
+        self._record(side=side, san=san, uci=move.uci(), source="user")
         message = f"{side} plays {spoken_san(san)}."
         self.last_message = message
         self._update_game_over()
-        return True, message, parsed
+        return message
 
     def apply_engine_move(self, engine_path: str) -> tuple[bool, str]:
         if self.board.is_game_over():
@@ -79,6 +85,29 @@ class BlindfoldGame:
         self.last_message = message
         self._update_game_over()
         return True, message
+
+    def rewind_to_ply(self, target_ply: int) -> str:
+        bounded_ply = max(0, min(int(target_ply), len(self.history)))
+        kept_uci = [record.uci for record in self.history[:bounded_ply]]
+
+        self.board = chess.Board()
+        self.history = []
+        self.game_over = False
+        self.last_message = "Rewound to the starting position."
+
+        for uci in kept_uci:
+            move = chess.Move.from_uci(uci)
+            san = self.board.san(move)
+            side = side_name(self.board.turn)
+            source = "user" if self.board.turn == self.user_color_bool else "stockfish"
+            self.board.push(move)
+            self._record(side=side, san=san, uci=uci, source=source)
+
+        if self.history:
+            last = self.history[-1]
+            self.last_message = f"Rewound to ply {bounded_ply}: {last.side} played {last.san}."
+        self._update_game_over()
+        return self.last_message
 
     def _record(self, side: str, san: str, uci: str, source: str) -> None:
         self.history.append(

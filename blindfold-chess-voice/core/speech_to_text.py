@@ -32,7 +32,9 @@ def _load_model(model_size: str):
 
 CHESS_STT_PROMPT = (
     "这是中文国际象棋走子语音。常见说法包括：我走小兵到e4，马到f3，"
-    "象到b5，王翼易位，后翼易位，吃e5，升变为后。"
+    "象到b5，车到e1，后吃d5，短易位，长易位，王翼易位，后翼易位，"
+    "吃e5，将军，升变为后。也可能说英文：pawn to e4, knight f3, "
+    "bishop b5, rook e1, queen takes d5, castle."
 )
 
 

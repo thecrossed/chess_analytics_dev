@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -9,7 +10,6 @@ import chess.svg
 import pandas as pd
 import streamlit as st
 
-from core.cache import save_game_snapshot
 from core.game_state import BlindfoldGame
 from core.local_assistant import handle_command
 from core.ollama_client import DEFAULT_MODEL, ask_ollama, check_ollama
@@ -18,7 +18,7 @@ from core.position_describer import describe_position
 from core.settings import LEVELS
 from core.speech_to_text import check_stt, transcribe_audio
 from core.stockfish_engine import discover_engine
-from core.text_to_speech import check_tts, save_audio
+from core.text_to_speech import check_tts, speak
 from core.voice_input import check_recorder, render_recorder
 
 
@@ -40,46 +40,46 @@ def game_from_state() -> BlindfoldGame:
 
 
 def render_sidebar() -> dict[str, Any]:
-    st.sidebar.header("Game settings")
-    user_color = st.sidebar.selectbox("User color", ["White", "Black"], index=0)
-    opponent_level = st.sidebar.selectbox("Opponent level", list(LEVELS.keys()), index=1)
-    board_visibility = st.sidebar.selectbox(
-        "Board visibility mode",
-        ["Hide board", "Show empty board coordinates", "Show full board"],
-        index=0,
-    )
-    stt_model_size = st.sidebar.selectbox("STT model size", ["tiny", "base", "small"], index=1)
-    tts_enabled = st.sidebar.checkbox("TTS enabled", value=True)
-    ollama_enabled = st.sidebar.checkbox("Ollama enabled", value=False)
-    ollama_model = st.sidebar.text_input("Ollama model", DEFAULT_MODEL)
+    with st.sidebar.expander("Game settings", expanded=False):
+        user_color = st.selectbox("User color", ["White", "Black"], index=0)
+        opponent_level = st.selectbox("Opponent level", list(LEVELS.keys()), index=1)
+        board_visibility = st.selectbox(
+            "Board visibility mode",
+            ["Hide board", "Show empty board coordinates", "Show full board"],
+            index=0,
+        )
+        stt_model_size = st.selectbox("STT model size", ["tiny", "base", "small"], index=1)
+        tts_enabled = st.checkbox("TTS enabled", value=True)
+        ollama_enabled = st.checkbox("Ollama enabled", value=False)
+        ollama_model = st.text_input("Ollama model", DEFAULT_MODEL)
 
-    st.sidebar.header("System status")
     engine_status = discover_engine()
     recorder_status = check_recorder()
     stt_status = check_stt()
     tts_status = check_tts()
     ollama_status = check_ollama()
 
-    st.sidebar.write("Stockfish detected:", "yes" if engine_status.found else "no")
-    if engine_status.path:
-        st.sidebar.caption(engine_status.path)
-    if engine_status.version:
-        st.sidebar.caption(engine_status.version)
-    if engine_status.error:
-        st.sidebar.warning(engine_status.error)
+    with st.sidebar.expander("System status", expanded=False):
+        st.write("Stockfish detected:", "yes" if engine_status.found else "no")
+        if engine_status.path:
+            st.caption(engine_status.path)
+        if engine_status.version:
+            st.caption(engine_status.version)
+        if engine_status.error:
+            st.warning(engine_status.error)
 
-    st.sidebar.write("Voice recorder:", "yes" if recorder_status.available else "no")
-    if recorder_status.error:
-        st.sidebar.caption(recorder_status.error)
-    st.sidebar.write("STT available:", "yes" if stt_status.available else "no")
-    if stt_status.error:
-        st.sidebar.caption(stt_status.error)
-    st.sidebar.write("TTS available:", "yes" if tts_status.available else "no")
-    if tts_status.error:
-        st.sidebar.caption(tts_status.error)
-    st.sidebar.write("Ollama running:", "yes" if ollama_status.running else "no")
-    if ollama_status.error:
-        st.sidebar.caption(ollama_status.error)
+        st.write("Voice recorder:", "yes" if recorder_status.available else "no")
+        if recorder_status.error:
+            st.caption(recorder_status.error)
+        st.write("STT available:", "yes" if stt_status.available else "no")
+        if stt_status.error:
+            st.caption(stt_status.error)
+        st.write("TTS available:", "yes" if tts_status.available else "no")
+        if tts_status.error:
+            st.caption(tts_status.error)
+        st.write("Ollama running:", "yes" if ollama_status.running else "no")
+        if ollama_status.error:
+            st.caption(ollama_status.error)
 
     with st.sidebar.expander("Open Source Licenses", expanded=False):
         st.caption("Stockfish notice")
@@ -101,6 +101,18 @@ def render_sidebar() -> dict[str, Any]:
         "tts_status": tts_status,
         "ollama_status": ollama_status,
     }
+
+
+def render_sidebar_debug(game: BlindfoldGame) -> None:
+    with st.sidebar.expander("Debug board state", expanded=False):
+        if st.session_state.get("transcript"):
+            st.caption("Raw speech transcript")
+            st.code(st.session_state["transcript"])
+        if st.session_state.get("input_interpretation"):
+            st.caption("Input interpretation")
+            st.code(st.session_state["input_interpretation"])
+        st.code(game.board.fen())
+        st.code(json.dumps([move.__dict__ for move in game.history], indent=2))
 
 
 def render_board(game: BlindfoldGame, mode: str, revealed: bool) -> None:
@@ -132,16 +144,22 @@ def move_history_df(game: BlindfoldGame) -> pd.DataFrame:
 
 def speak_response(text: str, settings: dict[str, Any]) -> None:
     st.session_state["system_response"] = text
-    if not settings["tts_enabled"] or not settings["tts_status"].available:
+    if (
+        not st.session_state.get("audio_feedback", False)
+        or not settings["tts_enabled"]
+        or not settings["tts_status"].available
+    ):
         return
-    audio_path = save_audio(text)
-    if audio_path and audio_path.exists():
-        st.audio(str(audio_path))
+    try:
+        speak(text)
+    except Exception as exc:
+        st.caption(f"TTS failed: {exc}")
 
 
 def start_new_game(game: BlindfoldGame, settings: dict[str, Any]) -> None:
     game.reset(settings["user_color"], settings["opponent_level"])
     st.session_state["revealed"] = settings["board_visibility"] == "Show full board"
+    st.session_state["opponent_move"] = ""
     messages = ["New game started."]
     if settings["user_color"] == "Black":
         engine_status = settings["engine_status"]
@@ -150,6 +168,7 @@ def start_new_game(game: BlindfoldGame, settings: dict[str, Any]) -> None:
                 ok, engine_message = game.apply_engine_move(engine_status.path)
                 if ok:
                     messages.append(engine_message)
+                    st.session_state["opponent_move"] = engine_message
             except Exception as exc:
                 messages.append(f"Stockfish failed to move: {exc}")
         else:
@@ -157,28 +176,50 @@ def start_new_game(game: BlindfoldGame, settings: dict[str, Any]) -> None:
     speak_response(" ".join(messages), settings)
 
 
-def submit_text(text: str, game: BlindfoldGame, settings: dict[str, Any]) -> None:
+def submit_text(text: str, game: BlindfoldGame, settings: dict[str, Any]) -> bool:
     command = handle_command(text, game)
     if command.handled:
+        st.session_state["input_interpretation"] = f"Command: {command.action or text}"
         if command.action == "reveal_board":
             st.session_state["revealed"] = True
         elif command.action == "hide_board":
             st.session_state["revealed"] = False
         speak_response(command.message, settings)
-        return
+        return command.action in {"reveal_board", "hide_board", "resign", "new_game"}
 
-    legal, user_message, _parsed = game.apply_user_text(text)
+    legal, user_message, parsed = game.apply_user_text(text)
     if not legal:
+        if parsed.status == "ambiguous":
+            st.session_state["input_interpretation"] = "Needs confirmation: " + ", ".join(parsed.candidates)
+            st.session_state["pending_move_confirmation"] = {
+                "message": user_message,
+                "candidates": parsed.candidates,
+                "candidate_moves": parsed.candidate_moves,
+            }
+            speak_response(user_message, settings)
+            return True
+        else:
+            st.session_state["input_interpretation"] = "Not recognized as a legal move."
         speak_response(user_message, settings)
-        return
+        return False
 
+    if parsed.move:
+        st.session_state["input_interpretation"] = f"Parsed move: {parsed.move.uci()}"
+    st.session_state.pop("pending_move_confirmation", None)
+    finish_user_turn(game, settings, user_message)
+    return True
+
+
+def finish_user_turn(game: BlindfoldGame, settings: dict[str, Any], user_message: str) -> None:
     messages = [user_message]
+    st.session_state["opponent_move"] = ""
     engine_status = settings["engine_status"]
     if engine_status.found and engine_status.path:
         try:
             ok, engine_message = game.apply_engine_move(engine_status.path)
             if ok:
                 messages.append(engine_message)
+                st.session_state["opponent_move"] = engine_message
         except Exception as exc:
             messages.append(f"Stockfish failed to move: {exc}")
     else:
@@ -186,7 +227,31 @@ def submit_text(text: str, game: BlindfoldGame, settings: dict[str, Any]) -> Non
     speak_response(" ".join(messages), settings)
 
 
-def render_voice_input(settings: dict[str, Any]) -> None:
+def confirm_pending_move(uci: str, game: BlindfoldGame, settings: dict[str, Any]) -> bool:
+    try:
+        move = chess.Move.from_uci(uci)
+        user_message = game.apply_user_move(move)
+    except Exception as exc:
+        st.session_state.pop("pending_move_confirmation", None)
+        speak_response(f"Could not confirm that move: {exc}", settings)
+        return True
+
+    st.session_state["input_interpretation"] = f"Confirmed move: {uci}"
+    st.session_state.pop("pending_move_confirmation", None)
+    finish_user_turn(game, settings, user_message)
+    return True
+
+
+def rewind_game(game: BlindfoldGame, target_ply: int, settings: dict[str, Any]) -> bool:
+    message = game.rewind_to_ply(target_ply)
+    st.session_state["opponent_move"] = ""
+    st.session_state.pop("pending_move_confirmation", None)
+    st.session_state.pop("exported_pgn", None)
+    speak_response(message, settings)
+    return True
+
+
+def render_voice_input(game: BlindfoldGame, settings: dict[str, Any]) -> None:
     st.subheader("Voice input")
     if not settings["recorder_status"].available:
         st.warning(settings["recorder_status"].error)
@@ -196,13 +261,51 @@ def render_voice_input(settings: dict[str, Any]) -> None:
         return
 
     audio_bytes = render_recorder()
-    if audio_bytes and st.button("Transcribe locally"):
-        with st.spinner("Transcribing locally with faster-whisper..."):
-            try:
-                transcript = transcribe_audio(audio_bytes, settings["stt_model_size"])
-                st.session_state["transcript"] = transcript
-            except Exception as exc:
-                st.error(f"Local transcription failed: {exc}")
+    if not audio_bytes:
+        return
+
+    audio_hash = hashlib.sha256(audio_bytes).hexdigest()
+    if st.session_state.get("last_processed_audio_hash") == audio_hash:
+        interpretation = st.session_state.get("input_interpretation", "")
+        if interpretation:
+            st.caption(interpretation)
+        return
+
+    st.session_state["last_processed_audio_hash"] = audio_hash
+    with st.spinner("Transcribing locally with faster-whisper..."):
+        try:
+            transcript = transcribe_audio(audio_bytes, settings["stt_model_size"])
+            st.session_state["transcript"] = transcript
+            if transcript:
+                state_changed = submit_text(transcript, game, settings)
+                interpretation = st.session_state.get("input_interpretation", "")
+                if interpretation:
+                    st.caption(interpretation)
+                if state_changed:
+                    st.rerun()
+            else:
+                st.caption("No speech recognized.")
+        except Exception as exc:
+            st.error(f"Local transcription failed: {exc}")
+
+
+def render_pending_move_confirmation(game: BlindfoldGame, settings: dict[str, Any]) -> None:
+    pending = st.session_state.get("pending_move_confirmation")
+    if not pending:
+        return
+
+    st.warning(pending["message"])
+    candidates = pending.get("candidates", [])
+    candidate_moves = pending.get("candidate_moves", [])
+    cols = st.columns(max(1, min(3, len(candidates))))
+    for index, (san, uci) in enumerate(zip(candidates, candidate_moves)):
+        if cols[index % len(cols)].button(
+            f"Confirm {san}",
+            key=f"confirm_move_{index}_{uci}",
+            use_container_width=True,
+        ):
+            if confirm_pending_move(uci, game, settings):
+                st.rerun()
 
 
 def render_optional_ollama(game: BlindfoldGame, settings: dict[str, Any]) -> None:
@@ -233,27 +336,26 @@ def main() -> None:
     st.set_page_config(page_title="Blindfold Chess Voice MVP", layout="wide")
     settings = render_sidebar()
     game = game_from_state()
+    render_sidebar_debug(game)
     st.title("Blindfold Chess Voice MVP")
     st.caption("Local voice-first blindfold chess against Stockfish. No cloud AI.")
 
-    top = st.columns([1, 1, 1, 1])
+    if "revealed" not in st.session_state:
+        st.session_state["revealed"] = settings["board_visibility"] == "Show full board"
+    if "audio_feedback" not in st.session_state:
+        st.session_state["audio_feedback"] = False
+
+    top = st.columns([1, 1, 1])
     if top[0].button("Start New Game", type="primary", use_container_width=True):
         start_new_game(game, settings)
-    if top[1].button("Reveal Board", use_container_width=True):
-        st.session_state["revealed"] = True
-    if top[2].button("Hide Board", use_container_width=True):
-        st.session_state["revealed"] = False
-    if top[3].button("Save Local Snapshot", use_container_width=True):
-        path = save_game_snapshot(
-            ROOT,
-            {
-                "fen": game.board.fen(),
-                "user_color": game.user_color,
-                "opponent_level": game.opponent_level,
-                "history": [move.__dict__ for move in game.history],
-            },
-        )
-        st.success(f"Saved {path.name}")
+    st.session_state["revealed"] = top[1].toggle(
+        "Reveal board",
+        value=bool(st.session_state.get("revealed", False)),
+    )
+    st.session_state["audio_feedback"] = top[2].toggle(
+        "Audio feedback",
+        value=bool(st.session_state.get("audio_feedback", False)),
+    )
 
     st.subheader("Current game status")
     status_cols = st.columns(4)
@@ -266,31 +368,54 @@ def main() -> None:
     with board_col:
         render_board(game, settings["board_visibility"], bool(st.session_state.get("revealed", False)))
     with input_col:
-        render_voice_input(settings)
-        transcript = st.text_area(
-            "Transcript / text fallback",
-            value=st.session_state.get("transcript", ""),
-            height=100,
-            help="Edit the transcript before submitting. You can enter moves or commands here.",
-        )
-        st.session_state["transcript"] = transcript
-        if st.button("Submit Move / Submit Command", use_container_width=True):
-            submit_text(transcript, game, settings)
-        st.subheader("System response")
+        render_voice_input(game, settings)
+        render_pending_move_confirmation(game, settings)
+        st.subheader("Game feedback")
+        opponent_move = st.session_state.get("opponent_move", "")
+        st.caption("Opponent move")
+        st.write(opponent_move or "Waiting for opponent move.")
+        st.caption("Latest feedback")
         st.write(st.session_state.get("system_response", game.last_message))
 
-    utility_cols = st.columns(3)
-    if utility_cols[0].button("Describe Position", use_container_width=True):
-        speak_response(describe_position(game.board, game.history), settings)
-    if utility_cols[1].button("Legal Moves", use_container_width=True):
-        moves = ", ".join(game.board.san(move) for move in list(game.board.legal_moves)[:30])
-        speak_response(f"Legal moves: {moves}", settings)
-    if utility_cols[2].button("Export PGN", use_container_width=True):
-        st.session_state["exported_pgn"] = export_pgn(game)
+    with st.expander("Game tools", expanded=False):
+        typed_move = st.text_input(
+            "Typed move / command",
+            key="typed_move",
+            placeholder="e4, knight f3, 小兵到e4, describe the position...",
+        )
+        if st.button("Submit typed input", use_container_width=True):
+            if submit_text(typed_move, game, settings):
+                st.rerun()
 
-    if "exported_pgn" in st.session_state:
-        st.download_button("Download PGN", st.session_state["exported_pgn"], "blindfold-game.pgn")
-        st.code(st.session_state["exported_pgn"], language="pgn")
+        if game.history:
+            st.divider()
+            target_ply = st.slider(
+                "Rewind to ply",
+                min_value=0,
+                max_value=len(game.history),
+                value=len(game.history),
+                help="0 returns to the starting position. Higher values keep that many half-moves.",
+            )
+            if st.button("Rewind game", use_container_width=True):
+                if rewind_game(game, target_ply, settings):
+                    st.rerun()
+
+        utility_cols = st.columns(3)
+        if utility_cols[0].button("Describe Position", use_container_width=True):
+            response = describe_position(game.board, game.history)
+            speak_response(response, settings)
+            st.info(response)
+        if utility_cols[1].button("Legal Moves", use_container_width=True):
+            moves = ", ".join(game.board.san(move) for move in list(game.board.legal_moves)[:30])
+            response = f"Legal moves: {moves}"
+            speak_response(response, settings)
+            st.info(response)
+        if utility_cols[2].button("Export PGN", use_container_width=True):
+            st.session_state["exported_pgn"] = export_pgn(game)
+
+        if "exported_pgn" in st.session_state:
+            st.download_button("Download PGN", st.session_state["exported_pgn"], "blindfold-game.pgn")
+            st.code(st.session_state["exported_pgn"], language="pgn")
 
     st.subheader("Move history")
     history = move_history_df(game)
@@ -300,10 +425,6 @@ def main() -> None:
         st.dataframe(history, use_container_width=True, hide_index=True)
 
     render_optional_ollama(game, settings)
-
-    with st.expander("Debug board state", expanded=False):
-        st.code(game.board.fen())
-        st.code(json.dumps([move.__dict__ for move in game.history], indent=2))
 
 
 if __name__ == "__main__":
