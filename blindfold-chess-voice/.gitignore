@@ -1,0 +1,17 @@
+.venv/
+.cache/
+.pytest_cache/
+__pycache__/
+*.pyc
+.local_games/*.json
+.streamlit/secrets.toml
+
+# Stockfish binaries are large and GPL-distributed release artifacts.
+# Place a local binary here for development; release builds must include
+# the correct binary plus completed source/license metadata.
+resources/engines/stockfish
+resources/engines/stockfish.exe
+resources/engines/stockfish-macos-arm64
+resources/engines/stockfish-macos-x86_64
+resources/engines/stockfish-linux-x86_64
+resources/engines/stockfish-windows-x86_64.exe

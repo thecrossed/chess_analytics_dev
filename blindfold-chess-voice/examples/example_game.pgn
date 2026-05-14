@@ -1,0 +1,9 @@
+[Event "Blindfold Chess Voice MVP Example"]
+[Site "Local"]
+[Date "2026.05.14"]
+[Round "-"]
+[White "Human"]
+[Black "Stockfish"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 *
