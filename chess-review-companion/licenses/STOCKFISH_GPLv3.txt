@@ -1,0 +1,4 @@
+TODO: Insert full GNU GPLv3 license text before release.
+
+Do not leave this unresolved in production.
+

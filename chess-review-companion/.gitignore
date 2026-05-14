@@ -1,0 +1,16 @@
+.venv/
+.cache/
+.pytest_cache/
+.pycache_tmp/
+__pycache__/
+*.pyc
+.streamlit/secrets.toml
+
+# Local Stockfish binaries are platform-specific and may exceed GitHub's
+# normal file-size limit. Release packaging should attach the correct binary.
+resources/engines/stockfish
+resources/engines/stockfish.exe
+resources/engines/stockfish-macos-arm64
+resources/engines/stockfish-macos-x86_64
+resources/engines/stockfish-linux-x86_64
+resources/engines/stockfish-windows-x86_64.exe

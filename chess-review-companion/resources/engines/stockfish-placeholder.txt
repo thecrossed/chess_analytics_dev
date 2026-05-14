@@ -1,0 +1,4 @@
+Place a Stockfish binary in this directory.
+
+This placeholder is not an engine.
+
