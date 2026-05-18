@@ -273,6 +273,7 @@ export default function App() {
           </div>
 
           <SolveBoard
+            key={puzzle.id}
             fen={chess.fen()}
             locked={locked}
             orientation={puzzle.sideToMove === "w" ? "white" : "black"}

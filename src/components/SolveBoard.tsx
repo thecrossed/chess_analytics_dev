@@ -20,6 +20,8 @@ export function SolveBoard({ fen, locked, orientation, feedback, feedbackSquare,
           boardOrientation: orientation,
           allowDragging: !locked,
           allowDrawingArrows: false,
+          showAnimations: false,
+          animationDurationInMs: 0,
           draggingPieceGhostStyle: { opacity: 0 },
           onPieceDrop: ({ sourceSquare, targetSquare }) => {
             if (!targetSquare) return false;
