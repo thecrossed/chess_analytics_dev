@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
-import { Lightbulb, RotateCcw, Trash2 } from "lucide-react";
+import { Lightbulb, RotateCcw, SkipForward, Trash2 } from "lucide-react";
 import { puzzles } from "./data/puzzles";
 import { AttemptHistory } from "./components/AttemptHistory";
 import { ReplayPanel } from "./components/ReplayPanel";
@@ -211,6 +211,12 @@ export default function App() {
     setLastMessage("Puzzle history cleared.");
   }
 
+  function goToNextPuzzle() {
+    const currentIndex = puzzles.findIndex((item) => item.id === puzzle.id);
+    const nextPuzzle = puzzles[(currentIndex + 1) % puzzles.length];
+    changePuzzle(nextPuzzle.id);
+  }
+
   function showHint() {
     const nextSolutionMove = puzzle.solutionUci[currentMoves.length];
     if (!nextSolutionMove || locked) return;
@@ -312,6 +318,15 @@ export default function App() {
                 disabled={attemptsUsed === 0 && currentMoves.length === 0}
               >
                 <Trash2 aria-hidden="true" size={18} strokeWidth={2.4} />
+              </button>
+              <button
+                type="button"
+                className="iconButton tooltipButton"
+                aria-label="Next puzzle"
+                data-tooltip="Next puzzle"
+                onClick={goToNextPuzzle}
+              >
+                <SkipForward aria-hidden="true" size={18} strokeWidth={2.4} />
               </button>
             </div>
             {lastMessage ? <p className={`status statusBanner status-${feedback}`}>{lastMessage}</p> : null}
