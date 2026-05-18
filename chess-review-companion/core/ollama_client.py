@@ -42,6 +42,10 @@ def ask_ollama(
     options = {"temperature": 0.2, "top_p": 0.8}
     if fast_mode:
         options.update({"num_predict": 180, "num_ctx": 2048})
+        if model.lower().startswith("deepseek-r1"):
+            # R1-style models often spend part of the budget on internal thinking
+            # before producing the final response.
+            options["num_predict"] = 360
 
     try:
         response = requests.post(

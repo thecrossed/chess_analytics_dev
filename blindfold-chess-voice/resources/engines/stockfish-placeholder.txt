@@ -1,0 +1,4 @@
+Place a Stockfish binary in this directory for local development.
+
+The intended release build should bundle the correct unmodified Stockfish binary
+as an external UCI executable process.

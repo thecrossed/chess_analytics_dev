@@ -29,7 +29,7 @@ from core.stockfish_engine import discover_engine
 ROOT = Path(__file__).resolve().parent
 SAMPLE_PGN = ROOT / "examples" / "sample_game.pgn"
 STOCKFISH_NOTICE = ROOT / "licenses" / "STOCKFISH_NOTICE.txt"
-FAST_DEFAULT_MODEL = "qwen2.5:3b"
+FAST_DEFAULT_MODEL = "deepseek-r1:1.5b"
 
 
 def read_text(path: Path, fallback: str = "") -> str:
@@ -168,12 +168,12 @@ def render_sidebar() -> dict[str, Any]:
     fast_mode = st.sidebar.checkbox(
         "Fast Coach Mode",
         value=True,
-        help="Shorter prompt, shorter answer, and local answer cache. Try qwen2.5:3b for faster local replies.",
+        help="Shorter prompt, shorter answer, and local answer cache. Try deepseek-r1:1.5b for faster local replies.",
     )
     default_model = FAST_DEFAULT_MODEL if fast_mode else DEFAULT_MODEL
     model = st.sidebar.text_input("Ollama model", default_model)
     if fast_mode:
-        st.sidebar.caption("Using qwen2.5:3b is much faster after the first warm-up call.")
+        st.sidebar.caption("Using deepseek-r1:1.5b is much faster after the first warm-up call.")
     depth = st.sidebar.selectbox("Stockfish depth", [8, 10, 12, 14], index=2)
     level = st.sidebar.selectbox("Explanation level", ["beginner", "club", "advanced"], index=1)
     language = st.sidebar.selectbox("Language", ["Chinese", "English"], index=0)

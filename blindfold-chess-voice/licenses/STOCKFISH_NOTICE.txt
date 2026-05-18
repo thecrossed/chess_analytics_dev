@@ -1,0 +1,16 @@
+Blindfold Chess Voice MVP includes Stockfish as a third-party chess engine.
+
+Stockfish is licensed under the GNU General Public License version 3 (GPLv3).
+
+This app uses an unmodified Stockfish binary as an external UCI engine process.
+The Stockfish binary is not linked into the app and is not modified by this app.
+
+Users may replace the Stockfish binary in resources/engines/ with another
+compatible Stockfish binary.
+
+Stockfish source code is available from the official Stockfish project.
+
+Stockfish version: Stockfish 18
+Binary target: macOS arm64 / Darwin arm64 local development binary
+Source commit/tag:
+Modifications: None
