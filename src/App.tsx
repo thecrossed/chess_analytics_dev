@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
-import { Lightbulb, RotateCcw, Send, SkipForward, Trash2, X } from "lucide-react";
+import { Lightbulb, Plus, RotateCcw, Send, SkipForward, Trash2, X } from "lucide-react";
 import { puzzles } from "./data/puzzles";
 import { students } from "./data/students";
 import { AttemptHistory } from "./components/AttemptHistory";
 import { PuzzlePreviewBoard } from "./components/PuzzlePreviewBoard";
 import { ReplayPanel } from "./components/ReplayPanel";
 import { SolveBoard } from "./components/SolveBoard";
-import type { MoveRecord, PuzzleAssignment, StoredPuzzleState } from "./types";
+import type { MoveRecord, Puzzle, PuzzleAssignment, StoredPuzzleState } from "./types";
 import { MAX_ATTEMPTS, canSubmitAttempt, makeAttempt } from "./utils/attempts";
 import { loadAppState, saveAppState } from "./utils/storage";
+import { generateStockfishLine } from "./utils/stockfish";
 
 const emptyPuzzleState: StoredPuzzleState = {
   attempts: [],
@@ -46,9 +47,17 @@ function describePuzzleProgress(state: StoredPuzzleState | undefined, solutionUc
   return `${state.attempts.length}/${MAX_ATTEMPTS} attempts used`;
 }
 
+function describeAttemptOutcome(moves: MoveRecord[], correct: boolean, solutionUci: string[]) {
+  if (correct) return `Solved in ${moves.length} move${moves.length === 1 ? "" : "s"}`;
+  const mismatchIndex = moves.findIndex((move, index) => move.uci !== solutionUci[index]);
+  if (mismatchIndex >= 0) return `Wrong on move ${mismatchIndex + 1}: ${moves[mismatchIndex].san}`;
+  return `Stopped after ${moves.length} move${moves.length === 1 ? "" : "s"}`;
+}
+
 function getInitialState() {
   const saved = loadAppState();
-  const activePuzzleId = saved?.activePuzzleId && puzzles.some((puzzle) => puzzle.id === saved.activePuzzleId)
+  const savedPuzzles = [...puzzles, ...(saved?.customPuzzles ?? [])];
+  const activePuzzleId = saved?.activePuzzleId && savedPuzzles.some((puzzle) => puzzle.id === saved.activePuzzleId)
     ? saved.activePuzzleId
     : puzzles[0].id;
 
@@ -65,6 +74,8 @@ function getInitialState() {
         assignedAt: Date.now()
       }
     ],
+    customPuzzles: saved?.customPuzzles ?? [],
+    activeRole: saved?.activeRole,
     puzzleStates: saved?.puzzleStates ?? {}
   };
 }
@@ -74,6 +85,7 @@ export default function App() {
   const [activePuzzleId, setActivePuzzleId] = useState(initialState.activePuzzleId);
   const [activeStudentId, setActiveStudentId] = useState(initialState.activeStudentId);
   const [assignments, setAssignments] = useState<PuzzleAssignment[]>(initialState.assignments);
+  const [customPuzzles, setCustomPuzzles] = useState<Puzzle[]>(initialState.customPuzzles);
   const [coachPuzzleId, setCoachPuzzleId] = useState(initialState.activePuzzleId);
   const [coachSelectedStudentIds, setCoachSelectedStudentIds] = useState<string[]>([initialState.activeStudentId]);
   const [puzzleStates, setPuzzleStates] = useState<Record<string, StoredPuzzleState>>(initialState.puzzleStates);
@@ -82,13 +94,26 @@ export default function App() {
   const [attemptStartedAt, setAttemptStartedAt] = useState(Date.now());
   const [lastMessage, setLastMessage] = useState("");
   const [replayAttemptId, setReplayAttemptId] = useState<string | undefined>();
-  const [page, setPage] = useState<"coach" | "student" | "solve" | "replay">("student");
+  const [activeRole, setActiveRole] = useState<"coach" | "student" | undefined>(initialState.activeRole);
+  const [page, setPage] = useState<"login" | "coach" | "student" | "puzzles" | "solve" | "replay">(
+    initialState.activeRole === "coach" ? "coach" : initialState.activeRole === "student" ? "student" : "login"
+  );
   const [feedback, setFeedback] = useState<"neutral" | "pending" | "correct" | "incorrect">("neutral");
   const [feedbackSquare, setFeedbackSquare] = useState<string | undefined>();
   const [hintSquare, setHintSquare] = useState<string | undefined>();
   const [awaitingNextAttempt, setAwaitingNextAttempt] = useState(false);
+  const [newPuzzleTitle, setNewPuzzleTitle] = useState("");
+  const [newPuzzleFen, setNewPuzzleFen] = useState("");
+  const [newPuzzleSide, setNewPuzzleSide] = useState<"w" | "b">("w");
+  const [newPuzzleThemes, setNewPuzzleThemes] = useState("");
+  const [newPuzzleDifficulty, setNewPuzzleDifficulty] = useState("1500");
+  const [newPuzzleSolution, setNewPuzzleSolution] = useState("");
+  const [newPuzzleExplanation, setNewPuzzleExplanation] = useState("");
+  const [newPuzzleMessage, setNewPuzzleMessage] = useState("");
+  const [isGeneratingSolution, setIsGeneratingSolution] = useState(false);
 
-  const puzzle = puzzles.find((item) => item.id === activePuzzleId) ?? puzzles[0];
+  const allPuzzles = useMemo(() => [...puzzles, ...customPuzzles], [customPuzzles]);
+  const puzzle = allPuzzles.find((item) => item.id === activePuzzleId) ?? allPuzzles[0];
   const activeStudent = students.find((student) => student.id === activeStudentId) ?? students[0];
   const activePuzzleStateKey = makePuzzleStateKey(activeStudent.id, puzzle.id);
   const puzzleState = puzzleStates[activePuzzleStateKey] ?? emptyPuzzleState;
@@ -96,8 +121,8 @@ export default function App() {
   const locked = !canSubmitAttempt(puzzleState) || puzzleState.solved || awaitingNextAttempt;
 
   useEffect(() => {
-    saveAppState({ activePuzzleId, activeStudentId, assignments, puzzleStates });
-  }, [activePuzzleId, activeStudentId, assignments, puzzleStates]);
+    saveAppState({ activePuzzleId, activeStudentId, activeRole, assignments, customPuzzles, puzzleStates });
+  }, [activePuzzleId, activeStudentId, activeRole, assignments, customPuzzles, puzzleStates]);
 
   useEffect(() => {
     resetCurrentAttempt(puzzle.fen);
@@ -116,7 +141,7 @@ export default function App() {
 
   function changePuzzle(puzzleId: string) {
     setActivePuzzleId(puzzleId);
-    const nextPuzzle = puzzles.find((item) => item.id === puzzleId);
+    const nextPuzzle = allPuzzles.find((item) => item.id === puzzleId);
     if (nextPuzzle) {
       setLastMessage("");
       setFeedback("neutral");
@@ -125,6 +150,21 @@ export default function App() {
       setAwaitingNextAttempt(false);
       setPage("solve");
     }
+  }
+
+  function loginAsCoach() {
+    setActiveRole("coach");
+    setPage("coach");
+  }
+
+  function loginAsStudent() {
+    setActiveRole("student");
+    setPage("student");
+  }
+
+  function logOut() {
+    setActiveRole(undefined);
+    setPage("login");
   }
 
   function updatePuzzleState(updater: (state: StoredPuzzleState) => StoredPuzzleState) {
@@ -255,8 +295,8 @@ export default function App() {
       .filter((assignment) => assignment.studentId === activeStudent.id)
       .map((assignment) => assignment.puzzleId);
     const availablePuzzles = assignedPuzzleIds.length
-      ? puzzles.filter((item) => assignedPuzzleIds.includes(item.id))
-      : puzzles;
+      ? allPuzzles.filter((item) => assignedPuzzleIds.includes(item.id))
+      : allPuzzles;
     const currentIndex = availablePuzzles.findIndex((item) => item.id === puzzle.id);
     const nextPuzzle = availablePuzzles[(currentIndex + 1) % availablePuzzles.length];
     changePuzzle(nextPuzzle.id);
@@ -275,6 +315,99 @@ export default function App() {
 
     if (nextAssignments.length === 0) return;
     setAssignments((current) => [...current, ...nextAssignments]);
+  }
+
+  function createCustomPuzzle() {
+    setNewPuzzleMessage("");
+    const title = newPuzzleTitle.trim();
+    const fen = newPuzzleFen.trim();
+    const solutionUci = newPuzzleSolution
+      .split(/[\s,]+/)
+      .map((move) => move.trim())
+      .filter(Boolean);
+
+    if (!title || !fen || solutionUci.length === 0) {
+      setNewPuzzleMessage("Title, FEN, and solution are required.");
+      return;
+    }
+
+    let chess: Chess;
+    try {
+      chess = new Chess(fen);
+    } catch {
+      setNewPuzzleMessage("FEN is invalid.");
+      return;
+    }
+
+    if (chess.turn() !== newPuzzleSide) {
+      setNewPuzzleMessage("Side to move must match the FEN.");
+      return;
+    }
+
+    for (const uci of solutionUci) {
+      try {
+        chess.move({
+          from: uci.slice(0, 2),
+          to: uci.slice(2, 4),
+          promotion: uci.slice(4) || undefined
+        });
+      } catch {
+        setNewPuzzleMessage(`Illegal solution move: ${uci}`);
+        return;
+      }
+    }
+
+    const id = `custom-${Date.now()}`;
+    const customPuzzle: Puzzle = {
+      id,
+      title,
+      fen,
+      sideToMove: newPuzzleSide,
+      themes: newPuzzleThemes
+        .split(",")
+        .map((theme) => theme.trim())
+        .filter(Boolean),
+      difficulty: Number(newPuzzleDifficulty) || 1500,
+      solutionUci,
+      explanation: newPuzzleExplanation.trim() || "Custom puzzle."
+    };
+
+    setCustomPuzzles((current) => [...current, customPuzzle]);
+    setCoachPuzzleId(id);
+    setActivePuzzleId(id);
+    setNewPuzzleTitle("");
+    setNewPuzzleFen("");
+    setNewPuzzleThemes("");
+    setNewPuzzleDifficulty("1500");
+    setNewPuzzleSolution("");
+    setNewPuzzleExplanation("");
+    setNewPuzzleMessage("Custom puzzle created.");
+  }
+
+  async function generateSolutionWithStockfish() {
+    setNewPuzzleMessage("");
+    const fen = newPuzzleFen.trim();
+    if (!fen) {
+      setNewPuzzleMessage("Add a FEN before generating with Stockfish.");
+      return;
+    }
+
+    try {
+      const chess = new Chess(fen);
+      if (chess.turn() !== newPuzzleSide) {
+        setNewPuzzleMessage("Side to move must match the FEN before generation.");
+        return;
+      }
+
+      setIsGeneratingSolution(true);
+      const line = await generateStockfishLine(fen);
+      setNewPuzzleSolution(line.join(" "));
+      setNewPuzzleMessage(line.length ? "Stockfish line generated." : "Stockfish found no move.");
+    } catch (error) {
+      setNewPuzzleMessage(error instanceof Error ? error.message : "Could not generate with Stockfish.");
+    } finally {
+      setIsGeneratingSolution(false);
+    }
   }
 
   function removeAssignment(assignmentId: string) {
@@ -301,11 +434,6 @@ export default function App() {
     setPage("solve");
   }
 
-  function openStudentPage(studentId: string) {
-    setActiveStudentId(studentId);
-    setPage("student");
-  }
-
   function showHint() {
     const nextSolutionMove = puzzle.solutionUci[currentMoves.length];
     if (!nextSolutionMove || locked) return;
@@ -318,12 +446,145 @@ export default function App() {
     setPage("replay");
   }
 
+  function openReplayForPuzzle(studentId: string, puzzleId: string, attemptId: string) {
+    setActiveStudentId(studentId);
+    setActivePuzzleId(puzzleId);
+    setReplayAttemptId(attemptId);
+    setPage("replay");
+  }
+
   const currentMoveText = currentMoves.length
     ? formatMoveList(currentMoves)
     : "No moves in the current attempt.";
 
+  if (page === "login") {
+    return (
+      <main className="appShell loginShell">
+        <header className="loginHeader">
+          <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
+          <h1>Choose your workspace</h1>
+          <p className="headerPrompt">Continue as a coach or as a student.</p>
+        </header>
+
+        <section className="loginPanel" aria-label="Login options">
+          <button type="button" className="loginCard" onClick={loginAsCoach}>
+            <span>Log in as coach</span>
+            <strong>Assign puzzles and review class progress.</strong>
+          </button>
+          <button type="button" className="loginCard primaryLoginCard" onClick={loginAsStudent}>
+            <span>Log in as student</span>
+            <strong>Open your assigned puzzles and solving history.</strong>
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  if (page === "puzzles") {
+    return (
+      <main className="appShell">
+        <header className="appHeader">
+          <div>
+            <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
+            <h1>Puzzle library</h1>
+            <p className="headerPrompt">Browse public puzzles or create your own.</p>
+          </div>
+          <nav className="modeNav" aria-label="Workspace">
+            <button type="button" onClick={() => setPage(activeRole === "coach" ? "coach" : "student")}>
+              {activeRole === "coach" ? "Coach workspace" : "My puzzles"}
+            </button>
+            <button type="button" className="selectedAttempt">Puzzle library</button>
+            <button type="button" onClick={logOut}>Log out</button>
+          </nav>
+        </header>
+
+        <div className="puzzleLibraryLayout">
+          <section className="panel assignmentBoard">
+            <div className="sectionHeader">
+              <h2>Public puzzles</h2>
+              <span>{allPuzzles.length} puzzles</span>
+            </div>
+            <div className="libraryGrid">
+              {allPuzzles.map((item) => (
+                <article key={item.id} className="libraryPuzzleCard">
+                  <PuzzlePreviewBoard fen={item.fen} orientation={item.sideToMove === "w" ? "white" : "black"} />
+                  <div className="libraryPuzzleInfo">
+                    <div className="attemptTopline">
+                      <strong>{item.title}</strong>
+                      <span>{formatSide(item.sideToMove)} to move</span>
+                    </div>
+                    <div className="assignmentMeta">
+                      <span>Difficulty {item.difficulty}</span>
+                      {item.themes.map((theme) => <span key={theme}>{theme}</span>)}
+                    </div>
+                    <div className="buttonRow">
+                      <button type="button" onClick={() => { setCoachPuzzleId(item.id); setPage("coach"); }}>
+                        Select for coach
+                      </button>
+                      <button type="button" className="primaryButton" onClick={() => openStudentPuzzle(activeStudent.id, item.id)}>
+                        Open puzzle
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel customPuzzlePanel">
+            <div className="sectionHeader">
+              <h2>Create puzzle</h2>
+              <span>Local only</span>
+            </div>
+            <label className="formField">
+              <span>Title</span>
+              <input value={newPuzzleTitle} onChange={(event) => setNewPuzzleTitle(event.target.value)} placeholder="e.g. Quiet rook lift" />
+            </label>
+            <label className="formField">
+              <span>FEN</span>
+              <textarea value={newPuzzleFen} onChange={(event) => setNewPuzzleFen(event.target.value)} rows={3} placeholder="Paste FEN..." />
+            </label>
+            <div className="formGrid">
+              <label className="formField">
+                <span>Side</span>
+                <select value={newPuzzleSide} onChange={(event) => setNewPuzzleSide(event.target.value as "w" | "b")}>
+                  <option value="w">White</option>
+                  <option value="b">Black</option>
+                </select>
+              </label>
+              <label className="formField">
+                <span>Difficulty</span>
+                <input value={newPuzzleDifficulty} onChange={(event) => setNewPuzzleDifficulty(event.target.value)} inputMode="numeric" />
+              </label>
+            </div>
+            <label className="formField">
+              <span>Themes</span>
+              <input value={newPuzzleThemes} onChange={(event) => setNewPuzzleThemes(event.target.value)} placeholder="mate, back rank" />
+            </label>
+            <label className="formField">
+              <span>Solution UCI</span>
+              <input value={newPuzzleSolution} onChange={(event) => setNewPuzzleSolution(event.target.value)} placeholder="e2e8 or f3e5 g4d1 c4f7" />
+            </label>
+            <button type="button" className="engineButton" onClick={generateSolutionWithStockfish} disabled={isGeneratingSolution || !newPuzzleFen.trim()}>
+              {isGeneratingSolution ? "Generating with Stockfish..." : "Generate with Stockfish"}
+            </button>
+            <label className="formField">
+              <span>Explanation</span>
+              <textarea value={newPuzzleExplanation} onChange={(event) => setNewPuzzleExplanation(event.target.value)} rows={3} placeholder="Optional coach note..." />
+            </label>
+            <button type="button" className="primaryButton assignButton" onClick={createCustomPuzzle}>
+              <Plus aria-hidden="true" size={16} strokeWidth={2.4} />
+              Create puzzle
+            </button>
+            {newPuzzleMessage ? <p className="studentSummary">{newPuzzleMessage}</p> : null}
+          </section>
+        </div>
+      </main>
+    );
+  }
+
   if (page === "coach") {
-    const coachPuzzle = puzzles.find((item) => item.id === coachPuzzleId) ?? puzzles[0];
+    const coachPuzzle = allPuzzles.find((item) => item.id === coachPuzzleId) ?? allPuzzles[0];
 
     return (
       <main className="appShell">
@@ -335,7 +596,8 @@ export default function App() {
           </div>
           <nav className="modeNav" aria-label="Workspace">
             <button type="button" className="selectedAttempt">Coach</button>
-            <button type="button" onClick={() => setPage("student")}>Student page</button>
+            <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
+            <button type="button" onClick={logOut}>Log out</button>
           </nav>
         </header>
 
@@ -354,7 +616,7 @@ export default function App() {
                 <label className="compactField">
                   <span>Puzzle</span>
                   <select value={coachPuzzleId} onChange={(event) => setCoachPuzzleId(event.target.value)}>
-                    {puzzles.map((item) => (
+                    {allPuzzles.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.title}
                       </option>
@@ -411,14 +673,11 @@ export default function App() {
                   <article key={student.id} className="studentAssignmentCard">
                     <div className="attemptTopline">
                       <strong>{student.name}</strong>
-                      <button type="button" className="textButton" onClick={() => openStudentPage(student.id)}>
-                        View student
-                      </button>
                     </div>
                     <p className="studentSummary">{studentAssignments.length} assigned puzzles</p>
                     {studentAssignments.length ? (
                       studentAssignments.map((assignment) => {
-                        const assignedPuzzle = puzzles.find((item) => item.id === assignment.puzzleId);
+                        const assignedPuzzle = allPuzzles.find((item) => item.id === assignment.puzzleId);
                         const state = puzzleStates[makePuzzleStateKey(student.id, assignment.puzzleId)] ?? emptyPuzzleState;
                         if (!assignedPuzzle) return null;
                         return (
@@ -473,56 +732,81 @@ export default function App() {
         <header className="appHeader">
           <div>
             <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
-            <h1>{activeStudent.name}</h1>
-            <p className="headerPrompt">Student puzzle page.</p>
+            <h1>My puzzles</h1>
+            <p className="headerPrompt">Welcome, {activeStudent.name}.</p>
           </div>
-          <nav className="modeNav" aria-label="Workspace">
-            <button type="button" onClick={() => setPage("coach")}>Coach</button>
-            <button type="button" className="selectedAttempt">Student page</button>
+          <nav className="modeNav" aria-label="Prototype navigation">
+            <button type="button" className="selectedAttempt">Student portal</button>
+            <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
+            <button type="button" onClick={logOut}>Log out</button>
           </nav>
         </header>
 
         <div className="studentPageLayout">
-          <section className="panel">
+          <section className="panel identityPanel">
             <div className="sectionHeader">
-              <h2>Student</h2>
+              <h2>Signed in as</h2>
+              <span>Demo mode</span>
             </div>
-            <select value={activeStudent.id} onChange={(event) => setActiveStudentId(event.target.value)}>
-              {students.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {student.name}
-                </option>
-              ))}
-            </select>
+            <label className="formField demoStudentField">
+              <span>Student</span>
+              <select value={activeStudent.id} onChange={(event) => setActiveStudentId(event.target.value)}>
+                {students.map((student) => (
+                  <option key={student.id} value={student.id}>
+                    {student.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="studentSummary">Local MVP switcher for testing each student's own puzzle page.</p>
           </section>
 
           <section className="panel assignmentBoard">
             <div className="sectionHeader">
-              <h2>Assigned puzzles</h2>
+              <h2>My assigned puzzles</h2>
               <span>{studentAssignments.length} puzzles</span>
             </div>
             <div className="studentPuzzleGrid">
               {studentAssignments.length ? (
                 studentAssignments.map((assignment) => {
-                  const assignedPuzzle = puzzles.find((item) => item.id === assignment.puzzleId);
+                  const assignedPuzzle = allPuzzles.find((item) => item.id === assignment.puzzleId);
                   const state = puzzleStates[makePuzzleStateKey(activeStudent.id, assignment.puzzleId)] ?? emptyPuzzleState;
                   if (!assignedPuzzle) return null;
                   return (
                     <article key={assignment.id} className="studentPuzzleCard">
                       <div className="attemptTopline">
-                        <strong>{formatSide(assignedPuzzle.sideToMove)} to move</strong>
+                        <strong>{assignedPuzzle.title}</strong>
                         <span className={state.solved ? "badge success" : "badge"}>{state.solved ? "Solved" : `${state.attempts.length}/${MAX_ATTEMPTS}`}</span>
                       </div>
+                      <p>{formatSide(assignedPuzzle.sideToMove)} to move</p>
                       <p>{assignedPuzzle.themes.join(", ")}</p>
                       <p className="studentSummary">{describePuzzleProgress(state, assignedPuzzle.solutionUci)}</p>
+                      <div className="studentHistoryMini">
+                        <strong>History</strong>
+                        {state.attempts.length ? (
+                          state.attempts.map((attempt) => (
+                            <button
+                              type="button"
+                              key={attempt.id}
+                              className="historyMiniRow"
+                              onClick={() => openReplayForPuzzle(activeStudent.id, assignedPuzzle.id, attempt.id)}
+                            >
+                              <span>Attempt {attempt.attemptNumber}</span>
+                              <em>{describeAttemptOutcome(attempt.moves, attempt.correct, assignedPuzzle.solutionUci)}</em>
+                            </button>
+                          ))
+                        ) : (
+                          <span className="muted">No attempts yet.</span>
+                        )}
+                      </div>
                       <button type="button" className="primaryButton" onClick={() => openStudentPuzzle(activeStudent.id, assignedPuzzle.id)}>
-                        View puzzle
+                        Start puzzle
                       </button>
                     </article>
                   );
                 })
               ) : (
-                <p className="muted">No puzzles assigned yet. Use the Coach workspace to assign one.</p>
+                <p className="muted">No puzzles assigned yet.</p>
               )}
             </div>
           </section>
@@ -553,8 +837,11 @@ export default function App() {
           <p className="headerPrompt">{activeStudent.name}: find the best move.</p>
         </div>
         <nav className="modeNav" aria-label="Workspace">
-          <button type="button" onClick={() => setPage("coach")}>Coach</button>
-          <button type="button" onClick={() => setPage("student")}>Student page</button>
+          <button type="button" onClick={() => setPage(activeRole === "coach" ? "coach" : "student")}>
+            {activeRole === "coach" ? "Coach workspace" : "My puzzles"}
+          </button>
+          <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
+          <button type="button" onClick={logOut}>Log out</button>
         </nav>
       </header>
 

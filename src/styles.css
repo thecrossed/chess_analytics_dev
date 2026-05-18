@@ -37,8 +37,16 @@ body {
 }
 
 button,
-select {
+select,
+input,
+textarea {
   font: inherit;
+}
+
+input,
+textarea,
+select {
+  color: var(--ink);
 }
 
 button {
@@ -128,10 +136,63 @@ h2 {
   gap: 10px;
 }
 
+.loginShell {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  gap: 24px;
+}
+
+.loginHeader {
+  max-width: 760px;
+}
+
+.loginPanel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  gap: 16px;
+  max-width: 820px;
+}
+
+.loginCard {
+  display: grid;
+  gap: 12px;
+  min-height: 156px;
+  align-content: space-between;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: left;
+  background: var(--surface);
+}
+
+.loginCard span {
+  color: var(--accent-dark);
+  font-size: 0.92rem;
+  font-weight: 850;
+}
+
+.loginCard strong {
+  max-width: 280px;
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+  line-height: 1.05;
+}
+
+.primaryLoginCard {
+  border-color: var(--accent-dark);
+  background: var(--wood-soft);
+}
+
 .coachLayout,
 .studentPageLayout {
   display: grid;
   gap: 16px;
+}
+
+.puzzleLibraryLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.8fr);
+  gap: 16px;
+  align-items: start;
 }
 
 .coachLayout {
@@ -146,6 +207,14 @@ h2 {
 .studentPageLayout .panel:first-child {
   display: grid;
   gap: 12px;
+}
+
+.identityPanel {
+  max-width: 520px;
+}
+
+.demoStudentField {
+  max-width: 320px;
 }
 
 .puzzlePickerWithPreview {
@@ -256,6 +325,15 @@ h2 {
   width: fit-content;
 }
 
+.engineButton {
+  width: fit-content;
+  border-color: var(--wood);
+  background: var(--wood-soft);
+  color: var(--accent-dark);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 .textButton {
   border: 0;
   background: transparent;
@@ -295,6 +373,65 @@ h2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.libraryGrid {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.libraryPuzzleCard {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.libraryPuzzleInfo {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.customPuzzlePanel {
+  display: grid;
+  gap: 12px;
+}
+
+.formField {
+  display: grid;
+  gap: 6px;
+}
+
+.formField span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.formField input,
+.formField textarea,
+.formField select {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 0.62rem 0.72rem;
+}
+
+.formField textarea {
+  resize: vertical;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .studentPuzzleCard {
   display: grid;
   gap: 12px;
@@ -302,6 +439,37 @@ h2 {
 
 .studentPuzzleCard p {
   margin: 0;
+}
+
+.studentHistoryMini {
+  display: grid;
+  gap: 7px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.studentHistoryMini > strong {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.historyMiniRow {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+}
+
+.historyMiniRow span {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.historyMiniRow em {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: normal;
 }
 
 .assignmentRow {
@@ -696,8 +864,10 @@ h2 {
   }
 
   .coachLayout,
+  .puzzleLibraryLayout,
   .studentAssignmentGrid,
-  .studentPuzzleGrid {
+  .studentPuzzleGrid,
+  .loginPanel {
     grid-template-columns: 1fr;
   }
 
@@ -741,6 +911,11 @@ h2 {
 
   .puzzlePickerWithPreview {
     grid-template-columns: minmax(92px, 120px) minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .libraryPuzzleCard {
+    grid-template-columns: 112px minmax(0, 1fr);
     gap: 10px;
   }
 
@@ -834,6 +1009,18 @@ h2 {
 
   .puzzlePickerWithPreview {
     grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .libraryPuzzleCard {
+    grid-template-columns: 1fr;
+  }
+
+  .libraryPuzzleCard .previewBoard {
+    max-width: 180px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
   }
 
   .assignmentRow strong {
