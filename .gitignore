@@ -8,3 +8,4 @@ data/lichess_monthly/
 data/lichess_perf_subsets/
 data/pgn_parquet_rapid/
 data/pgn_parquet_rapid_sample/
+data/lichess_puzzles/

@@ -26,13 +26,29 @@ Vite will print a local URL, usually `http://localhost:5173`.
 npm test
 ```
 
+## Lichess Puzzle Import
+
+The full local SQLite import lives outside git:
+
+```bash
+data/lichess_puzzles/lichess_puzzles.sqlite
+```
+
+Regenerate the frontend subset from that database:
+
+```bash
+python3 scripts/export_lichess_puzzles_for_app.py --limit 500
+```
+
 ## What The MVP Includes
 
-- Five local tactic puzzles in `src/data/puzzles.ts`
+- Five hand-authored tactic puzzles in `src/data/puzzles.ts`
+- 500 generated Lichess puzzles in `src/data/lichessPuzzles.ts`
 - Legal move validation with `chess.js`
 - Drag-and-drop board UI with `react-chessboard`
 - Local role selection for logging in as coach or student
-- Coach workspace for assigning local puzzles to fake students
+- Public puzzle library for adding puzzles to a coach collection
+- My puzzle collection page for assigning saved puzzles to fake students
 - Student portal showing a student's assigned puzzles and personal attempt history
 - Puzzle library for browsing public puzzles and creating local custom puzzles
 - Optional local Stockfish generation for custom puzzle solution lines

@@ -6,6 +6,7 @@ type PersistedAppState = {
   activePuzzleId: string;
   activeStudentId?: string;
   activeRole?: "coach" | "student";
+  coachCollectionPuzzleIds?: string[];
   assignments?: PuzzleAssignment[];
   customPuzzles?: Puzzle[];
   puzzleStates: Record<string, StoredPuzzleState>;

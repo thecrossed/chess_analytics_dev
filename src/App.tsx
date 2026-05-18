@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import { Lightbulb, Plus, RotateCcw, Send, SkipForward, Trash2, X } from "lucide-react";
 import { puzzles } from "./data/puzzles";
+import { lichessPuzzles } from "./data/lichessPuzzles";
 import { students } from "./data/students";
 import { AttemptHistory } from "./components/AttemptHistory";
 import { PuzzlePreviewBoard } from "./components/PuzzlePreviewBoard";
@@ -11,6 +12,8 @@ import type { MoveRecord, Puzzle, PuzzleAssignment, StoredPuzzleState } from "./
 import { MAX_ATTEMPTS, canSubmitAttempt, makeAttempt } from "./utils/attempts";
 import { loadAppState, saveAppState } from "./utils/storage";
 import { generateStockfishLine } from "./utils/stockfish";
+
+const LIBRARY_PAGE_SIZE = 24;
 
 const emptyPuzzleState: StoredPuzzleState = {
   attempts: [],
@@ -25,6 +28,12 @@ function formatMoveList(moves: MoveRecord[]) {
   return moves
     .map((move, index) => (index % 2 === 0 ? `${Math.floor(index / 2) + 1}. ${move.san}` : move.san))
     .join(" ");
+}
+
+function getPuzzleSource(puzzleId: string) {
+  if (puzzleId.startsWith("lichess-")) return "lichess";
+  if (puzzleId.startsWith("custom-")) return "custom";
+  return "handmade";
 }
 
 function makePuzzleStateKey(studentId: string, puzzleId: string) {
@@ -56,7 +65,7 @@ function describeAttemptOutcome(moves: MoveRecord[], correct: boolean, solutionU
 
 function getInitialState() {
   const saved = loadAppState();
-  const savedPuzzles = [...puzzles, ...(saved?.customPuzzles ?? [])];
+  const savedPuzzles = [...puzzles, ...lichessPuzzles, ...(saved?.customPuzzles ?? [])];
   const activePuzzleId = saved?.activePuzzleId && savedPuzzles.some((puzzle) => puzzle.id === saved.activePuzzleId)
     ? saved.activePuzzleId
     : puzzles[0].id;
@@ -76,6 +85,7 @@ function getInitialState() {
     ],
     customPuzzles: saved?.customPuzzles ?? [],
     activeRole: saved?.activeRole,
+    coachCollectionPuzzleIds: saved?.coachCollectionPuzzleIds ?? [puzzles[0].id],
     puzzleStates: saved?.puzzleStates ?? {}
   };
 }
@@ -86,6 +96,7 @@ export default function App() {
   const [activeStudentId, setActiveStudentId] = useState(initialState.activeStudentId);
   const [assignments, setAssignments] = useState<PuzzleAssignment[]>(initialState.assignments);
   const [customPuzzles, setCustomPuzzles] = useState<Puzzle[]>(initialState.customPuzzles);
+  const [coachCollectionPuzzleIds, setCoachCollectionPuzzleIds] = useState<string[]>(initialState.coachCollectionPuzzleIds);
   const [coachPuzzleId, setCoachPuzzleId] = useState(initialState.activePuzzleId);
   const [coachSelectedStudentIds, setCoachSelectedStudentIds] = useState<string[]>([initialState.activeStudentId]);
   const [puzzleStates, setPuzzleStates] = useState<Record<string, StoredPuzzleState>>(initialState.puzzleStates);
@@ -95,7 +106,7 @@ export default function App() {
   const [lastMessage, setLastMessage] = useState("");
   const [replayAttemptId, setReplayAttemptId] = useState<string | undefined>();
   const [activeRole, setActiveRole] = useState<"coach" | "student" | undefined>(initialState.activeRole);
-  const [page, setPage] = useState<"login" | "coach" | "student" | "puzzles" | "solve" | "replay">(
+  const [page, setPage] = useState<"login" | "coach" | "student" | "puzzles" | "collection" | "solve" | "replay">(
     initialState.activeRole === "coach" ? "coach" : initialState.activeRole === "student" ? "student" : "login"
   );
   const [feedback, setFeedback] = useState<"neutral" | "pending" | "correct" | "incorrect">("neutral");
@@ -111,18 +122,71 @@ export default function App() {
   const [newPuzzleExplanation, setNewPuzzleExplanation] = useState("");
   const [newPuzzleMessage, setNewPuzzleMessage] = useState("");
   const [isGeneratingSolution, setIsGeneratingSolution] = useState(false);
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [librarySource, setLibrarySource] = useState<"all" | "handmade" | "lichess" | "custom">("all");
+  const [librarySide, setLibrarySide] = useState<"all" | "w" | "b">("all");
+  const [libraryTheme, setLibraryTheme] = useState("all");
+  const [libraryMinRating, setLibraryMinRating] = useState("");
+  const [libraryMaxRating, setLibraryMaxRating] = useState("");
+  const [libraryPage, setLibraryPage] = useState(1);
 
-  const allPuzzles = useMemo(() => [...puzzles, ...customPuzzles], [customPuzzles]);
+  const publicPuzzles = useMemo(() => [...puzzles, ...lichessPuzzles], []);
+  const allPuzzles = useMemo(() => [...publicPuzzles, ...customPuzzles], [customPuzzles, publicPuzzles]);
+  const coachCollectionPuzzles = useMemo(
+    () => coachCollectionPuzzleIds
+      .map((puzzleId) => allPuzzles.find((item) => item.id === puzzleId))
+      .filter((item): item is Puzzle => Boolean(item)),
+    [allPuzzles, coachCollectionPuzzleIds]
+  );
+  const libraryThemes = useMemo(() => {
+    const themes = new Set<string>();
+    allPuzzles.forEach((item) => item.themes.forEach((theme) => themes.add(theme)));
+    return [...themes].sort((a, b) => a.localeCompare(b));
+  }, [allPuzzles]);
+  const filteredLibraryPuzzles = useMemo(() => {
+    const query = librarySearch.trim().toLowerCase();
+    const minRating = libraryMinRating.trim() ? Number(libraryMinRating) : undefined;
+    const maxRating = libraryMaxRating.trim() ? Number(libraryMaxRating) : undefined;
+
+    return allPuzzles.filter((item) => {
+      const source = getPuzzleSource(item.id);
+      if (librarySource !== "all" && source !== librarySource) return false;
+      if (librarySide !== "all" && item.sideToMove !== librarySide) return false;
+      if (libraryTheme !== "all" && !item.themes.includes(libraryTheme)) return false;
+      if (minRating !== undefined && Number.isFinite(minRating) && item.difficulty < minRating) return false;
+      if (maxRating !== undefined && Number.isFinite(maxRating) && item.difficulty > maxRating) return false;
+      if (!query) return true;
+
+      return [
+        item.title,
+        item.difficulty.toString(),
+        item.sideToMove === "w" ? "white" : "black",
+        source,
+        ...item.themes
+      ].some((value) => value.toLowerCase().includes(query));
+    });
+  }, [allPuzzles, libraryMaxRating, libraryMinRating, librarySearch, librarySide, librarySource, libraryTheme]);
+  const libraryPageCount = Math.max(1, Math.ceil(filteredLibraryPuzzles.length / LIBRARY_PAGE_SIZE));
+  const currentLibraryPage = Math.min(libraryPage, libraryPageCount);
+  const pagedLibraryPuzzles = filteredLibraryPuzzles.slice(
+    (currentLibraryPage - 1) * LIBRARY_PAGE_SIZE,
+    currentLibraryPage * LIBRARY_PAGE_SIZE
+  );
+  const libraryRangeStart = filteredLibraryPuzzles.length === 0
+    ? 0
+    : (currentLibraryPage - 1) * LIBRARY_PAGE_SIZE + 1;
+  const libraryRangeEnd = Math.min(currentLibraryPage * LIBRARY_PAGE_SIZE, filteredLibraryPuzzles.length);
   const puzzle = allPuzzles.find((item) => item.id === activePuzzleId) ?? allPuzzles[0];
   const activeStudent = students.find((student) => student.id === activeStudentId) ?? students[0];
+  const puzzleInCoachCollection = coachCollectionPuzzleIds.includes(puzzle.id);
   const activePuzzleStateKey = makePuzzleStateKey(activeStudent.id, puzzle.id);
   const puzzleState = puzzleStates[activePuzzleStateKey] ?? emptyPuzzleState;
   const attemptsUsed = puzzleState.attempts.length;
   const locked = !canSubmitAttempt(puzzleState) || puzzleState.solved || awaitingNextAttempt;
 
   useEffect(() => {
-    saveAppState({ activePuzzleId, activeStudentId, activeRole, assignments, customPuzzles, puzzleStates });
-  }, [activePuzzleId, activeStudentId, activeRole, assignments, customPuzzles, puzzleStates]);
+    saveAppState({ activePuzzleId, activeStudentId, activeRole, coachCollectionPuzzleIds, assignments, customPuzzles, puzzleStates });
+  }, [activePuzzleId, activeStudentId, activeRole, coachCollectionPuzzleIds, assignments, customPuzzles, puzzleStates]);
 
   useEffect(() => {
     resetCurrentAttempt(puzzle.fen);
@@ -132,6 +196,10 @@ export default function App() {
     setHintSquare(undefined);
     setAwaitingNextAttempt(false);
   }, [puzzle.id, activeStudent.id]);
+
+  useEffect(() => {
+    setLibraryPage(1);
+  }, [libraryMaxRating, libraryMinRating, librarySearch, librarySide, librarySource, libraryTheme]);
 
   function resetCurrentAttempt(fen = puzzle.fen) {
     setChess(new Chess(fen));
@@ -303,6 +371,8 @@ export default function App() {
   }
 
   function assignCoachPuzzle() {
+    if (coachCollectionPuzzles.length === 0) return;
+
     const assignedAt = Date.now();
     const nextAssignments = coachSelectedStudentIds
       .filter((studentId) => !assignments.some((assignment) => assignment.studentId === studentId && assignment.puzzleId === coachPuzzleId))
@@ -315,6 +385,22 @@ export default function App() {
 
     if (nextAssignments.length === 0) return;
     setAssignments((current) => [...current, ...nextAssignments]);
+  }
+
+  function addPuzzleToCoachCollection(puzzleId: string) {
+    setCoachCollectionPuzzleIds((current) => {
+      if (current.includes(puzzleId)) return current;
+      return [...current, puzzleId];
+    });
+    setCoachPuzzleId(puzzleId);
+  }
+
+  function removePuzzleFromCoachCollection(puzzleId: string) {
+    setCoachCollectionPuzzleIds((current) => current.filter((id) => id !== puzzleId));
+    if (coachPuzzleId === puzzleId) {
+      const nextPuzzleId = coachCollectionPuzzleIds.find((id) => id !== puzzleId) ?? puzzles[0].id;
+      setCoachPuzzleId(nextPuzzleId);
+    }
   }
 
   function createCustomPuzzle() {
@@ -487,13 +573,16 @@ export default function App() {
           <div>
             <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
             <h1>Puzzle library</h1>
-            <p className="headerPrompt">Browse public puzzles or create your own.</p>
+            <p className="headerPrompt">Browse public puzzles and add them to your coach collection.</p>
           </div>
           <nav className="modeNav" aria-label="Workspace">
             <button type="button" onClick={() => setPage(activeRole === "coach" ? "coach" : "student")}>
               {activeRole === "coach" ? "Coach workspace" : "My puzzles"}
             </button>
             <button type="button" className="selectedAttempt">Puzzle library</button>
+            {activeRole === "coach" ? (
+              <button type="button" onClick={() => setPage("collection")}>My puzzle collection</button>
+            ) : null}
             <button type="button" onClick={logOut}>Log out</button>
           </nav>
         </header>
@@ -501,11 +590,102 @@ export default function App() {
         <div className="puzzleLibraryLayout">
           <section className="panel assignmentBoard">
             <div className="sectionHeader">
-              <h2>Public puzzles</h2>
-              <span>{allPuzzles.length} puzzles</span>
+              <h2>Puzzle library</h2>
+              <span>
+                Showing {libraryRangeStart}-{libraryRangeEnd} of {filteredLibraryPuzzles.length} puzzles
+              </span>
+            </div>
+            <div className="libraryFilters">
+              <label className="formField searchField">
+                <span>Search</span>
+                <input
+                  value={librarySearch}
+                  onChange={(event) => setLibrarySearch(event.target.value)}
+                  placeholder="Theme, title, rating..."
+                />
+              </label>
+              <label className="formField">
+                <span>Source</span>
+                <select value={librarySource} onChange={(event) => setLibrarySource(event.target.value as typeof librarySource)}>
+                  <option value="all">All sources</option>
+                  <option value="handmade">Hand-authored</option>
+                  <option value="lichess">Lichess</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+              <label className="formField">
+                <span>Side</span>
+                <select value={librarySide} onChange={(event) => setLibrarySide(event.target.value as typeof librarySide)}>
+                  <option value="all">Either side</option>
+                  <option value="w">White</option>
+                  <option value="b">Black</option>
+                </select>
+              </label>
+              <label className="formField">
+                <span>Theme</span>
+                <select value={libraryTheme} onChange={(event) => setLibraryTheme(event.target.value)}>
+                  <option value="all">Any theme</option>
+                  {libraryThemes.map((theme) => (
+                    <option key={theme} value={theme}>{theme}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="formField">
+                <span>Min rating</span>
+                <input
+                  value={libraryMinRating}
+                  onChange={(event) => setLibraryMinRating(event.target.value)}
+                  inputMode="numeric"
+                  placeholder="800"
+                />
+              </label>
+              <label className="formField">
+                <span>Max rating</span>
+                <input
+                  value={libraryMaxRating}
+                  onChange={(event) => setLibraryMaxRating(event.target.value)}
+                  inputMode="numeric"
+                  placeholder="2400"
+                />
+              </label>
+              <button
+                type="button"
+                className="selectAllButton clearFiltersButton"
+                onClick={() => {
+                  setLibrarySearch("");
+                  setLibrarySource("all");
+                  setLibrarySide("all");
+                  setLibraryTheme("all");
+                  setLibraryMinRating("");
+                  setLibraryMaxRating("");
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
+            <div className="libraryPagination">
+              <span>
+                Page {currentLibraryPage} / {libraryPageCount}
+              </span>
+              <div className="buttonRow">
+                <button
+                  type="button"
+                  onClick={() => setLibraryPage((page) => Math.max(1, page - 1))}
+                  disabled={currentLibraryPage <= 1}
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLibraryPage((page) => Math.min(libraryPageCount, page + 1))}
+                  disabled={currentLibraryPage >= libraryPageCount}
+                >
+                  Next
+                </button>
+              </div>
             </div>
             <div className="libraryGrid">
-              {allPuzzles.map((item) => (
+              {pagedLibraryPuzzles.map((item) => (
                 <article key={item.id} className="libraryPuzzleCard">
                   <PuzzlePreviewBoard fen={item.fen} orientation={item.sideToMove === "w" ? "white" : "black"} />
                   <div className="libraryPuzzleInfo">
@@ -514,12 +694,17 @@ export default function App() {
                       <span>{formatSide(item.sideToMove)} to move</span>
                     </div>
                     <div className="assignmentMeta">
+                      <span>{getPuzzleSource(item.id)}</span>
                       <span>Difficulty {item.difficulty}</span>
                       {item.themes.map((theme) => <span key={theme}>{theme}</span>)}
                     </div>
                     <div className="buttonRow">
-                      <button type="button" onClick={() => { setCoachPuzzleId(item.id); setPage("coach"); }}>
-                        Select for coach
+                      <button
+                        type="button"
+                        onClick={() => addPuzzleToCoachCollection(item.id)}
+                        disabled={coachCollectionPuzzleIds.includes(item.id)}
+                      >
+                        {coachCollectionPuzzleIds.includes(item.id) ? "In collection" : "Add to collection"}
                       </button>
                       <button type="button" className="primaryButton" onClick={() => openStudentPuzzle(activeStudent.id, item.id)}>
                         Open puzzle
@@ -528,6 +713,9 @@ export default function App() {
                   </div>
                 </article>
               ))}
+              {filteredLibraryPuzzles.length === 0 ? (
+                <p className="muted">No puzzles match these filters.</p>
+              ) : null}
             </div>
           </section>
 
@@ -584,19 +772,66 @@ export default function App() {
   }
 
   if (page === "coach") {
-    const coachPuzzle = allPuzzles.find((item) => item.id === coachPuzzleId) ?? allPuzzles[0];
-
     return (
       <main className="appShell">
         <header className="appHeader">
           <div>
             <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
             <h1>Coach workspace</h1>
-            <p className="headerPrompt">Assign puzzles to students.</p>
+            <p className="headerPrompt">Build a collection, then assign puzzles to students.</p>
           </div>
           <nav className="modeNav" aria-label="Workspace">
-            <button type="button" className="selectedAttempt">Coach</button>
+            <button type="button" className="selectedAttempt">Coach workspace</button>
             <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
+            <button type="button" onClick={() => setPage("collection")}>My puzzle collection</button>
+            <button type="button" onClick={logOut}>Log out</button>
+          </nav>
+        </header>
+
+        <div className="coachLayout">
+          <section className="panel">
+            <div className="sectionHeader">
+              <h2>Puzzle library</h2>
+              <span>{allPuzzles.length} puzzles</span>
+            </div>
+            <p className="studentSummary">Browse public puzzles and add useful ones to your collection.</p>
+            <button type="button" className="primaryButton assignButton" onClick={() => setPage("puzzles")}>
+              Open puzzle library
+            </button>
+          </section>
+
+          <section className="panel">
+            <div className="sectionHeader">
+              <h2>My puzzle collection</h2>
+              <span>{coachCollectionPuzzles.length} puzzles</span>
+            </div>
+            <p className="studentSummary">Select from your saved puzzles and assign them to students.</p>
+            <button type="button" className="primaryButton assignButton" onClick={() => setPage("collection")}>
+              Open my puzzle collection
+            </button>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  if (page === "collection") {
+    const coachPuzzle = coachCollectionPuzzles.find((item) => item.id === coachPuzzleId)
+      ?? coachCollectionPuzzles[0]
+      ?? allPuzzles[0];
+
+    return (
+      <main className="appShell">
+        <header className="appHeader">
+          <div>
+            <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
+            <h1>My puzzle collection</h1>
+            <p className="headerPrompt">Choose from your saved puzzles and assign them to students.</p>
+          </div>
+          <nav className="modeNav" aria-label="Workspace">
+            <button type="button" onClick={() => setPage("coach")}>Coach workspace</button>
+            <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
+            <button type="button" className="selectedAttempt">My puzzle collection</button>
             <button type="button" onClick={logOut}>Log out</button>
           </nav>
         </header>
@@ -604,33 +839,51 @@ export default function App() {
         <div className="coachLayout">
           <section className="panel assignmentComposer">
             <div className="sectionHeader">
-              <h2>Choose puzzle</h2>
-              <span>{formatSide(coachPuzzle.sideToMove)} to move</span>
+              <h2>My puzzle collection</h2>
+              <span>{coachCollectionPuzzles.length} puzzles</span>
             </div>
-            <div className="puzzlePickerWithPreview">
-              <PuzzlePreviewBoard
-                fen={coachPuzzle.fen}
-                orientation={coachPuzzle.sideToMove === "w" ? "white" : "black"}
-              />
-              <div className="puzzlePickerDetails">
-                <label className="compactField">
-                  <span>Puzzle</span>
-                  <select value={coachPuzzleId} onChange={(event) => setCoachPuzzleId(event.target.value)}>
-                    {allPuzzles.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.title}
-                      </option>
+            {coachCollectionPuzzles.length ? (
+              <div className="puzzlePickerWithPreview">
+                <PuzzlePreviewBoard
+                  fen={coachPuzzle.fen}
+                  orientation={coachPuzzle.sideToMove === "w" ? "white" : "black"}
+                />
+                <div className="puzzlePickerDetails">
+                  <label className="compactField">
+                    <span>Puzzle</span>
+                    <select value={coachPuzzle.id} onChange={(event) => setCoachPuzzleId(event.target.value)}>
+                      {coachCollectionPuzzles.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="assignmentMeta">
+                    <span>{formatSide(coachPuzzle.sideToMove)} to move</span>
+                    <span>Difficulty {coachPuzzle.difficulty}</span>
+                    {coachPuzzle.themes.map((theme) => (
+                      <span key={theme}>{theme}</span>
                     ))}
-                  </select>
-                </label>
-                <div className="assignmentMeta">
-                  <span>Difficulty {coachPuzzle.difficulty}</span>
-                  {coachPuzzle.themes.map((theme) => (
-                    <span key={theme}>{theme}</span>
-                  ))}
+                  </div>
+                  <div className="buttonRow">
+                    <button type="button" className="primaryButton" onClick={() => changePuzzle(coachPuzzle.id)}>
+                      Open puzzle
+                    </button>
+                    <button type="button" className="textButton" onClick={() => removePuzzleFromCoachCollection(coachPuzzle.id)}>
+                      Remove from collection
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="emptyCollection">
+                <p className="muted">No puzzles in your collection yet.</p>
+                <button type="button" className="primaryButton" onClick={() => setPage("puzzles")}>
+                  Browse public library
+                </button>
+              </div>
+            )}
           </section>
 
           <section className="panel">
@@ -655,7 +908,12 @@ export default function App() {
                 </label>
               ))}
             </div>
-            <button type="button" className="primaryButton assignButton" onClick={assignCoachPuzzle} disabled={coachSelectedStudentIds.length === 0}>
+            <button
+              type="button"
+              className="primaryButton assignButton"
+              onClick={assignCoachPuzzle}
+              disabled={coachSelectedStudentIds.length === 0 || coachCollectionPuzzles.length === 0}
+            >
               <Send aria-hidden="true" size={16} strokeWidth={2.4} />
               Assign puzzle
             </button>
@@ -841,6 +1099,9 @@ export default function App() {
             {activeRole === "coach" ? "Coach workspace" : "My puzzles"}
           </button>
           <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
+          {activeRole === "coach" ? (
+            <button type="button" onClick={() => setPage("collection")}>My puzzle collection</button>
+          ) : null}
           <button type="button" onClick={logOut}>Log out</button>
         </nav>
       </header>
@@ -922,6 +1183,24 @@ export default function App() {
         </section>
 
         <aside className="rightColumn">
+          {activeRole === "coach" ? (
+            <section className="panel">
+              <div className="sectionHeader">
+                <h2>My puzzle collection</h2>
+                <span>{puzzleInCoachCollection ? "Saved" : "Not saved"}</span>
+              </div>
+              <button
+                type="button"
+                className="primaryButton assignButton"
+                onClick={() => addPuzzleToCoachCollection(puzzle.id)}
+                disabled={puzzleInCoachCollection}
+              >
+                <Plus aria-hidden="true" size={16} strokeWidth={2.4} />
+                {puzzleInCoachCollection ? "In collection" : "Add to collection"}
+              </button>
+            </section>
+          ) : null}
+
           <section className="panel metadataGrid">
             <div>
               <span>Difficulty</span>

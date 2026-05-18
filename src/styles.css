@@ -238,6 +238,12 @@ h2 {
   min-width: 0;
 }
 
+.emptyCollection {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
 .assignmentComposer select,
 .studentPageLayout select {
   width: 100%;
@@ -377,6 +383,38 @@ h2 {
   display: grid;
   gap: 12px;
   margin-top: 14px;
+}
+
+.libraryFilters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) repeat(5, minmax(120px, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(244, 241, 234, 0.35);
+}
+
+.searchField {
+  min-width: 0;
+}
+
+.clearFiltersButton {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.libraryPagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
 }
 
 .libraryPuzzleCard {
@@ -845,6 +883,10 @@ h2 {
   .metadataGrid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .libraryFilters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 980px) {
@@ -869,6 +911,10 @@ h2 {
   .studentPuzzleGrid,
   .loginPanel {
     grid-template-columns: 1fr;
+  }
+
+  .libraryFilters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .modeNav {
@@ -919,6 +965,10 @@ h2 {
     gap: 10px;
   }
 
+  .clearFiltersButton {
+    width: fit-content;
+  }
+
   .studentCheck,
   .studentAssignmentCard,
   .studentPuzzleCard,
@@ -935,7 +985,8 @@ h2 {
   .attemptTopline,
   .attemptMeta,
   .replayStatus,
-  .replayPageHeader {
+  .replayPageHeader,
+  .libraryPagination {
     align-items: flex-start;
     flex-wrap: wrap;
   }
@@ -1012,6 +1063,10 @@ h2 {
   }
 
   .libraryPuzzleCard {
+    grid-template-columns: 1fr;
+  }
+
+  .libraryFilters {
     grid-template-columns: 1fr;
   }
 
