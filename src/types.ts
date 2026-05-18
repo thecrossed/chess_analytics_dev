@@ -45,3 +45,16 @@ export type StoredPuzzleState = {
   attempts: Attempt[];
   solved: boolean;
 };
+
+export type Student = {
+  id: string;
+  name: string;
+  level: string;
+};
+
+export type PuzzleAssignment = {
+  id: string;
+  studentId: string;
+  puzzleId: string;
+  assignedAt: number;
+};

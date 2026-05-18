@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
-import { Lightbulb, RotateCcw, SkipForward, Trash2 } from "lucide-react";
+import { Lightbulb, RotateCcw, Send, SkipForward, Trash2, X } from "lucide-react";
 import { puzzles } from "./data/puzzles";
+import { students } from "./data/students";
 import { AttemptHistory } from "./components/AttemptHistory";
+import { PuzzlePreviewBoard } from "./components/PuzzlePreviewBoard";
 import { ReplayPanel } from "./components/ReplayPanel";
 import { SolveBoard } from "./components/SolveBoard";
-import type { MoveRecord, StoredPuzzleState } from "./types";
+import type { MoveRecord, PuzzleAssignment, StoredPuzzleState } from "./types";
 import { MAX_ATTEMPTS, canSubmitAttempt, makeAttempt } from "./utils/attempts";
 import { loadAppState, saveAppState } from "./utils/storage";
 
@@ -24,6 +26,26 @@ function formatMoveList(moves: MoveRecord[]) {
     .join(" ");
 }
 
+function makePuzzleStateKey(studentId: string, puzzleId: string) {
+  return `${studentId}:${puzzleId}`;
+}
+
+function describePuzzleProgress(state: StoredPuzzleState | undefined, solutionUci: string[]) {
+  if (!state || state.attempts.length === 0) return "Not started";
+  if (state.solved) {
+    const correctAttempt = state.attempts.find((attempt) => attempt.correct);
+    return correctAttempt ? `Solved in attempt ${correctAttempt.attemptNumber}` : "Solved";
+  }
+
+  const latestAttempt = state.attempts[state.attempts.length - 1];
+  const mismatchIndex = latestAttempt.moves.findIndex((move, index) => move.uci !== solutionUci[index]);
+  if (mismatchIndex >= 0) {
+    return `Latest wrong on move ${mismatchIndex + 1}`;
+  }
+
+  return `${state.attempts.length}/${MAX_ATTEMPTS} attempts used`;
+}
+
 function getInitialState() {
   const saved = loadAppState();
   const activePuzzleId = saved?.activePuzzleId && puzzles.some((puzzle) => puzzle.id === saved.activePuzzleId)
@@ -32,6 +54,17 @@ function getInitialState() {
 
   return {
     activePuzzleId,
+    activeStudentId: saved?.activeStudentId && students.some((student) => student.id === saved.activeStudentId)
+      ? saved.activeStudentId
+      : students[0].id,
+    assignments: saved?.assignments ?? [
+      {
+        id: "seed-student-maya-puzzle-001",
+        studentId: students[0].id,
+        puzzleId: puzzles[0].id,
+        assignedAt: Date.now()
+      }
+    ],
     puzzleStates: saved?.puzzleStates ?? {}
   };
 }
@@ -39,35 +72,41 @@ function getInitialState() {
 export default function App() {
   const initialState = useMemo(getInitialState, []);
   const [activePuzzleId, setActivePuzzleId] = useState(initialState.activePuzzleId);
+  const [activeStudentId, setActiveStudentId] = useState(initialState.activeStudentId);
+  const [assignments, setAssignments] = useState<PuzzleAssignment[]>(initialState.assignments);
+  const [coachPuzzleId, setCoachPuzzleId] = useState(initialState.activePuzzleId);
+  const [coachSelectedStudentIds, setCoachSelectedStudentIds] = useState<string[]>([initialState.activeStudentId]);
   const [puzzleStates, setPuzzleStates] = useState<Record<string, StoredPuzzleState>>(initialState.puzzleStates);
   const [chess, setChess] = useState(() => new Chess(puzzles[0].fen));
   const [currentMoves, setCurrentMoves] = useState<MoveRecord[]>([]);
   const [attemptStartedAt, setAttemptStartedAt] = useState(Date.now());
   const [lastMessage, setLastMessage] = useState("");
   const [replayAttemptId, setReplayAttemptId] = useState<string | undefined>();
-  const [page, setPage] = useState<"solve" | "replay">("solve");
+  const [page, setPage] = useState<"coach" | "student" | "solve" | "replay">("student");
   const [feedback, setFeedback] = useState<"neutral" | "pending" | "correct" | "incorrect">("neutral");
   const [feedbackSquare, setFeedbackSquare] = useState<string | undefined>();
   const [hintSquare, setHintSquare] = useState<string | undefined>();
   const [awaitingNextAttempt, setAwaitingNextAttempt] = useState(false);
 
   const puzzle = puzzles.find((item) => item.id === activePuzzleId) ?? puzzles[0];
-  const puzzleState = puzzleStates[puzzle.id] ?? emptyPuzzleState;
+  const activeStudent = students.find((student) => student.id === activeStudentId) ?? students[0];
+  const activePuzzleStateKey = makePuzzleStateKey(activeStudent.id, puzzle.id);
+  const puzzleState = puzzleStates[activePuzzleStateKey] ?? emptyPuzzleState;
   const attemptsUsed = puzzleState.attempts.length;
   const locked = !canSubmitAttempt(puzzleState) || puzzleState.solved || awaitingNextAttempt;
 
   useEffect(() => {
-    saveAppState({ activePuzzleId, puzzleStates });
-  }, [activePuzzleId, puzzleStates]);
+    saveAppState({ activePuzzleId, activeStudentId, assignments, puzzleStates });
+  }, [activePuzzleId, activeStudentId, assignments, puzzleStates]);
 
   useEffect(() => {
     resetCurrentAttempt(puzzle.fen);
-    setReplayAttemptId((puzzleStates[puzzle.id] ?? emptyPuzzleState).attempts[0]?.id);
+    setReplayAttemptId((puzzleStates[activePuzzleStateKey] ?? emptyPuzzleState).attempts[0]?.id);
     setFeedback("neutral");
+    setFeedbackSquare(undefined);
     setHintSquare(undefined);
     setAwaitingNextAttempt(false);
-    setPage("solve");
-  }, [puzzle.id]);
+  }, [puzzle.id, activeStudent.id]);
 
   function resetCurrentAttempt(fen = puzzle.fen) {
     setChess(new Chess(fen));
@@ -91,7 +130,7 @@ export default function App() {
   function updatePuzzleState(updater: (state: StoredPuzzleState) => StoredPuzzleState) {
     setPuzzleStates((current) => ({
       ...current,
-      [puzzle.id]: updater(current[puzzle.id] ?? emptyPuzzleState)
+      [activePuzzleStateKey]: updater(current[activePuzzleStateKey] ?? emptyPuzzleState)
     }));
   }
 
@@ -212,9 +251,59 @@ export default function App() {
   }
 
   function goToNextPuzzle() {
-    const currentIndex = puzzles.findIndex((item) => item.id === puzzle.id);
-    const nextPuzzle = puzzles[(currentIndex + 1) % puzzles.length];
+    const assignedPuzzleIds = assignments
+      .filter((assignment) => assignment.studentId === activeStudent.id)
+      .map((assignment) => assignment.puzzleId);
+    const availablePuzzles = assignedPuzzleIds.length
+      ? puzzles.filter((item) => assignedPuzzleIds.includes(item.id))
+      : puzzles;
+    const currentIndex = availablePuzzles.findIndex((item) => item.id === puzzle.id);
+    const nextPuzzle = availablePuzzles[(currentIndex + 1) % availablePuzzles.length];
     changePuzzle(nextPuzzle.id);
+  }
+
+  function assignCoachPuzzle() {
+    const assignedAt = Date.now();
+    const nextAssignments = coachSelectedStudentIds
+      .filter((studentId) => !assignments.some((assignment) => assignment.studentId === studentId && assignment.puzzleId === coachPuzzleId))
+      .map((studentId) => ({
+        id: `${studentId}-${coachPuzzleId}-${assignedAt}`,
+        studentId,
+        puzzleId: coachPuzzleId,
+        assignedAt
+      }));
+
+    if (nextAssignments.length === 0) return;
+    setAssignments((current) => [...current, ...nextAssignments]);
+  }
+
+  function removeAssignment(assignmentId: string) {
+    setAssignments((current) => current.filter((assignment) => assignment.id !== assignmentId));
+  }
+
+  function toggleCoachStudent(studentId: string) {
+    setCoachSelectedStudentIds((current) =>
+      current.includes(studentId)
+        ? current.filter((id) => id !== studentId)
+        : [...current, studentId]
+    );
+  }
+
+  function toggleAllCoachStudents() {
+    setCoachSelectedStudentIds((current) =>
+      current.length === students.length ? [] : students.map((student) => student.id)
+    );
+  }
+
+  function openStudentPuzzle(studentId: string, puzzleId: string) {
+    setActiveStudentId(studentId);
+    changePuzzle(puzzleId);
+    setPage("solve");
+  }
+
+  function openStudentPage(studentId: string) {
+    setActiveStudentId(studentId);
+    setPage("student");
   }
 
   function showHint() {
@@ -232,6 +321,215 @@ export default function App() {
   const currentMoveText = currentMoves.length
     ? formatMoveList(currentMoves)
     : "No moves in the current attempt.";
+
+  if (page === "coach") {
+    const coachPuzzle = puzzles.find((item) => item.id === coachPuzzleId) ?? puzzles[0];
+
+    return (
+      <main className="appShell">
+        <header className="appHeader">
+          <div>
+            <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
+            <h1>Coach workspace</h1>
+            <p className="headerPrompt">Assign puzzles to students.</p>
+          </div>
+          <nav className="modeNav" aria-label="Workspace">
+            <button type="button" className="selectedAttempt">Coach</button>
+            <button type="button" onClick={() => setPage("student")}>Student page</button>
+          </nav>
+        </header>
+
+        <div className="coachLayout">
+          <section className="panel assignmentComposer">
+            <div className="sectionHeader">
+              <h2>Choose puzzle</h2>
+              <span>{formatSide(coachPuzzle.sideToMove)} to move</span>
+            </div>
+            <div className="puzzlePickerWithPreview">
+              <PuzzlePreviewBoard
+                fen={coachPuzzle.fen}
+                orientation={coachPuzzle.sideToMove === "w" ? "white" : "black"}
+              />
+              <div className="puzzlePickerDetails">
+                <label className="compactField">
+                  <span>Puzzle</span>
+                  <select value={coachPuzzleId} onChange={(event) => setCoachPuzzleId(event.target.value)}>
+                    {puzzles.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="assignmentMeta">
+                  <span>Difficulty {coachPuzzle.difficulty}</span>
+                  {coachPuzzle.themes.map((theme) => (
+                    <span key={theme}>{theme}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="sectionHeader">
+              <h2>Students</h2>
+              <span>{coachSelectedStudentIds.length} selected</span>
+            </div>
+            <button type="button" className="selectAllButton" onClick={toggleAllCoachStudents}>
+              {coachSelectedStudentIds.length === students.length ? "Clear selection" : "Select all"}
+            </button>
+            <div className="studentChecklist">
+              {students.map((student) => (
+                <label key={student.id} className="studentCheck">
+                  <input
+                    type="checkbox"
+                    checked={coachSelectedStudentIds.includes(student.id)}
+                    onChange={() => toggleCoachStudent(student.id)}
+                  />
+                  <span>
+                    <strong>{student.name}</strong>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <button type="button" className="primaryButton assignButton" onClick={assignCoachPuzzle} disabled={coachSelectedStudentIds.length === 0}>
+              <Send aria-hidden="true" size={16} strokeWidth={2.4} />
+              Assign puzzle
+            </button>
+          </section>
+
+          <section className="panel assignmentBoard">
+            <div className="sectionHeader">
+              <h2>Assigned puzzles</h2>
+              <span>{assignments.length} total</span>
+            </div>
+            <div className="studentAssignmentGrid">
+              {students.map((student) => {
+                const studentAssignments = assignments.filter((assignment) => assignment.studentId === student.id);
+                return (
+                  <article key={student.id} className="studentAssignmentCard">
+                    <div className="attemptTopline">
+                      <strong>{student.name}</strong>
+                      <button type="button" className="textButton" onClick={() => openStudentPage(student.id)}>
+                        View student
+                      </button>
+                    </div>
+                    <p className="studentSummary">{studentAssignments.length} assigned puzzles</p>
+                    {studentAssignments.length ? (
+                      studentAssignments.map((assignment) => {
+                        const assignedPuzzle = puzzles.find((item) => item.id === assignment.puzzleId);
+                        const state = puzzleStates[makePuzzleStateKey(student.id, assignment.puzzleId)] ?? emptyPuzzleState;
+                        if (!assignedPuzzle) return null;
+                        return (
+                          <button
+                            type="button"
+                            key={assignment.id}
+                            className="assignmentRow"
+                            onClick={() => openStudentPuzzle(student.id, assignedPuzzle.id)}
+                          >
+                            <span>{assignedPuzzle.title}</span>
+                            <strong>{describePuzzleProgress(state, assignedPuzzle.solutionUci)}</strong>
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              className="assignmentRemove"
+                              aria-label={`Remove ${assignedPuzzle.title} from ${student.name}`}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                removeAssignment(assignment.id);
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  removeAssignment(assignment.id);
+                                }
+                              }}
+                            >
+                              <X aria-hidden="true" size={15} strokeWidth={2.4} />
+                            </span>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <p className="muted">No assignments yet.</p>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  if (page === "student") {
+    const studentAssignments = assignments.filter((assignment) => assignment.studentId === activeStudent.id);
+
+    return (
+      <main className="appShell">
+        <header className="appHeader">
+          <div>
+            <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
+            <h1>{activeStudent.name}</h1>
+            <p className="headerPrompt">Student puzzle page.</p>
+          </div>
+          <nav className="modeNav" aria-label="Workspace">
+            <button type="button" onClick={() => setPage("coach")}>Coach</button>
+            <button type="button" className="selectedAttempt">Student page</button>
+          </nav>
+        </header>
+
+        <div className="studentPageLayout">
+          <section className="panel">
+            <div className="sectionHeader">
+              <h2>Student</h2>
+            </div>
+            <select value={activeStudent.id} onChange={(event) => setActiveStudentId(event.target.value)}>
+              {students.map((student) => (
+                <option key={student.id} value={student.id}>
+                  {student.name}
+                </option>
+              ))}
+            </select>
+          </section>
+
+          <section className="panel assignmentBoard">
+            <div className="sectionHeader">
+              <h2>Assigned puzzles</h2>
+              <span>{studentAssignments.length} puzzles</span>
+            </div>
+            <div className="studentPuzzleGrid">
+              {studentAssignments.length ? (
+                studentAssignments.map((assignment) => {
+                  const assignedPuzzle = puzzles.find((item) => item.id === assignment.puzzleId);
+                  const state = puzzleStates[makePuzzleStateKey(activeStudent.id, assignment.puzzleId)] ?? emptyPuzzleState;
+                  if (!assignedPuzzle) return null;
+                  return (
+                    <article key={assignment.id} className="studentPuzzleCard">
+                      <div className="attemptTopline">
+                        <strong>{formatSide(assignedPuzzle.sideToMove)} to move</strong>
+                        <span className={state.solved ? "badge success" : "badge"}>{state.solved ? "Solved" : `${state.attempts.length}/${MAX_ATTEMPTS}`}</span>
+                      </div>
+                      <p>{assignedPuzzle.themes.join(", ")}</p>
+                      <p className="studentSummary">{describePuzzleProgress(state, assignedPuzzle.solutionUci)}</p>
+                      <button type="button" className="primaryButton" onClick={() => openStudentPuzzle(activeStudent.id, assignedPuzzle.id)}>
+                        View puzzle
+                      </button>
+                    </article>
+                  );
+                })
+              ) : (
+                <p className="muted">No puzzles assigned yet. Use the Coach workspace to assign one.</p>
+              )}
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
 
   if (page === "replay") {
     return (
@@ -252,18 +550,12 @@ export default function App() {
         <div>
           <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
           <h1>{formatSide(puzzle.sideToMove)} to move</h1>
-          <p className="headerPrompt">Find the best move.</p>
+          <p className="headerPrompt">{activeStudent.name}: find the best move.</p>
         </div>
-        <label className="puzzleSelect">
-          Puzzle
-          <select value={puzzle.id} onChange={(event) => changePuzzle(event.target.value)}>
-            {puzzles.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.title}
-              </option>
-            ))}
-          </select>
-        </label>
+        <nav className="modeNav" aria-label="Workspace">
+          <button type="button" onClick={() => setPage("coach")}>Coach</button>
+          <button type="button" onClick={() => setPage("student")}>Student page</button>
+        </nav>
       </header>
 
       <div className="layout">
@@ -358,7 +650,7 @@ export default function App() {
             </div>
           </section>
 
-          <AttemptHistory attempts={puzzleState.attempts} onReplay={openReplay} />
+          <AttemptHistory attempts={puzzleState.attempts} solutionUci={puzzle.solutionUci} onReplay={openReplay} />
         </aside>
       </div>
     </main>

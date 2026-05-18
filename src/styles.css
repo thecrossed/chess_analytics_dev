@@ -1,6 +1,27 @@
 :root {
-  color: #17201a;
-  background: #eef1ea;
+  --ink: #263238;
+  --muted: #6f7b7d;
+  --surface: #fbfaf6;
+  --surface-soft: #f4f1ea;
+  --page: #edf1f2;
+  --line: #d8ddd9;
+  --line-strong: #c6cecb;
+  --accent: #78909c;
+  --accent-dark: #455a64;
+  --wood: #d8c6a3;
+  --wood-soft: #efe5d3;
+  --success: #5f8f7a;
+  --success-soft: #e1eee8;
+  --danger: #b36b5e;
+  --danger-soft: #f1ded9;
+  --warning: #c7a45c;
+  --warning-soft: #f5ecd6;
+  --tooltip: #2f3f45;
+  --warning-text: #7d6125;
+  --success-text: #3d6f5a;
+  --danger-text: #8c4a40;
+  color: var(--ink);
+  background: var(--page);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -21,12 +42,18 @@ select {
 }
 
 button {
-  border: 1px solid #b9c0b4;
-  background: #ffffff;
-  color: #17201a;
+  border: 1px solid var(--line-strong);
+  background: rgba(251, 250, 246, 0.9);
+  color: var(--ink);
   border-radius: 6px;
   padding: 0.65rem 0.85rem;
   cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+button:hover:not(:disabled) {
+  background: var(--surface-soft);
+  border-color: var(--accent);
 }
 
 button:disabled {
@@ -37,7 +64,7 @@ button:disabled {
 .appShell {
   max-width: 1360px;
   margin: 0 auto;
-  padding: 28px;
+  padding: clamp(14px, 2.2vw, 28px);
 }
 
 .appHeader {
@@ -50,7 +77,7 @@ button:disabled {
 
 .eyebrow {
   margin: 0 0 6px;
-  color: #5f6d60;
+  color: var(--muted);
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0;
@@ -70,7 +97,7 @@ h1 {
 
 .headerPrompt {
   margin: 10px 0 0;
-  color: #4c594e;
+  color: var(--accent-dark);
   font-size: 1.08rem;
   font-weight: 800;
 }
@@ -83,20 +110,234 @@ h2 {
   display: grid;
   gap: 6px;
   min-width: 240px;
-  color: #4c594e;
+  color: var(--accent-dark);
   font-weight: 700;
 }
 
 .puzzleSelect select {
-  border: 1px solid #aeb7aa;
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
   padding: 0.65rem 0.8rem;
-  background: #fff;
+  background: var(--surface);
+}
+
+.modeNav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.coachLayout,
+.studentPageLayout {
+  display: grid;
+  gap: 16px;
+}
+
+.coachLayout {
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+}
+
+.assignmentBoard {
+  grid-column: 1 / -1;
+}
+
+.assignmentComposer,
+.studentPageLayout .panel:first-child {
+  display: grid;
+  gap: 12px;
+}
+
+.puzzlePickerWithPreview {
+  display: grid;
+  grid-template-columns: minmax(104px, 132px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.previewBoard {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--surface-soft);
+}
+
+.puzzlePickerDetails {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.assignmentComposer select,
+.studentPageLayout select {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 0.65rem 0.8rem;
+  background: var(--surface);
+}
+
+.compactField {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.compactField > span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.assignmentMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  min-height: 20px;
+}
+
+.assignmentMeta span {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(244, 241, 234, 0.48);
+  color: var(--muted);
+  padding: 0.08rem 0.34rem;
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.1;
+}
+
+.studentChecklist,
+.studentAssignmentGrid,
+.studentPuzzleGrid {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.studentChecklist {
+  margin-bottom: 14px;
+}
+
+.studentCheck {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.studentCheck span {
+  display: grid;
+  gap: 2px;
+}
+
+.studentCheck small,
+.studentPuzzleCard p,
+.studentSummary {
+  color: var(--muted);
+}
+
+.studentSummary {
+  margin: 8px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.assignButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+}
+
+.textButton {
+  border: 0;
+  background: transparent;
+  color: var(--accent-dark);
+  padding: 0;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.textButton:hover:not(:disabled),
+.textButton:focus-visible:not(:disabled) {
+  background: transparent;
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.selectAllButton {
+  margin-top: 12px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.studentAssignmentGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.studentAssignmentCard,
+.studentPuzzleCard {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.studentPuzzleGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.studentPuzzleCard {
+  display: grid;
+  gap: 12px;
+}
+
+.studentPuzzleCard p {
+  margin: 0;
+}
+
+.assignmentRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 10px;
+  text-align: left;
+}
+
+.assignmentRow span:first-child {
+  flex: 1;
+}
+
+.assignmentRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  color: var(--muted);
+}
+
+.assignmentRemove:hover,
+.assignmentRemove:focus-visible {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  outline: none;
 }
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(320px, 620px) minmax(320px, 1fr);
+  grid-template-columns: minmax(320px, 620px) minmax(300px, 1fr);
   gap: 22px;
   align-items: start;
 }
@@ -108,11 +349,11 @@ h2 {
 }
 
 .panel {
-  background: #ffffff;
-  border: 1px solid #d6dbd1;
+  background: rgba(251, 250, 246, 0.92);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 16px;
-  box-shadow: 0 10px 30px rgba(43, 55, 43, 0.06);
+  box-shadow: 0 8px 24px rgba(69, 90, 100, 0.07);
 }
 
 .introPanel,
@@ -129,7 +370,7 @@ h2 {
 .introPanel p,
 .muted,
 .status {
-  color: #586559;
+  color: var(--muted);
   line-height: 1.5;
 }
 
@@ -143,7 +384,7 @@ h2 {
 .badge,
 .metadataGrid span,
 .sectionHeader span {
-  color: #5d6b5f;
+  color: var(--muted);
   font-size: 0.86rem;
   font-weight: 700;
 }
@@ -161,18 +402,18 @@ h2 {
 }
 
 .boardShell-pending {
-  border-color: #f0c75f;
-  box-shadow: 0 0 0 4px rgba(240, 199, 95, 0.18);
+  border-color: var(--warning);
+  box-shadow: 0 0 0 4px rgba(199, 164, 92, 0.14);
 }
 
 .boardShell-correct {
-  border-color: #1f8a55;
-  box-shadow: 0 0 0 4px rgba(31, 138, 85, 0.18);
+  border-color: var(--success);
+  box-shadow: 0 0 0 4px rgba(95, 143, 122, 0.16);
 }
 
 .boardShell-incorrect {
-  border-color: #b44432;
-  box-shadow: 0 0 0 4px rgba(180, 68, 50, 0.16);
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px rgba(179, 107, 94, 0.14);
 }
 
 .squareWithMarker {
@@ -186,10 +427,10 @@ h2 {
   position: absolute;
   inset: 7%;
   z-index: 4;
-  border: 4px solid #f0c75f;
+  border: 4px solid var(--wood);
   border-radius: 8px;
-  background: rgba(240, 199, 95, 0.22);
-  box-shadow: inset 0 0 0 2px rgba(23, 32, 26, 0.16);
+  background: rgba(216, 198, 163, 0.24);
+  box-shadow: inset 0 0 0 2px rgba(69, 90, 100, 0.12);
   pointer-events: none;
 }
 
@@ -207,15 +448,15 @@ h2 {
   font-size: clamp(0.9rem, 2.4vw, 1.45rem);
   font-weight: 900;
   line-height: 1;
-  box-shadow: 0 3px 10px rgba(23, 32, 26, 0.24);
+  box-shadow: 0 3px 10px rgba(69, 90, 100, 0.22);
 }
 
 .moveResultMarker-correct {
-  background: #1f8a55;
+  background: var(--success);
 }
 
 .moveResultMarker-incorrect {
-  background: #b44432;
+  background: var(--danger);
 }
 
 .replayBoard {
@@ -249,7 +490,7 @@ h2 {
   width: max-content;
   max-width: 180px;
   border-radius: 6px;
-  background: #17201a;
+  background: var(--tooltip);
   color: #fff;
   padding: 0.35rem 0.5rem;
   font-size: 0.78rem;
@@ -266,53 +507,53 @@ h2 {
 }
 
 .dangerIconButton {
-  color: #8f2e22;
+  color: var(--danger);
 }
 
 .dangerIconButton:hover:not(:disabled),
 .dangerIconButton:focus-visible:not(:disabled) {
-  border-color: #b44432;
-  background: #f8e1dd;
+  border-color: var(--danger);
+  background: var(--danger-soft);
 }
 
 .primaryButton {
-  border-color: #24553b;
-  background: #24553b;
+  border-color: var(--accent-dark);
+  background: var(--accent-dark);
   color: #fff;
   font-weight: 800;
 }
 
 .successText {
-  color: #14633d;
+  color: var(--success);
   font-weight: 800;
 }
 
 .statusBanner {
   border-radius: 6px;
   padding: 0.75rem 0.85rem;
-  background: #f5f7f1;
+  background: var(--surface-soft);
 }
 
 .status-pending {
-  background: #fff6d9;
-  color: #785a12;
+  background: var(--warning-soft);
+  color: var(--warning-text);
   font-weight: 800;
 }
 
 .status-correct {
-  background: #dff3e8;
-  color: #14633d;
+  background: var(--success-soft);
+  color: var(--success-text);
   font-weight: 800;
 }
 
 .status-incorrect {
-  background: #f8e1dd;
-  color: #8f2e22;
+  background: var(--danger-soft);
+  color: var(--danger-text);
   font-weight: 800;
 }
 
 .moveLine {
-  color: #263128;
+  color: var(--ink);
   line-height: 1.6;
   word-break: break-word;
 }
@@ -339,10 +580,10 @@ h2 {
 }
 
 .attemptCard {
-  border: 1px solid #dce1d8;
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px;
-  background: #fbfcf9;
+  background: var(--surface);
 }
 
 .badge {
@@ -351,13 +592,13 @@ h2 {
 }
 
 .badge.success {
-  background: #dff3e8;
-  color: #14633d;
+  background: var(--success-soft);
+  color: var(--success-text);
 }
 
 .badge.error {
-  background: #f8e1dd;
-  color: #8f2e22;
+  background: var(--danger-soft);
+  color: var(--danger-text);
 }
 
 .attemptMeta {
@@ -404,15 +645,41 @@ h2 {
 }
 
 .selectedAttempt {
-  border-color: #24553b;
-  box-shadow: inset 0 0 0 1px #24553b;
+  border-color: var(--accent-dark);
+  background: var(--wood-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-dark);
+}
+
+@media (min-width: 1440px) {
+  .appShell {
+    max-width: 1480px;
+  }
+
+  .layout {
+    grid-template-columns: minmax(420px, 680px) minmax(360px, 1fr);
+  }
+
+  .boardShell {
+    max-width: 680px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .layout {
+    grid-template-columns: minmax(320px, 560px) minmax(280px, 1fr);
+    gap: 18px;
+  }
+
+  .studentAssignmentGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metadataGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 980px) {
-  .appShell {
-    padding: 18px;
-  }
-
   .appHeader,
   .layout {
     grid-template-columns: 1fr;
@@ -421,9 +688,160 @@ h2 {
   .appHeader {
     display: grid;
     align-items: start;
+    gap: 16px;
   }
 
   .metadataGrid {
     grid-template-columns: 1fr;
+  }
+
+  .coachLayout,
+  .studentAssignmentGrid,
+  .studentPuzzleGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .modeNav {
+    justify-content: flex-start;
+  }
+
+  .boardShell {
+    max-width: min(620px, 100%);
+  }
+
+  .rightColumn {
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  h1 {
+    font-size: clamp(2rem, 12vw, 3.1rem);
+  }
+
+  .headerPrompt {
+    font-size: 0.98rem;
+  }
+
+  .panel {
+    padding: 13px;
+  }
+
+  .coachLayout,
+  .studentPageLayout,
+  .leftColumn,
+  .rightColumn {
+    gap: 12px;
+  }
+
+  .compactField {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .puzzlePickerWithPreview {
+    grid-template-columns: minmax(92px, 120px) minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .studentCheck,
+  .studentAssignmentCard,
+  .studentPuzzleCard,
+  .attemptCard {
+    padding: 10px;
+  }
+
+  .metadataGrid {
+    gap: 8px;
+  }
+
+  .introPanel,
+  .sectionHeader,
+  .attemptTopline,
+  .attemptMeta,
+  .replayStatus,
+  .replayPageHeader {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .replayStatus strong {
+    width: 100%;
+    text-align: left;
+  }
+
+  .assignmentRow {
+    gap: 8px;
+    padding: 0.55rem;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    min-width: 0;
+  }
+
+  .appShell {
+    padding: 10px;
+  }
+
+  .appHeader {
+    margin-bottom: 14px;
+  }
+
+  .eyebrow {
+    font-size: 0.72rem;
+  }
+
+  .modeNav,
+  .buttonRow,
+  .attemptPicker {
+    gap: 8px;
+  }
+
+  .modeNav button {
+    flex: 1 1 auto;
+  }
+
+  .iconButton {
+    width: 40px;
+    height: 40px;
+  }
+
+  .primaryButton {
+    width: 100%;
+  }
+
+  .boardShell {
+    border-width: 3px;
+  }
+
+  .tooltipButton::after {
+    display: none;
+  }
+
+  .studentPuzzleGrid,
+  .studentAssignmentGrid,
+  .studentChecklist,
+  .attemptList {
+    gap: 9px;
+  }
+
+  .assignmentRow {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .puzzlePickerWithPreview {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .assignmentRow strong {
+    justify-self: start;
+  }
+
+  .assignmentRemove {
+    grid-row: 1 / span 2;
+    grid-column: 2;
   }
 }

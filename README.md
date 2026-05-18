@@ -31,6 +31,8 @@ npm test
 - Five local tactic puzzles in `src/data/puzzles.ts`
 - Legal move validation with `chess.js`
 - Drag-and-drop board UI with `react-chessboard`
+- Coach workspace for assigning local puzzles to fake students
+- Student page showing assigned puzzles per student
 - Student moves for the solving side with automatic opponent replies
 - Up to three automatically submitted attempts per puzzle
 - Exact UCI sequence matching against the puzzle solution
@@ -44,13 +46,13 @@ npm test
 - No backend
 - No AI analysis
 - No Lichess integration
-- No puzzle assignment dashboard yet
+- No real roster import or student login yet
 
 ## Future Roadmap
 
 - Coach dashboard for many students
 - Per-student attempt history
-- Assignment creation
+- Assignment due dates and bulk creation
 - Limit attempts per assignment
 - Disable hints, arrows, and annotations
 - Tune opponent reply timing and animation

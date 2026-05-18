@@ -2,10 +2,24 @@ import type { Attempt } from "../types";
 
 type AttemptHistoryProps = {
   attempts: Attempt[];
+  solutionUci: string[];
   onReplay: (attemptId: string) => void;
 };
 
-export function AttemptHistory({ attempts, onReplay }: AttemptHistoryProps) {
+function describeAttemptStep(attempt: Attempt, solutionUci: string[]) {
+  if (attempt.correct) {
+    return `Solved in ${attempt.moves.length} move${attempt.moves.length === 1 ? "" : "s"}`;
+  }
+
+  const mismatchIndex = attempt.moves.findIndex((move, index) => move.uci !== solutionUci[index]);
+  if (mismatchIndex === -1) {
+    return `Stopped after ${attempt.moves.length} move${attempt.moves.length === 1 ? "" : "s"}`;
+  }
+
+  return `Wrong on move ${mismatchIndex + 1}: ${attempt.moves[mismatchIndex].san}`;
+}
+
+export function AttemptHistory({ attempts, solutionUci, onReplay }: AttemptHistoryProps) {
   return (
     <section className="panel">
       <div className="sectionHeader">
@@ -30,7 +44,7 @@ export function AttemptHistory({ attempts, onReplay }: AttemptHistoryProps) {
                   : "Empty line"}
               </p>
               <div className="attemptMeta">
-                <span>{attempt.moves.length} moves</span>
+                <span>{describeAttemptStep(attempt, solutionUci)}</span>
                 <span>{attempt.durationSeconds}s</span>
               </div>
               <button type="button" onClick={() => onReplay(attempt.id)}>
