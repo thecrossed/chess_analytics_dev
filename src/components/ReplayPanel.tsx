@@ -67,7 +67,7 @@ export function ReplayPanel({ puzzle, attempts, selectedAttemptId: requestedAtte
       <div className="replayPageHeader">
         <div>
           <p className="eyebrow">Attempt Replay</p>
-          <h2>{puzzle.title}</h2>
+          <h2>{puzzle.id}</h2>
         </div>
         <button type="button" onClick={onBack}>
           Back to puzzle

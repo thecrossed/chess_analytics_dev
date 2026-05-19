@@ -1,12 +1,14 @@
 export type Puzzle = {
   id: string;
-  title: string;
+  title?: string;
   fen: string;
   sideToMove: "w" | "b";
   themes: string[];
   difficulty: number;
   solutionUci: string[];
   explanation: string;
+  creatorAccountId?: string;
+  creatorName?: string;
 };
 
 export type MoveRecord = {
@@ -69,6 +71,23 @@ export type UserAccount = {
   chessComUsername?: string;
   lichessUsername?: string;
   studentId?: string;
+};
+
+export type CoachStudentLink = {
+  id: string;
+  coachAccountId: string;
+  studentId: string;
+  createdAt: number;
+};
+
+export type ConnectionRequest = {
+  id: string;
+  coachAccountId: string;
+  studentId: string;
+  requestedBy: AccountRole;
+  status: "pending" | "accepted" | "declined";
+  createdAt: number;
+  respondedAt?: number;
 };
 
 export type PuzzleAssignment = {

@@ -83,6 +83,14 @@ button:disabled {
   margin-bottom: 22px;
 }
 
+.headerActionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: var(--muted);
@@ -267,6 +275,38 @@ h2 {
 
 .identityPanel {
   max-width: 520px;
+}
+
+.connectionBox,
+.connectionRequestList,
+.connectionRequestCard {
+  display: grid;
+  gap: 10px;
+}
+
+.connectionBox {
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.connectionBox h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.connectionRequestList {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(244, 241, 234, 0.45);
+  padding: 12px;
+}
+
+.connectionRequestCard {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 10px;
 }
 
 .demoStudentField {
@@ -542,8 +582,26 @@ h2 {
 }
 
 .customPuzzlePanel {
+  position: sticky;
+  top: 18px;
   display: grid;
   gap: 12px;
+  border-color: var(--accent);
+  box-shadow: 0 14px 34px rgba(69, 90, 100, 0.12);
+}
+
+.customPuzzlePanel .sectionHeader {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+
+.pgnImportBox {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(244, 241, 234, 0.45);
+  padding: 12px;
 }
 
 .formField {
@@ -1008,6 +1066,11 @@ h2 {
     gap: 16px;
   }
 
+  .headerActionButton {
+    margin-left: 0;
+    width: fit-content;
+  }
+
   .metadataGrid {
     grid-template-columns: 1fr;
   }
@@ -1022,6 +1085,10 @@ h2 {
 
   .libraryFilters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customPuzzlePanel {
+    position: static;
   }
 
   .modeNav {

@@ -1,4 +1,4 @@
-import type { CoachClass, Puzzle, PuzzleAssignment, StoredPuzzleState, Student, UserAccount } from "../types";
+import type { CoachClass, CoachStudentLink, ConnectionRequest, Puzzle, PuzzleAssignment, StoredPuzzleState, Student, UserAccount } from "../types";
 
 const STORAGE_KEY = "chesscoach-puzzle-trace-state-v1";
 
@@ -9,6 +9,8 @@ type PersistedAppState = {
   activeStudentId?: string;
   activeRole?: "coach" | "student";
   coachCollectionPuzzleIds?: string[];
+  coachStudentLinks?: CoachStudentLink[];
+  connectionRequests?: ConnectionRequest[];
   classRoster?: CoachClass[];
   studentRoster?: Student[];
   assignments?: PuzzleAssignment[];

@@ -53,6 +53,7 @@ python3 scripts/export_lichess_puzzles_for_app.py --limit 500
 - Legal move validation with `chess.js`
 - Drag-and-drop board UI with `react-chessboard`
 - Local coach and student login with demo accounts and browser-local registration
+- Browser-local coach/student connection requests with accept or decline confirmation
 - Public puzzle library for adding puzzles to a coach collection
 - My students page for reviewing roster progress
 - Local add-student flow for expanding the coach roster

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Chess } from "chess.js";
-import { Lightbulb, Plus, RotateCcw, Send, SkipForward, Trash2, X } from "lucide-react";
+import { Chess, DEFAULT_POSITION } from "chess.js";
+import { Lightbulb, Plus, RotateCcw, Send, SkipBack, SkipForward, Trash2, X } from "lucide-react";
 import { puzzles } from "./data/puzzles";
 import { lichessPuzzles } from "./data/lichessPuzzles";
 import { students as seedStudents } from "./data/students";
@@ -9,7 +9,7 @@ import { AttemptHistory } from "./components/AttemptHistory";
 import { PuzzlePreviewBoard } from "./components/PuzzlePreviewBoard";
 import { ReplayPanel } from "./components/ReplayPanel";
 import { SolveBoard } from "./components/SolveBoard";
-import type { AccountRole, CoachClass, MoveRecord, Puzzle, PuzzleAssignment, StoredPuzzleState } from "./types";
+import type { AccountRole, CoachClass, CoachStudentLink, ConnectionRequest, MoveRecord, Puzzle, PuzzleAssignment, StoredPuzzleState } from "./types";
 import { MAX_ATTEMPTS, canSubmitAttempt, makeAttempt } from "./utils/attempts";
 import { loadAppState, saveAppState } from "./utils/storage";
 import { generateStockfishLine } from "./utils/stockfish";
@@ -22,9 +22,47 @@ const emptyPuzzleState: StoredPuzzleState = {
   solved: false
 };
 
+let moveAudioContext: AudioContext | undefined;
+
+function playMoveSound(delayMs = 0) {
+  window.setTimeout(() => {
+    const AudioContextConstructor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    moveAudioContext ??= new AudioContextConstructor();
+    if (moveAudioContext.state === "suspended") {
+      void moveAudioContext.resume();
+    }
+
+    const now = moveAudioContext.currentTime;
+    const oscillator = moveAudioContext.createOscillator();
+    const gain = moveAudioContext.createGain();
+
+    oscillator.type = "triangle";
+    oscillator.frequency.setValueAtTime(560, now);
+    oscillator.frequency.exponentialRampToValueAtTime(230, now + 0.075);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.075, now + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
+
+    oscillator.connect(gain);
+    gain.connect(moveAudioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.09);
+  }, delayMs);
+}
+
 const seedClasses: CoachClass[] = [
   { id: "class-juniors", name: "Juniors" }
 ];
+
+const seedCoachStudentLinks: CoachStudentLink[] = seedStudents.map((student) => ({
+  id: `seed-coach-elena-${student.id}`,
+  coachAccountId: "coach-elena",
+  studentId: student.id,
+  createdAt: Date.now()
+}));
 
 function CookieStorageNotice() {
   const [accepted, setAccepted] = useState(() => window.localStorage.getItem(STORAGE_NOTICE_KEY) === "accepted");
@@ -84,6 +122,13 @@ function dedupeAssignments(assignmentsToDedupe: PuzzleAssignment[]) {
   });
 }
 
+function makeCustomPuzzleId(existingPuzzleIds: Set<string>, coachAccountId?: string) {
+  const owner = coachAccountId ?? "local";
+  const randomPart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const candidate = `custom-${owner}-${randomPart}`;
+  return existingPuzzleIds.has(candidate) ? `custom-${owner}-${Date.now()}-${Math.random().toString(36).slice(2)}` : candidate;
+}
+
 function describePuzzleProgress(state: StoredPuzzleState | undefined, solutionUci: string[]) {
   if (!state || state.attempts.length === 0) return "Not started";
   if (state.solved) {
@@ -140,6 +185,8 @@ function getInitialState() {
     customPuzzles: saved?.customPuzzles ?? [],
     activeRole: savedAccount?.role,
     coachCollectionPuzzleIds: saved?.coachCollectionPuzzleIds ?? [puzzles[0].id],
+    coachStudentLinks: saved?.coachStudentLinks ?? seedCoachStudentLinks,
+    connectionRequests: saved?.connectionRequests ?? [],
     classRoster: saved?.classRoster ?? seedClasses,
     puzzleStates: saved?.puzzleStates ?? {}
   };
@@ -155,6 +202,8 @@ export default function App() {
   const [assignments, setAssignments] = useState<PuzzleAssignment[]>(initialState.assignments);
   const [customPuzzles, setCustomPuzzles] = useState<Puzzle[]>(initialState.customPuzzles);
   const [coachCollectionPuzzleIds, setCoachCollectionPuzzleIds] = useState<string[]>(initialState.coachCollectionPuzzleIds);
+  const [coachStudentLinks, setCoachStudentLinks] = useState<CoachStudentLink[]>(initialState.coachStudentLinks);
+  const [connectionRequests, setConnectionRequests] = useState<ConnectionRequest[]>(initialState.connectionRequests);
   const [classRoster, setClassRoster] = useState<CoachClass[]>(initialState.classRoster);
   const [coachPuzzleId, setCoachPuzzleId] = useState(initialState.activePuzzleId);
   const [coachSelectedStudentIds, setCoachSelectedStudentIds] = useState<string[]>([initialState.activeStudentId]);
@@ -173,7 +222,8 @@ export default function App() {
   const [feedbackSquare, setFeedbackSquare] = useState<string | undefined>();
   const [hintSquare, setHintSquare] = useState<string | undefined>();
   const [awaitingNextAttempt, setAwaitingNextAttempt] = useState(false);
-  const [newPuzzleTitle, setNewPuzzleTitle] = useState("");
+  const [newPuzzlePgn, setNewPuzzlePgn] = useState("");
+  const [newPuzzlePgnFirstMove, setNewPuzzlePgnFirstMove] = useState<"solver" | "opponent">("solver");
   const [newPuzzleFen, setNewPuzzleFen] = useState("");
   const [newPuzzleSide, setNewPuzzleSide] = useState<"w" | "b">("w");
   const [newPuzzleThemes, setNewPuzzleThemes] = useState("");
@@ -202,21 +252,32 @@ export default function App() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerLevel, setRegisterLevel] = useState("1200");
   const [registerError, setRegisterError] = useState("");
-  const [newStudentName, setNewStudentName] = useState("");
-  const [newStudentLevel, setNewStudentLevel] = useState("1200");
   const [showAddStudentForm, setShowAddStudentForm] = useState(false);
   const [studentSearch, setStudentSearch] = useState("");
+  const [studentInviteEmail, setStudentInviteEmail] = useState("");
+  const [coachInviteId, setCoachInviteId] = useState("coach-elena");
+  const [connectionMessage, setConnectionMessage] = useState("");
   const [newClassName, setNewClassName] = useState("");
   const [selectedAssignClassId, setSelectedAssignClassId] = useState("manual");
 
   const coachAccounts = useMemo(() => accountRoster.filter((account) => account.role === "coach"), [accountRoster]);
   const studentAccounts = useMemo(() => accountRoster.filter((account) => account.role === "student"), [accountRoster]);
   const activeAccount = accountRoster.find((account) => account.id === activeAccountId);
+  const activeCoachId = activeAccount?.role === "coach" ? activeAccount.id : undefined;
+  const coachStudentRoster = useMemo(() => {
+    if (!activeCoachId) return [];
+    const linkedStudentIds = new Set(
+      coachStudentLinks
+        .filter((link) => link.coachAccountId === activeCoachId)
+        .map((link) => link.studentId)
+    );
+    return studentRoster.filter((student) => linkedStudentIds.has(student.id));
+  }, [activeCoachId, coachStudentLinks, studentRoster]);
   const filteredStudentRoster = useMemo(() => {
     const query = studentSearch.trim().toLowerCase();
-    if (!query) return studentRoster;
-    return studentRoster.filter((student) => student.name.toLowerCase().includes(query));
-  }, [studentRoster, studentSearch]);
+    if (!query) return coachStudentRoster;
+    return coachStudentRoster.filter((student) => student.name.toLowerCase().includes(query));
+  }, [coachStudentRoster, studentSearch]);
   const publicPuzzles = useMemo(() => [...puzzles, ...lichessPuzzles], []);
   const allPuzzles = useMemo(() => [...publicPuzzles, ...customPuzzles], [customPuzzles, publicPuzzles]);
   const coachCollectionPuzzles = useMemo(
@@ -245,7 +306,7 @@ export default function App() {
       if (!query) return true;
 
       return [
-        item.title,
+        item.id,
         item.difficulty.toString(),
         item.sideToMove === "w" ? "white" : "black",
         source,
@@ -265,6 +326,16 @@ export default function App() {
   const libraryRangeEnd = Math.min(currentLibraryPage * LIBRARY_PAGE_SIZE, filteredLibraryPuzzles.length);
   const puzzle = allPuzzles.find((item) => item.id === activePuzzleId) ?? allPuzzles[0];
   const activeStudent = studentRoster.find((student) => student.id === activeStudentId) ?? studentRoster[0];
+  const activeStudentCoachLinks = coachStudentLinks.filter((link) => link.studentId === activeStudent.id);
+  const activeStudentCoaches = activeStudentCoachLinks
+    .map((link) => coachAccounts.find((account) => account.id === link.coachAccountId))
+    .filter((account): account is (typeof coachAccounts)[number] => Boolean(account));
+  const pendingCoachRequests = connectionRequests.filter(
+    (request) => request.status === "pending" && activeCoachId && request.coachAccountId === activeCoachId && request.requestedBy === "student"
+  );
+  const pendingStudentRequests = connectionRequests.filter(
+    (request) => request.status === "pending" && request.studentId === activeStudent.id && request.requestedBy === "coach"
+  );
   const puzzleInCoachCollection = coachCollectionPuzzleIds.includes(puzzle.id);
   const activePuzzleStateKey = makePuzzleStateKey(activeStudent.id, puzzle.id);
   const puzzleState = puzzleStates[activePuzzleStateKey] ?? emptyPuzzleState;
@@ -272,8 +343,8 @@ export default function App() {
   const locked = !canSubmitAttempt(puzzleState) || puzzleState.solved || awaitingNextAttempt;
 
   useEffect(() => {
-    saveAppState({ activePuzzleId, activeAccountId, accountRoster, activeStudentId, activeRole, coachCollectionPuzzleIds, classRoster, studentRoster, assignments, customPuzzles, puzzleStates });
-  }, [activePuzzleId, activeAccountId, accountRoster, activeStudentId, activeRole, coachCollectionPuzzleIds, classRoster, studentRoster, assignments, customPuzzles, puzzleStates]);
+    saveAppState({ activePuzzleId, activeAccountId, accountRoster, activeStudentId, activeRole, coachCollectionPuzzleIds, coachStudentLinks, connectionRequests, classRoster, studentRoster, assignments, customPuzzles, puzzleStates });
+  }, [activePuzzleId, activeAccountId, accountRoster, activeStudentId, activeRole, coachCollectionPuzzleIds, coachStudentLinks, connectionRequests, classRoster, studentRoster, assignments, customPuzzles, puzzleStates]);
 
   useEffect(() => {
     resetCurrentAttempt(puzzle.fen);
@@ -444,6 +515,7 @@ export default function App() {
     setChess(nextChess);
     setCurrentMoves(nextMoves);
     setHintSquare(undefined);
+    playMoveSound();
 
     const expectedMove = puzzle.solutionUci[currentMoves.length];
     if (record.uci !== expectedMove || nextMoves.length >= puzzle.solutionUci.length) {
@@ -464,6 +536,7 @@ export default function App() {
         const movesWithReply = [...nextMoves, opponentRecord];
         setChess(nextChess);
         setCurrentMoves(movesWithReply);
+        playMoveSound(110);
 
         if (movesWithReply.length >= puzzle.solutionUci.length) {
           saveSubmittedAttempt(movesWithReply);
@@ -534,7 +607,7 @@ export default function App() {
     setLastMessage("Puzzle history cleared.");
   }
 
-  function goToNextPuzzle() {
+  function goToPuzzleOffset(offset: number) {
     const assignedPuzzleIds = assignments
       .filter((assignment) => assignment.studentId === activeStudent.id)
       .map((assignment) => assignment.puzzleId);
@@ -542,7 +615,8 @@ export default function App() {
       ? allPuzzles.filter((item) => assignedPuzzleIds.includes(item.id))
       : allPuzzles;
     const currentIndex = availablePuzzles.findIndex((item) => item.id === puzzle.id);
-    const nextPuzzle = availablePuzzles[(currentIndex + 1) % availablePuzzles.length];
+    const normalizedIndex = currentIndex >= 0 ? currentIndex : 0;
+    const nextPuzzle = availablePuzzles[(normalizedIndex + offset + availablePuzzles.length) % availablePuzzles.length];
     changePuzzle(nextPuzzle.id);
   }
 
@@ -550,7 +624,9 @@ export default function App() {
     if (coachCollectionPuzzles.length === 0) return;
 
     const assignedAt = Date.now();
+    const confirmedStudentIds = new Set(coachStudentRoster.map((student) => student.id));
     const nextAssignments = coachSelectedStudentIds
+      .filter((studentId) => confirmedStudentIds.has(studentId))
       .filter((studentId) => !assignments.some((assignment) => assignment.studentId === studentId && assignment.puzzleId === coachPuzzleId))
       .map((studentId) => ({
         id: `${studentId}-${coachPuzzleId}-${assignedAt}`,
@@ -578,17 +654,103 @@ export default function App() {
     }
   }
 
+  function deleteCustomPuzzle(puzzleId: string) {
+    if (getPuzzleSource(puzzleId) !== "custom") return;
+
+    const confirmed = window.confirm("Delete this custom puzzle from your local library?");
+    if (!confirmed) return;
+
+    const fallbackPuzzleId = puzzles[0].id;
+    setCustomPuzzles((current) => current.filter((item) => item.id !== puzzleId));
+    setCoachCollectionPuzzleIds((current) => current.filter((id) => id !== puzzleId));
+    setAssignments((current) => current.filter((assignment) => assignment.puzzleId !== puzzleId));
+
+    if (coachPuzzleId === puzzleId) {
+      setCoachPuzzleId(fallbackPuzzleId);
+    }
+
+    if (activePuzzleId === puzzleId) {
+      changePuzzle(fallbackPuzzleId);
+    }
+  }
+
+  function importPuzzleFromPgn() {
+    setNewPuzzleMessage("");
+    const pgn = newPuzzlePgn.trim();
+    if (!pgn) {
+      setNewPuzzleMessage("Paste PGN before importing.");
+      return;
+    }
+
+    const game = new Chess();
+    try {
+      game.loadPgn(pgn, { strict: false });
+    } catch {
+      setNewPuzzleMessage("PGN could not be parsed.");
+      return;
+    }
+
+    const headers = game.getHeaders();
+    const startFen = headers.FEN?.trim() || DEFAULT_POSITION;
+    let startPosition: Chess;
+    try {
+      startPosition = new Chess(startFen);
+    } catch {
+      setNewPuzzleMessage("PGN FEN header is invalid.");
+      return;
+    }
+
+    const moves = game.history({ verbose: true });
+    if (moves.length === 0) {
+      setNewPuzzleMessage("PGN does not contain any moves.");
+      return;
+    }
+
+    const importedUci = moves.map((move) => `${move.from}${move.to}${move.promotion ?? ""}`);
+    let puzzleFen = startFen;
+    let puzzleSide = startPosition.turn();
+    let solutionUci = importedUci;
+
+    if (newPuzzlePgnFirstMove === "opponent") {
+      const opponentMoveUci = importedUci[0];
+      if (!opponentMoveUci || importedUci.length < 2) {
+        setNewPuzzleMessage("PGN needs at least one opponent move and one solution move.");
+        return;
+      }
+
+      const positionAfterOpponentMove = new Chess(startFen);
+      const opponentMove = positionAfterOpponentMove.move({
+        from: opponentMoveUci.slice(0, 2),
+        to: opponentMoveUci.slice(2, 4),
+        promotion: opponentMoveUci.slice(4) || undefined
+      });
+
+      if (!opponentMove) {
+        setNewPuzzleMessage("The first PGN move could not be applied as the opponent move.");
+        return;
+      }
+
+      puzzleFen = positionAfterOpponentMove.fen();
+      puzzleSide = positionAfterOpponentMove.turn();
+      solutionUci = importedUci.slice(1);
+    }
+
+    setNewPuzzleFen(puzzleFen);
+    setNewPuzzleSide(puzzleSide);
+    setNewPuzzleSolution(solutionUci.join(" "));
+    setNewPuzzleMessage(`PGN imported: ${solutionUci.length} solution move${solutionUci.length === 1 ? "" : "s"} added.`);
+  }
+
   function createCustomPuzzle() {
     setNewPuzzleMessage("");
-    const title = newPuzzleTitle.trim();
     const fen = newPuzzleFen.trim();
     const solutionUci = newPuzzleSolution
       .split(/[\s,]+/)
       .map((move) => move.trim())
       .filter(Boolean);
 
-    if (!title || !fen || solutionUci.length === 0) {
-      setNewPuzzleMessage("Title, FEN, and solution are required.");
+    if (!fen || solutionUci.length === 0) {
+      setNewPuzzleMessage("FEN and solution are required.");
       return;
     }
 
@@ -618,10 +780,9 @@ export default function App() {
       }
     }
 
-    const id = `custom-${Date.now()}`;
+    const id = makeCustomPuzzleId(new Set(allPuzzles.map((item) => item.id)), activeAccount?.role === "coach" ? activeAccount.id : undefined);
     const customPuzzle: Puzzle = {
       id,
-      title,
       fen,
       sideToMove: newPuzzleSide,
       themes: newPuzzleThemes
@@ -630,13 +791,16 @@ export default function App() {
         .filter(Boolean),
       difficulty: Number(newPuzzleDifficulty) || 1500,
       solutionUci,
-      explanation: newPuzzleExplanation.trim() || "Custom puzzle."
+      explanation: newPuzzleExplanation.trim() || "Custom puzzle.",
+      creatorAccountId: activeAccount?.role === "coach" ? activeAccount.id : undefined,
+      creatorName: activeAccount?.role === "coach" ? activeAccount.name : undefined
     };
 
     setCustomPuzzles((current) => [...current, customPuzzle]);
     setCoachPuzzleId(id);
     setActivePuzzleId(id);
-    setNewPuzzleTitle("");
+    setNewPuzzlePgn("");
+    setNewPuzzlePgnFirstMove("solver");
     setNewPuzzleFen("");
     setNewPuzzleThemes("");
     setNewPuzzleDifficulty("1500");
@@ -675,6 +839,90 @@ export default function App() {
     setAssignments((current) => current.filter((assignment) => assignment.id !== assignmentId));
   }
 
+  function requestExists(coachAccountId: string, studentId: string) {
+    return connectionRequests.some((request) =>
+      request.coachAccountId === coachAccountId &&
+      request.studentId === studentId &&
+      request.status === "pending"
+    );
+  }
+
+  function linkExists(coachAccountId: string, studentId: string) {
+    return coachStudentLinks.some((link) => link.coachAccountId === coachAccountId && link.studentId === studentId);
+  }
+
+  function addConnectionRequest(coachAccountId: string, studentId: string, requestedBy: AccountRole) {
+    if (linkExists(coachAccountId, studentId)) {
+      setConnectionMessage("This coach and student are already connected.");
+      return;
+    }
+
+    if (requestExists(coachAccountId, studentId)) {
+      setConnectionMessage("A pending request already exists.");
+      return;
+    }
+
+    setConnectionRequests((current) => [
+      ...current,
+      {
+        id: `request-${Date.now()}`,
+        coachAccountId,
+        studentId,
+        requestedBy,
+        status: "pending",
+        createdAt: Date.now()
+      }
+    ]);
+    setConnectionMessage("Request sent. The other side needs to confirm.");
+  }
+
+  function inviteStudentToCoach() {
+    if (!activeCoachId) return;
+    const email = studentInviteEmail.trim().toLowerCase();
+    const studentAccount = studentAccounts.find((account) => account.email.toLowerCase() === email);
+
+    if (!studentAccount?.studentId) {
+      setConnectionMessage("No student account found with that email.");
+      return;
+    }
+
+    addConnectionRequest(activeCoachId, studentAccount.studentId, "coach");
+    setStudentInviteEmail("");
+  }
+
+  function requestCoachConnection() {
+    if (!coachInviteId) return;
+    addConnectionRequest(coachInviteId, activeStudent.id, "student");
+  }
+
+  function respondToConnectionRequest(requestId: string, accepted: boolean) {
+    const request = connectionRequests.find((item) => item.id === requestId);
+    if (!request) return;
+
+    setConnectionRequests((current) =>
+      current.map((item) => (
+        item.id === requestId
+          ? { ...item, status: accepted ? "accepted" : "declined", respondedAt: Date.now() }
+          : item
+      ))
+    );
+
+    if (accepted && !linkExists(request.coachAccountId, request.studentId)) {
+      setCoachStudentLinks((current) => [
+        ...current,
+        {
+          id: `link-${Date.now()}`,
+          coachAccountId: request.coachAccountId,
+          studentId: request.studentId,
+          createdAt: Date.now()
+        }
+      ]);
+      setConnectionMessage("Connection accepted.");
+    } else {
+      setConnectionMessage("Request declined.");
+    }
+  }
+
   function toggleCoachStudent(studentId: string) {
     setCoachSelectedStudentIds((current) =>
       current.includes(studentId)
@@ -685,27 +933,8 @@ export default function App() {
 
   function toggleAllCoachStudents() {
     setCoachSelectedStudentIds((current) =>
-      current.length === studentRoster.length ? [] : studentRoster.map((student) => student.id)
+      current.length === coachStudentRoster.length ? [] : coachStudentRoster.map((student) => student.id)
     );
-  }
-
-  function addStudent() {
-    const name = newStudentName.trim();
-    if (!name) return;
-
-    const id = `student-${Date.now()}`;
-    setStudentRoster((current) => [
-      ...current,
-      {
-        id,
-        name,
-        level: newStudentLevel.trim() || "1200"
-      }
-    ]);
-    setCoachSelectedStudentIds((current) => [...current, id]);
-    setNewStudentName("");
-    setNewStudentLevel("1200");
-    setShowAddStudentForm(false);
   }
 
   function addClass() {
@@ -735,7 +964,7 @@ export default function App() {
   function selectAssignClass(classId: string) {
     setSelectedAssignClassId(classId);
     if (classId === "manual") return;
-    setCoachSelectedStudentIds(studentRoster.filter((student) => student.classId === classId).map((student) => student.id));
+    setCoachSelectedStudentIds(coachStudentRoster.filter((student) => student.classId === classId).map((student) => student.id));
   }
 
   function openStudentPuzzle(studentId: string, puzzleId: string) {
@@ -980,6 +1209,14 @@ export default function App() {
             <h1>Puzzle library</h1>
             <p className="headerPrompt">Browse public puzzles and add them to your coach collection.</p>
           </div>
+          <button
+            type="button"
+            className="primaryButton headerActionButton"
+            onClick={() => document.getElementById("create-puzzle-panel")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
+            <Plus aria-hidden="true" size={16} strokeWidth={2.4} />
+            Create puzzle
+          </button>
           <nav className="modeNav" aria-label="Workspace">
             <button type="button" onClick={() => setPage(activeRole === "coach" ? "coach" : "student")}>
               {activeRole === "coach" ? "My students" : "My puzzles"}
@@ -1006,7 +1243,7 @@ export default function App() {
                 <input
                   value={librarySearch}
                   onChange={(event) => setLibrarySearch(event.target.value)}
-                  placeholder="Theme, title, rating..."
+                  placeholder="Puzzle ID, theme, rating..."
                 />
               </label>
               <label className="formField">
@@ -1095,11 +1332,12 @@ export default function App() {
                   <PuzzlePreviewBoard fen={item.fen} orientation={item.sideToMove === "w" ? "white" : "black"} />
                   <div className="libraryPuzzleInfo">
                     <div className="attemptTopline">
-                      <strong>{item.title}</strong>
+                      <strong>{item.id}</strong>
                       <span>{formatSide(item.sideToMove)} to move</span>
                     </div>
                     <div className="assignmentMeta">
                       <span>{getPuzzleSource(item.id)}</span>
+                      {item.creatorName ? <span>Creator {item.creatorName}</span> : null}
                       <span>Difficulty {item.difficulty}</span>
                       {item.themes.map((theme) => <span key={theme}>{theme}</span>)}
                     </div>
@@ -1114,6 +1352,17 @@ export default function App() {
                       <button type="button" className="primaryButton" onClick={() => openStudentPuzzle(activeStudent.id, item.id)}>
                         Open puzzle
                       </button>
+                      {getPuzzleSource(item.id) === "custom" ? (
+                        <button
+                          type="button"
+                          className="iconButton tooltipButton dangerIconButton"
+                          data-tooltip="Delete custom puzzle"
+                          aria-label="Delete custom puzzle"
+                          onClick={() => deleteCustomPuzzle(item.id)}
+                        >
+                          <Trash2 aria-hidden="true" size={18} strokeWidth={2.4} />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </article>
@@ -1124,15 +1373,35 @@ export default function App() {
             </div>
           </section>
 
-          <section className="panel customPuzzlePanel">
+          <section className="panel customPuzzlePanel" id="create-puzzle-panel">
             <div className="sectionHeader">
-              <h2>Create puzzle</h2>
+              <h2>Create a puzzle</h2>
               <span>Local only</span>
             </div>
-            <label className="formField">
-              <span>Title</span>
-              <input value={newPuzzleTitle} onChange={(event) => setNewPuzzleTitle(event.target.value)} placeholder="e.g. Quiet rook lift" />
-            </label>
+            <div className="pgnImportBox">
+              <label className="formField">
+                <span>First PGN move</span>
+                <select
+                  value={newPuzzlePgnFirstMove}
+                  onChange={(event) => setNewPuzzlePgnFirstMove(event.target.value as "solver" | "opponent")}
+                >
+                  <option value="solver">Student best move</option>
+                  <option value="opponent">Opponent move before puzzle</option>
+                </select>
+              </label>
+              <label className="formField">
+                <span>Import from PGN</span>
+                <textarea
+                  value={newPuzzlePgn}
+                  onChange={(event) => setNewPuzzlePgn(event.target.value)}
+                  rows={5}
+                  placeholder={'Paste PGN. Use a [FEN "..."] header when the puzzle starts from a tactic position.'}
+                />
+              </label>
+              <button type="button" className="engineButton" onClick={importPuzzleFromPgn} disabled={!newPuzzlePgn.trim()}>
+                Fill fields from PGN
+              </button>
+            </div>
             <label className="formField">
               <span>FEN</span>
               <textarea value={newPuzzleFen} onChange={(event) => setNewPuzzleFen(event.target.value)} rows={3} placeholder="Paste FEN..." />
@@ -1199,7 +1468,7 @@ export default function App() {
           <section className="panel assignmentBoard">
             <div className="sectionHeader">
               <h2>My students</h2>
-              <span>{filteredStudentRoster.length} / {studentRoster.length} students</span>
+              <span>{filteredStudentRoster.length} / {coachStudentRoster.length} students</span>
             </div>
             <div className="studentToolbar">
               <label className="formField">
@@ -1218,25 +1487,34 @@ export default function App() {
             {showAddStudentForm ? (
               <div className="addStudentForm">
                 <label className="formField">
-                  <span>Name</span>
+                  <span>Student email</span>
                   <input
-                    value={newStudentName}
-                    onChange={(event) => setNewStudentName(event.target.value)}
-                    placeholder="Student name"
+                    value={studentInviteEmail}
+                    onChange={(event) => { setStudentInviteEmail(event.target.value); setConnectionMessage(""); }}
+                    placeholder="student@example.com"
                   />
                 </label>
-                <label className="formField">
-                  <span>Level</span>
-                  <input
-                    value={newStudentLevel}
-                    onChange={(event) => setNewStudentLevel(event.target.value)}
-                    inputMode="numeric"
-                    placeholder="1200"
-                  />
-                </label>
-                <button type="button" className="primaryButton assignButton" onClick={addStudent} disabled={!newStudentName.trim()}>
-                  Save student
+                <button type="button" className="primaryButton assignButton" onClick={inviteStudentToCoach} disabled={!studentInviteEmail.trim()}>
+                  Send request
                 </button>
+              </div>
+            ) : null}
+            {connectionMessage ? <p className="status statusBanner">{connectionMessage}</p> : null}
+            {pendingCoachRequests.length ? (
+              <div className="connectionRequestList">
+                <strong>Requests from students</strong>
+                {pendingCoachRequests.map((request) => {
+                  const student = studentRoster.find((item) => item.id === request.studentId);
+                  return (
+                    <article key={request.id} className="connectionRequestCard">
+                      <span>{student?.name ?? "Student"} wants to add you as coach.</span>
+                      <div className="buttonRow">
+                        <button type="button" className="primaryButton" onClick={() => respondToConnectionRequest(request.id, true)}>Accept</button>
+                        <button type="button" onClick={() => respondToConnectionRequest(request.id, false)}>Decline</button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             ) : null}
             <div className="studentAssignmentGrid">
@@ -1320,7 +1598,7 @@ export default function App() {
                     <select value={coachPuzzle.id} onChange={(event) => setCoachPuzzleId(event.target.value)}>
                       {coachCollectionPuzzles.map((item) => (
                         <option key={item.id} value={item.id}>
-                          {item.title}
+                          {item.id}
                         </option>
                       ))}
                     </select>
@@ -1369,10 +1647,10 @@ export default function App() {
               </select>
             </label>
             <button type="button" className="selectAllButton" onClick={toggleAllCoachStudents}>
-              {coachSelectedStudentIds.length === studentRoster.length ? "Clear selection" : "Select all"}
+              {coachSelectedStudentIds.length === coachStudentRoster.length ? "Clear selection" : "Select all"}
             </button>
             <div className="studentChecklist">
-              {studentRoster.map((student) => (
+              {coachStudentRoster.map((student) => (
                 <label key={student.id} className="studentCheck">
                   <input
                     type="checkbox"
@@ -1385,6 +1663,7 @@ export default function App() {
                   </span>
                 </label>
               ))}
+              {coachStudentRoster.length === 0 ? <p className="muted">No confirmed students yet.</p> : null}
             </div>
             <button
               type="button"
@@ -1403,7 +1682,7 @@ export default function App() {
               <span>{assignments.length} total</span>
             </div>
             <div className="studentAssignmentGrid">
-              {studentRoster.map((student) => {
+              {coachStudentRoster.map((student) => {
                 const studentAssignments = assignments.filter((assignment) => assignment.studentId === student.id);
                 return (
                   <article key={student.id} className="studentAssignmentCard">
@@ -1423,13 +1702,13 @@ export default function App() {
                             className="assignmentRow"
                             onClick={() => openStudentPuzzle(student.id, assignedPuzzle.id)}
                           >
-                            <span>{assignedPuzzle.title}</span>
+                            <span>{assignedPuzzle.id}</span>
                             <strong>{describePuzzleProgress(state, assignedPuzzle.solutionUci)}</strong>
                             <span
                               role="button"
                               tabIndex={0}
                               className="assignmentRemove"
-                              aria-label={`Remove ${assignedPuzzle.title} from ${student.name}`}
+                              aria-label={`Remove ${assignedPuzzle.id} from ${student.name}`}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 removeAssignment(assignment.id);
@@ -1509,10 +1788,10 @@ export default function App() {
           <section className="panel assignmentBoard">
             <div className="sectionHeader">
               <h2>Student class membership</h2>
-              <span>{studentRoster.length} students</span>
+              <span>{coachStudentRoster.length} students</span>
             </div>
             <div className="studentAssignmentGrid">
-              {studentRoster.map((student) => (
+              {coachStudentRoster.map((student) => (
                 <article key={student.id} className="studentAssignmentCard">
                   <div className="attemptTopline">
                     <strong>{student.name}</strong>
@@ -1531,6 +1810,7 @@ export default function App() {
                   </label>
                 </article>
               ))}
+              {coachStudentRoster.length === 0 ? <p className="muted">No confirmed students yet.</p> : null}
             </div>
           </section>
         </div>
@@ -1597,7 +1877,7 @@ export default function App() {
                   return (
                     <article key={assignment.id} className="studentPuzzleCard">
                       <div className="attemptTopline">
-                        <strong>{assignedPuzzle.title}</strong>
+                        <strong>{assignedPuzzle.id}</strong>
                         <span className={state.solved ? "badge success" : "badge"}>
                           {state.solved ? "Solved" : `${state.attempts.length}/${MAX_ATTEMPTS}`}
                         </span>
@@ -1664,6 +1944,52 @@ export default function App() {
             </div>
             <p className="accountName">{activeAccount?.name ?? activeStudent.name}</p>
             <p className="studentSummary">{activeAccount?.email}</p>
+            <div className="connectionBox">
+              <div className="sectionHeader">
+                <h3>My coaches</h3>
+                <span>{activeStudentCoaches.length}</span>
+              </div>
+              {activeStudentCoaches.length ? (
+                <div className="studentStats">
+                  {activeStudentCoaches.map((coach) => (
+                    <span key={coach.id}>{coach.name}</span>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted">No coach connected yet.</p>
+              )}
+              <label className="formField">
+                <span>Add coach</span>
+                <select value={coachInviteId} onChange={(event) => { setCoachInviteId(event.target.value); setConnectionMessage(""); }}>
+                  {coachAccounts.map((coach) => (
+                    <option key={coach.id} value={coach.id}>
+                      {coach.name} · {coach.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="button" className="primaryButton assignButton" onClick={requestCoachConnection} disabled={!coachInviteId}>
+                Send request
+              </button>
+            </div>
+            {pendingStudentRequests.length ? (
+              <div className="connectionRequestList">
+                <strong>Requests from coaches</strong>
+                {pendingStudentRequests.map((request) => {
+                  const coach = coachAccounts.find((account) => account.id === request.coachAccountId);
+                  return (
+                    <article key={request.id} className="connectionRequestCard">
+                      <span>{coach?.name ?? "Coach"} wants to add you as a student.</span>
+                      <div className="buttonRow">
+                        <button type="button" className="primaryButton" onClick={() => respondToConnectionRequest(request.id, true)}>Accept</button>
+                        <button type="button" onClick={() => respondToConnectionRequest(request.id, false)}>Decline</button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : null}
+            {connectionMessage ? <p className="status statusBanner">{connectionMessage}</p> : null}
           </section>
 
           <section className="panel assignmentBoard">
@@ -1680,7 +2006,7 @@ export default function App() {
                   return (
                     <article key={assignment.id} className="studentPuzzleCard">
                       <div className="attemptTopline">
-                        <strong>{assignedPuzzle.title}</strong>
+                        <strong>{assignedPuzzle.id}</strong>
                         <span className={state.solved ? "badge success" : "badge"}>{state.solved ? "Solved" : `${state.attempts.length}/${MAX_ATTEMPTS}`}</span>
                       </div>
                       <p>{formatSide(assignedPuzzle.sideToMove)} to move</p>
@@ -1817,9 +2143,18 @@ export default function App() {
               <button
                 type="button"
                 className="iconButton tooltipButton"
+                aria-label="Previous puzzle"
+                data-tooltip="Previous puzzle"
+                onClick={() => goToPuzzleOffset(-1)}
+              >
+                <SkipBack aria-hidden="true" size={18} strokeWidth={2.4} />
+              </button>
+              <button
+                type="button"
+                className="iconButton tooltipButton"
                 aria-label="Next puzzle"
                 data-tooltip="Next puzzle"
-                onClick={goToNextPuzzle}
+                onClick={() => goToPuzzleOffset(1)}
               >
                 <SkipForward aria-hidden="true" size={18} strokeWidth={2.4} />
               </button>
