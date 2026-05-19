@@ -4,12 +4,12 @@ import { Lightbulb, Plus, RotateCcw, Send, SkipForward, Trash2, X } from "lucide
 import { puzzles } from "./data/puzzles";
 import { lichessPuzzles } from "./data/lichessPuzzles";
 import { students as seedStudents } from "./data/students";
-import { accounts } from "./data/accounts";
+import { accounts as seedAccounts } from "./data/accounts";
 import { AttemptHistory } from "./components/AttemptHistory";
 import { PuzzlePreviewBoard } from "./components/PuzzlePreviewBoard";
 import { ReplayPanel } from "./components/ReplayPanel";
 import { SolveBoard } from "./components/SolveBoard";
-import type { AccountRole, MoveRecord, Puzzle, PuzzleAssignment, StoredPuzzleState } from "./types";
+import type { AccountRole, CoachClass, MoveRecord, Puzzle, PuzzleAssignment, StoredPuzzleState } from "./types";
 import { MAX_ATTEMPTS, canSubmitAttempt, makeAttempt } from "./utils/attempts";
 import { loadAppState, saveAppState } from "./utils/storage";
 import { generateStockfishLine } from "./utils/stockfish";
@@ -21,6 +21,10 @@ const emptyPuzzleState: StoredPuzzleState = {
   attempts: [],
   solved: false
 };
+
+const seedClasses: CoachClass[] = [
+  { id: "class-juniors", name: "Juniors" }
+];
 
 function CookieStorageNotice() {
   const [accepted, setAccepted] = useState(() => window.localStorage.getItem(STORAGE_NOTICE_KEY) === "accepted");
@@ -70,6 +74,16 @@ function makePuzzleStateKey(studentId: string, puzzleId: string) {
   return `${studentId}:${puzzleId}`;
 }
 
+function dedupeAssignments(assignmentsToDedupe: PuzzleAssignment[]) {
+  const seen = new Set<string>();
+  return assignmentsToDedupe.filter((assignment) => {
+    const key = makePuzzleStateKey(assignment.studentId, assignment.puzzleId);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function describePuzzleProgress(state: StoredPuzzleState | undefined, solutionUci: string[]) {
   if (!state || state.attempts.length === 0) return "Not started";
   if (state.solved) {
@@ -96,7 +110,8 @@ function describeAttemptOutcome(moves: MoveRecord[], correct: boolean, solutionU
 function getInitialState() {
   const saved = loadAppState();
   const savedPuzzles = [...puzzles, ...lichessPuzzles, ...(saved?.customPuzzles ?? [])];
-  const savedAccount = accounts.find((account) => account.id === saved?.activeAccountId);
+  const accountRoster = saved?.accountRoster?.length ? saved.accountRoster : seedAccounts;
+  const savedAccount = accountRoster.find((account) => account.id === saved?.activeAccountId);
   const activePuzzleId = saved?.activePuzzleId && savedPuzzles.some((puzzle) => puzzle.id === saved.activePuzzleId)
     ? saved.activePuzzleId
     : puzzles[0].id;
@@ -111,6 +126,7 @@ function getInitialState() {
   return {
     activePuzzleId,
     activeAccountId: savedAccount?.id,
+    accountRoster,
     activeStudentId,
     assignments: saved?.assignments ?? [
       {
@@ -124,6 +140,7 @@ function getInitialState() {
     customPuzzles: saved?.customPuzzles ?? [],
     activeRole: savedAccount?.role,
     coachCollectionPuzzleIds: saved?.coachCollectionPuzzleIds ?? [puzzles[0].id],
+    classRoster: saved?.classRoster ?? seedClasses,
     puzzleStates: saved?.puzzleStates ?? {}
   };
 }
@@ -132,11 +149,13 @@ export default function App() {
   const initialState = useMemo(getInitialState, []);
   const [activePuzzleId, setActivePuzzleId] = useState(initialState.activePuzzleId);
   const [activeAccountId, setActiveAccountId] = useState<string | undefined>(initialState.activeAccountId);
+  const [accountRoster, setAccountRoster] = useState(initialState.accountRoster);
   const [studentRoster, setStudentRoster] = useState(initialState.studentRoster);
   const [activeStudentId, setActiveStudentId] = useState(initialState.activeStudentId);
   const [assignments, setAssignments] = useState<PuzzleAssignment[]>(initialState.assignments);
   const [customPuzzles, setCustomPuzzles] = useState<Puzzle[]>(initialState.customPuzzles);
   const [coachCollectionPuzzleIds, setCoachCollectionPuzzleIds] = useState<string[]>(initialState.coachCollectionPuzzleIds);
+  const [classRoster, setClassRoster] = useState<CoachClass[]>(initialState.classRoster);
   const [coachPuzzleId, setCoachPuzzleId] = useState(initialState.activePuzzleId);
   const [coachSelectedStudentIds, setCoachSelectedStudentIds] = useState<string[]>([initialState.activeStudentId]);
   const [puzzleStates, setPuzzleStates] = useState<Record<string, StoredPuzzleState>>(initialState.puzzleStates);
@@ -146,7 +165,7 @@ export default function App() {
   const [lastMessage, setLastMessage] = useState("");
   const [replayAttemptId, setReplayAttemptId] = useState<string | undefined>();
   const [activeRole, setActiveRole] = useState<"coach" | "student" | undefined>(initialState.activeRole);
-  const [page, setPage] = useState<"login" | "coach" | "studentDetail" | "student" | "puzzles" | "collection" | "solve" | "replay">(
+  const [page, setPage] = useState<"login" | "register" | "coach" | "classes" | "studentDetail" | "student" | "puzzles" | "collection" | "solve" | "replay">(
     initialState.activeRole === "coach" ? "coach" : initialState.activeRole === "student" ? "student" : "login"
   );
   const [selectedCoachStudentId, setSelectedCoachStudentId] = useState(initialState.activeStudentId);
@@ -175,12 +194,29 @@ export default function App() {
   const [selectedStudentAccountId, setSelectedStudentAccountId] = useState("account-maya");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [registerRole, setRegisterRole] = useState<AccountRole>("student");
+  const [registerName, setRegisterName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerChessCom, setRegisterChessCom] = useState("");
+  const [registerLichess, setRegisterLichess] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [registerLevel, setRegisterLevel] = useState("1200");
+  const [registerError, setRegisterError] = useState("");
   const [newStudentName, setNewStudentName] = useState("");
   const [newStudentLevel, setNewStudentLevel] = useState("1200");
+  const [showAddStudentForm, setShowAddStudentForm] = useState(false);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [newClassName, setNewClassName] = useState("");
+  const [selectedAssignClassId, setSelectedAssignClassId] = useState("manual");
 
-  const coachAccounts = useMemo(() => accounts.filter((account) => account.role === "coach"), []);
-  const studentAccounts = useMemo(() => accounts.filter((account) => account.role === "student"), []);
-  const activeAccount = accounts.find((account) => account.id === activeAccountId);
+  const coachAccounts = useMemo(() => accountRoster.filter((account) => account.role === "coach"), [accountRoster]);
+  const studentAccounts = useMemo(() => accountRoster.filter((account) => account.role === "student"), [accountRoster]);
+  const activeAccount = accountRoster.find((account) => account.id === activeAccountId);
+  const filteredStudentRoster = useMemo(() => {
+    const query = studentSearch.trim().toLowerCase();
+    if (!query) return studentRoster;
+    return studentRoster.filter((student) => student.name.toLowerCase().includes(query));
+  }, [studentRoster, studentSearch]);
   const publicPuzzles = useMemo(() => [...puzzles, ...lichessPuzzles], []);
   const allPuzzles = useMemo(() => [...publicPuzzles, ...customPuzzles], [customPuzzles, publicPuzzles]);
   const coachCollectionPuzzles = useMemo(
@@ -236,8 +272,8 @@ export default function App() {
   const locked = !canSubmitAttempt(puzzleState) || puzzleState.solved || awaitingNextAttempt;
 
   useEffect(() => {
-    saveAppState({ activePuzzleId, activeAccountId, activeStudentId, activeRole, coachCollectionPuzzleIds, studentRoster, assignments, customPuzzles, puzzleStates });
-  }, [activePuzzleId, activeAccountId, activeStudentId, activeRole, coachCollectionPuzzleIds, studentRoster, assignments, customPuzzles, puzzleStates]);
+    saveAppState({ activePuzzleId, activeAccountId, accountRoster, activeStudentId, activeRole, coachCollectionPuzzleIds, classRoster, studentRoster, assignments, customPuzzles, puzzleStates });
+  }, [activePuzzleId, activeAccountId, accountRoster, activeStudentId, activeRole, coachCollectionPuzzleIds, classRoster, studentRoster, assignments, customPuzzles, puzzleStates]);
 
   useEffect(() => {
     resetCurrentAttempt(puzzle.fen);
@@ -281,7 +317,7 @@ export default function App() {
 
   function handleLogin() {
     const accountId = loginRole === "coach" ? selectedCoachAccountId : selectedStudentAccountId;
-    const account = accounts.find((item) => item.id === accountId);
+    const account = accountRoster.find((item) => item.id === accountId);
 
     if (!account || account.role !== loginRole) {
       setLoginError("Account not found.");
@@ -304,6 +340,75 @@ export default function App() {
     } else {
       setPage("coach");
     }
+  }
+
+  function handleRegister() {
+    const name = registerName.trim();
+    const email = registerEmail.trim().toLowerCase();
+    const chessComUsername = registerChessCom.trim();
+    const lichessUsername = registerLichess.trim();
+    const password = registerPassword.trim();
+
+    if (!name || !email || !password) {
+      setRegisterError("Name, email, and password are required.");
+      return;
+    }
+
+    if (accountRoster.some((account) => account.email.toLowerCase() === email)) {
+      setRegisterError("An account with this email already exists.");
+      return;
+    }
+
+    const idSuffix = Date.now();
+    if (registerRole === "student") {
+      const studentId = `student-${idSuffix}`;
+      setStudentRoster((current) => [
+        ...current,
+        {
+          id: studentId,
+          name,
+          level: registerLevel.trim() || "1200"
+        }
+      ]);
+      setAccountRoster((current) => [
+        ...current,
+        {
+          id: `account-${idSuffix}`,
+          role: "student",
+          name,
+          email,
+          password,
+          chessComUsername: chessComUsername || undefined,
+          lichessUsername: lichessUsername || undefined,
+          studentId
+        }
+      ]);
+      setSelectedStudentAccountId(`account-${idSuffix}`);
+    } else {
+      setAccountRoster((current) => [
+        ...current,
+        {
+          id: `coach-${idSuffix}`,
+          role: "coach",
+          name,
+          email,
+          password,
+          chessComUsername: chessComUsername || undefined,
+          lichessUsername: lichessUsername || undefined
+        }
+      ]);
+      setSelectedCoachAccountId(`coach-${idSuffix}`);
+    }
+
+    setLoginRole(registerRole);
+    setRegisterName("");
+    setRegisterEmail("");
+    setRegisterChessCom("");
+    setRegisterLichess("");
+    setRegisterPassword("");
+    setRegisterLevel("1200");
+    setRegisterError("");
+    setPage("login");
   }
 
   function updatePuzzleState(updater: (state: StoredPuzzleState) => StoredPuzzleState) {
@@ -454,8 +559,7 @@ export default function App() {
         assignedAt
       }));
 
-    if (nextAssignments.length === 0) return;
-    setAssignments((current) => [...current, ...nextAssignments]);
+    setAssignments((current) => dedupeAssignments([...current, ...nextAssignments]));
   }
 
   function addPuzzleToCoachCollection(puzzleId: string) {
@@ -601,6 +705,37 @@ export default function App() {
     setCoachSelectedStudentIds((current) => [...current, id]);
     setNewStudentName("");
     setNewStudentLevel("1200");
+    setShowAddStudentForm(false);
+  }
+
+  function addClass() {
+    const name = newClassName.trim();
+    if (!name) return;
+
+    setClassRoster((current) => [
+      ...current,
+      {
+        id: `class-${Date.now()}`,
+        name
+      }
+    ]);
+    setNewClassName("");
+  }
+
+  function updateStudentClass(studentId: string, classId: string) {
+    setStudentRoster((current) =>
+      current.map((student) => (
+        student.id === studentId
+          ? { ...student, classId: classId || undefined }
+          : student
+      ))
+    );
+  }
+
+  function selectAssignClass(classId: string) {
+    setSelectedAssignClassId(classId);
+    if (classId === "manual") return;
+    setCoachSelectedStudentIds(studentRoster.filter((student) => student.classId === classId).map((student) => student.id));
   }
 
   function openStudentPuzzle(studentId: string, puzzleId: string) {
@@ -706,8 +841,129 @@ export default function App() {
             Log in as {loginRole}
           </button>
           {loginError ? <p className="status statusBanner status-incorrect">{loginError}</p> : null}
+          <div className="authFooter">
+            <span>New here?</span>
+            <button
+              type="button"
+              onClick={() => {
+                setRegisterRole(loginRole);
+                setRegisterError("");
+                setPage("register");
+              }}
+            >
+              Create account
+            </button>
+          </div>
           <p className="studentSummary">
             Demo credential: {selectedAccount?.email} / {selectedAccount?.password}
+          </p>
+        </section>
+        <CookieStorageNotice />
+      </main>
+    );
+  }
+
+  if (page === "register") {
+    return (
+      <main className="appShell loginShell">
+        <header className="loginHeader">
+          <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
+          <h1>Create account</h1>
+          <p className="headerPrompt">Register a local coach or student account.</p>
+        </header>
+
+        <section className="loginPanel authPanel" aria-label="Registration form">
+          <div className="loginRoleSwitch" role="tablist" aria-label="Account type">
+            <button
+              type="button"
+              className={registerRole === "coach" ? "selectedAttempt" : ""}
+              onClick={() => { setRegisterRole("coach"); setRegisterError(""); }}
+            >
+              Coach
+            </button>
+            <button
+              type="button"
+              className={registerRole === "student" ? "selectedAttempt" : ""}
+              onClick={() => { setRegisterRole("student"); setRegisterError(""); }}
+            >
+              Student
+            </button>
+          </div>
+
+          <label className="formField">
+            <span>Name</span>
+            <input
+              value={registerName}
+              onChange={(event) => { setRegisterName(event.target.value); setRegisterError(""); }}
+              placeholder={registerRole === "coach" ? "Coach name" : "Student name"}
+            />
+          </label>
+
+          <label className="formField">
+            <span>Email</span>
+            <input
+              type="email"
+              value={registerEmail}
+              onChange={(event) => { setRegisterEmail(event.target.value); setRegisterError(""); }}
+              placeholder="name@example.com"
+            />
+          </label>
+
+          <div className="formGrid">
+            <label className="formField">
+              <span>Chess.com username optional</span>
+              <input
+                value={registerChessCom}
+                onChange={(event) => { setRegisterChessCom(event.target.value); setRegisterError(""); }}
+                placeholder="chess.com username"
+              />
+            </label>
+            <label className="formField">
+              <span>Lichess username optional</span>
+              <input
+                value={registerLichess}
+                onChange={(event) => { setRegisterLichess(event.target.value); setRegisterError(""); }}
+                placeholder="lichess.org username"
+              />
+            </label>
+          </div>
+
+          <label className="formField">
+            <span>Password</span>
+            <input
+              type="password"
+              value={registerPassword}
+              onChange={(event) => { setRegisterPassword(event.target.value); setRegisterError(""); }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleRegister();
+              }}
+              placeholder="Create a password"
+            />
+          </label>
+
+          {registerRole === "student" ? (
+            <label className="formField">
+              <span>Level</span>
+              <input
+                value={registerLevel}
+                onChange={(event) => { setRegisterLevel(event.target.value); setRegisterError(""); }}
+                placeholder="1200"
+              />
+            </label>
+          ) : null}
+
+          <div className="authActions">
+            <button type="button" className="primaryButton authSubmitButton" onClick={handleRegister}>
+              Create account
+            </button>
+            <button type="button" onClick={() => { setRegisterError(""); setPage("login"); }}>
+              Back to login
+            </button>
+          </div>
+
+          {registerError ? <p className="status statusBanner status-incorrect">{registerError}</p> : null}
+          <p className="studentSummary">
+            Accounts are stored locally in this browser for the MVP.
           </p>
         </section>
         <CookieStorageNotice />
@@ -932,6 +1188,7 @@ export default function App() {
           </div>
           <nav className="modeNav" aria-label="Workspace">
             <button type="button" className="selectedAttempt">My students</button>
+            <button type="button" onClick={() => setPage("classes")}>My class</button>
             <button type="button" onClick={() => setPage("collection")}>My puzzle collection</button>
             <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
             <button type="button" onClick={logOut}>Log out</button>
@@ -942,33 +1199,48 @@ export default function App() {
           <section className="panel assignmentBoard">
             <div className="sectionHeader">
               <h2>My students</h2>
-              <span>{studentRoster.length} students</span>
+              <span>{filteredStudentRoster.length} / {studentRoster.length} students</span>
             </div>
-            <div className="addStudentForm">
+            <div className="studentToolbar">
               <label className="formField">
-                <span>Name</span>
+                <span>Filter by name</span>
                 <input
-                  value={newStudentName}
-                  onChange={(event) => setNewStudentName(event.target.value)}
-                  placeholder="Student name"
+                  value={studentSearch}
+                  onChange={(event) => setStudentSearch(event.target.value)}
+                  placeholder="Search students..."
                 />
               </label>
-              <label className="formField">
-                <span>Level</span>
-                <input
-                  value={newStudentLevel}
-                  onChange={(event) => setNewStudentLevel(event.target.value)}
-                  inputMode="numeric"
-                  placeholder="1200"
-                />
-              </label>
-              <button type="button" className="primaryButton assignButton" onClick={addStudent} disabled={!newStudentName.trim()}>
+              <button type="button" className="primaryButton assignButton" onClick={() => setShowAddStudentForm((current) => !current)}>
                 <Plus aria-hidden="true" size={16} strokeWidth={2.4} />
-                Add student
+                {showAddStudentForm ? "Cancel" : "Add student"}
               </button>
             </div>
+            {showAddStudentForm ? (
+              <div className="addStudentForm">
+                <label className="formField">
+                  <span>Name</span>
+                  <input
+                    value={newStudentName}
+                    onChange={(event) => setNewStudentName(event.target.value)}
+                    placeholder="Student name"
+                  />
+                </label>
+                <label className="formField">
+                  <span>Level</span>
+                  <input
+                    value={newStudentLevel}
+                    onChange={(event) => setNewStudentLevel(event.target.value)}
+                    inputMode="numeric"
+                    placeholder="1200"
+                  />
+                </label>
+                <button type="button" className="primaryButton assignButton" onClick={addStudent} disabled={!newStudentName.trim()}>
+                  Save student
+                </button>
+              </div>
+            ) : null}
             <div className="studentAssignmentGrid">
-              {studentRoster.map((student) => {
+              {filteredStudentRoster.map((student) => {
                 const studentAssignments = assignments.filter((assignment) => assignment.studentId === student.id);
                 const solvedCount = studentAssignments.filter((assignment) => {
                   const state = puzzleStates[makePuzzleStateKey(student.id, assignment.puzzleId)];
@@ -994,10 +1266,12 @@ export default function App() {
                       <span>{studentAssignments.length} assigned</span>
                       <span>{solvedCount} solved</span>
                       <span>{attemptCount} attempts</span>
+                      <span>{classRoster.find((item) => item.id === student.classId)?.name ?? "No class"}</span>
                     </div>
                   </button>
                 );
               })}
+              {filteredStudentRoster.length === 0 ? <p className="muted">No students match that name.</p> : null}
             </div>
           </section>
         </div>
@@ -1021,6 +1295,7 @@ export default function App() {
           </div>
           <nav className="modeNav" aria-label="Workspace">
             <button type="button" onClick={() => setPage("coach")}>My students</button>
+            <button type="button" onClick={() => setPage("classes")}>My class</button>
             <button type="button" className="selectedAttempt">My puzzle collection</button>
             <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
             <button type="button" onClick={logOut}>Log out</button>
@@ -1082,6 +1357,17 @@ export default function App() {
               <h2>Students</h2>
               <span>{coachSelectedStudentIds.length} selected</span>
             </div>
+            <label className="formField">
+              <span>Assign by class</span>
+              <select value={selectedAssignClassId} onChange={(event) => selectAssignClass(event.target.value)}>
+                <option value="manual">Manual selection</option>
+                {classRoster.map((coachClass) => (
+                  <option key={coachClass.id} value={coachClass.id}>
+                    {coachClass.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button type="button" className="selectAllButton" onClick={toggleAllCoachStudents}>
               {coachSelectedStudentIds.length === studentRoster.length ? "Clear selection" : "Select all"}
             </button>
@@ -1095,6 +1381,7 @@ export default function App() {
                   />
                   <span>
                     <strong>{student.name}</strong>
+                    <small>{classRoster.find((item) => item.id === student.classId)?.name ?? "No class"}</small>
                   </span>
                 </label>
               ))}
@@ -1174,6 +1461,84 @@ export default function App() {
     );
   }
 
+  if (page === "classes") {
+    return (
+      <main className="appShell">
+        <header className="appHeader">
+          <div>
+            <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
+            <h1>My class</h1>
+            <p className="headerPrompt">Create classes and optionally place students into one class.</p>
+          </div>
+          <nav className="modeNav" aria-label="Workspace">
+            <button type="button" onClick={() => setPage("coach")}>My students</button>
+            <button type="button" className="selectedAttempt">My class</button>
+            <button type="button" onClick={() => setPage("collection")}>My puzzle collection</button>
+            <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
+            <button type="button" onClick={logOut}>Log out</button>
+          </nav>
+        </header>
+
+        <div className="studentPageLayout">
+          <section className="panel">
+            <div className="sectionHeader">
+              <h2>Classes</h2>
+              <span>{classRoster.length} classes</span>
+            </div>
+            <div className="addStudentForm">
+              <label className="formField">
+                <span>Class name</span>
+                <input
+                  value={newClassName}
+                  onChange={(event) => setNewClassName(event.target.value)}
+                  placeholder="e.g. Thursday Group"
+                />
+              </label>
+              <button type="button" className="primaryButton assignButton" onClick={addClass} disabled={!newClassName.trim()}>
+                <Plus aria-hidden="true" size={16} strokeWidth={2.4} />
+                Add class
+              </button>
+            </div>
+            <div className="studentStats">
+              {classRoster.map((coachClass) => (
+                <span key={coachClass.id}>{coachClass.name}</span>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel assignmentBoard">
+            <div className="sectionHeader">
+              <h2>Student class membership</h2>
+              <span>{studentRoster.length} students</span>
+            </div>
+            <div className="studentAssignmentGrid">
+              {studentRoster.map((student) => (
+                <article key={student.id} className="studentAssignmentCard">
+                  <div className="attemptTopline">
+                    <strong>{student.name}</strong>
+                    <span className="badge">{student.level}</span>
+                  </div>
+                  <label className="formField">
+                    <span>Class</span>
+                    <select value={student.classId ?? ""} onChange={(event) => updateStudentClass(student.id, event.target.value)}>
+                      <option value="">No class</option>
+                      {classRoster.map((coachClass) => (
+                        <option key={coachClass.id} value={coachClass.id}>
+                          {coachClass.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+        <CookieStorageNotice />
+      </main>
+    );
+  }
+
   if (page === "studentDetail") {
     const selectedStudent = studentRoster.find((student) => student.id === selectedCoachStudentId) ?? studentRoster[0];
     const studentAssignments = assignments.filter((assignment) => assignment.studentId === selectedStudent.id);
@@ -1196,6 +1561,7 @@ export default function App() {
           </div>
           <nav className="modeNav" aria-label="Workspace">
             <button type="button" onClick={() => setPage("coach")}>My students</button>
+            <button type="button" onClick={() => setPage("classes")}>My class</button>
             <button type="button" onClick={() => setPage("collection")}>My puzzle collection</button>
             <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
             <button type="button" onClick={logOut}>Log out</button>
@@ -1285,8 +1651,7 @@ export default function App() {
             <h1>My puzzles</h1>
             <p className="headerPrompt">Welcome, {activeStudent.name}.</p>
           </div>
-          <nav className="modeNav" aria-label="Prototype navigation">
-            <button type="button" className="selectedAttempt">Student portal</button>
+          <nav className="modeNav" aria-label="Account">
             <button type="button" onClick={logOut}>Log out</button>
           </nav>
         </header>
@@ -1382,6 +1747,9 @@ export default function App() {
           <button type="button" onClick={() => setPage(activeRole === "coach" ? "coach" : "student")}>
             {activeRole === "coach" ? "My students" : "My puzzles"}
           </button>
+          {activeRole === "coach" ? (
+            <button type="button" onClick={() => setPage("classes")}>My class</button>
+          ) : null}
           {activeRole === "coach" ? (
             <button type="button" onClick={() => setPage("collection")}>My puzzle collection</button>
           ) : null}

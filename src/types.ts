@@ -50,6 +50,12 @@ export type Student = {
   id: string;
   name: string;
   level: string;
+  classId?: string;
+};
+
+export type CoachClass = {
+  id: string;
+  name: string;
 };
 
 export type AccountRole = "coach" | "student";
@@ -60,6 +66,8 @@ export type UserAccount = {
   name: string;
   email: string;
   password: string;
+  chessComUsername?: string;
+  lichessUsername?: string;
   studentId?: string;
 };
 

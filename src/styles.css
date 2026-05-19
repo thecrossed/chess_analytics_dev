@@ -197,6 +197,19 @@ h2 {
   width: fit-content;
 }
 
+.authActions,
+.authFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.authFooter {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .cookieNotice {
   position: fixed;
   right: clamp(12px, 2vw, 24px);
@@ -387,6 +400,14 @@ h2 {
 .addStudentForm {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) minmax(110px, 160px) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.studentToolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) auto;
   gap: 10px;
   align-items: end;
   margin-top: 14px;
@@ -1037,6 +1058,10 @@ h2 {
   }
 
   .addStudentForm {
+    grid-template-columns: 1fr;
+  }
+
+  .studentToolbar {
     grid-template-columns: 1fr;
   }
 
