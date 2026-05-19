@@ -154,6 +154,17 @@ h2 {
   max-width: 820px;
 }
 
+.authPanel {
+  grid-template-columns: minmax(280px, 480px);
+  align-items: start;
+}
+
+.loginRoleSwitch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .loginCard {
   display: grid;
   gap: 12px;
@@ -180,6 +191,38 @@ h2 {
 .primaryLoginCard {
   border-color: var(--accent-dark);
   background: var(--wood-soft);
+}
+
+.authSubmitButton {
+  width: fit-content;
+}
+
+.cookieNotice {
+  position: fixed;
+  right: clamp(12px, 2vw, 24px);
+  bottom: clamp(12px, 2vw, 24px);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(560px, calc(100vw - 24px));
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(251, 250, 246, 0.98);
+  box-shadow: 0 12px 32px rgba(69, 90, 100, 0.16);
+  padding: 14px;
+}
+
+.cookieNotice strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.cookieNotice p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
 }
 
 .coachLayout,
@@ -215,6 +258,12 @@ h2 {
 
 .demoStudentField {
   max-width: 320px;
+}
+
+.accountName {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 850;
 }
 
 .puzzlePickerWithPreview {
@@ -318,6 +367,31 @@ h2 {
   color: var(--muted);
 }
 
+.studentStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.studentStats span {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(244, 241, 234, 0.48);
+  color: var(--muted);
+  padding: 0.18rem 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.addStudentForm {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(110px, 160px) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 14px;
+}
+
 .studentSummary {
   margin: 8px 0 0;
   font-size: 0.86rem;
@@ -373,6 +447,18 @@ h2 {
   border-radius: 8px;
   padding: 12px;
   background: var(--surface);
+}
+
+.studentCardButton {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.studentCardButton:hover:not(:disabled),
+.studentCardButton:focus-visible:not(:disabled) {
+  background: var(--surface-soft);
+  border-color: var(--accent);
 }
 
 .studentPuzzleGrid {
@@ -950,6 +1036,10 @@ h2 {
     gap: 12px;
   }
 
+  .addStudentForm {
+    grid-template-columns: 1fr;
+  }
+
   .compactField {
     grid-template-columns: 1fr;
     gap: 6px;
@@ -1036,6 +1126,14 @@ h2 {
 
   .primaryButton {
     width: 100%;
+  }
+
+  .cookieNotice {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: auto;
+    display: grid;
   }
 
   .boardShell {

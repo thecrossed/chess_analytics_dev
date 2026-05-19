@@ -52,6 +52,17 @@ export type Student = {
   level: string;
 };
 
+export type AccountRole = "coach" | "student";
+
+export type UserAccount = {
+  id: string;
+  role: AccountRole;
+  name: string;
+  email: string;
+  password: string;
+  studentId?: string;
+};
+
 export type PuzzleAssignment = {
   id: string;
   studentId: string;

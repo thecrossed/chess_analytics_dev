@@ -3,22 +3,52 @@ import { Chess } from "chess.js";
 import { Lightbulb, Plus, RotateCcw, Send, SkipForward, Trash2, X } from "lucide-react";
 import { puzzles } from "./data/puzzles";
 import { lichessPuzzles } from "./data/lichessPuzzles";
-import { students } from "./data/students";
+import { students as seedStudents } from "./data/students";
+import { accounts } from "./data/accounts";
 import { AttemptHistory } from "./components/AttemptHistory";
 import { PuzzlePreviewBoard } from "./components/PuzzlePreviewBoard";
 import { ReplayPanel } from "./components/ReplayPanel";
 import { SolveBoard } from "./components/SolveBoard";
-import type { MoveRecord, Puzzle, PuzzleAssignment, StoredPuzzleState } from "./types";
+import type { AccountRole, MoveRecord, Puzzle, PuzzleAssignment, StoredPuzzleState } from "./types";
 import { MAX_ATTEMPTS, canSubmitAttempt, makeAttempt } from "./utils/attempts";
 import { loadAppState, saveAppState } from "./utils/storage";
 import { generateStockfishLine } from "./utils/stockfish";
 
 const LIBRARY_PAGE_SIZE = 24;
+const STORAGE_NOTICE_KEY = "chesscoach-storage-notice-v1";
 
 const emptyPuzzleState: StoredPuzzleState = {
   attempts: [],
   solved: false
 };
+
+function CookieStorageNotice() {
+  const [accepted, setAccepted] = useState(() => window.localStorage.getItem(STORAGE_NOTICE_KEY) === "accepted");
+
+  if (accepted) return null;
+
+  return (
+    <aside className="cookieNotice" role="region" aria-label="Cookie and local storage notice">
+      <div>
+        <strong>Cookies and local storage</strong>
+        <p>
+          This MVP uses necessary browser storage to keep login state, puzzle attempts, assignments, and coach collections on this device.
+          It does not use analytics or marketing cookies.
+        </p>
+      </div>
+      <button
+        type="button"
+        className="primaryButton"
+        onClick={() => {
+          window.localStorage.setItem(STORAGE_NOTICE_KEY, "accepted");
+          setAccepted(true);
+        }}
+      >
+        Got it
+      </button>
+    </aside>
+  );
+}
 
 function formatSide(side: "w" | "b") {
   return side === "w" ? "White" : "Black";
@@ -66,25 +96,33 @@ function describeAttemptOutcome(moves: MoveRecord[], correct: boolean, solutionU
 function getInitialState() {
   const saved = loadAppState();
   const savedPuzzles = [...puzzles, ...lichessPuzzles, ...(saved?.customPuzzles ?? [])];
+  const savedAccount = accounts.find((account) => account.id === saved?.activeAccountId);
   const activePuzzleId = saved?.activePuzzleId && savedPuzzles.some((puzzle) => puzzle.id === saved.activePuzzleId)
     ? saved.activePuzzleId
     : puzzles[0].id;
+  const studentRoster = saved?.studentRoster?.length ? saved.studentRoster : seedStudents;
+  const accountStudentId = savedAccount?.role === "student" ? savedAccount.studentId : undefined;
+  const activeStudentId = accountStudentId && studentRoster.some((student) => student.id === accountStudentId)
+    ? accountStudentId
+    : saved?.activeStudentId && studentRoster.some((student) => student.id === saved.activeStudentId)
+    ? saved.activeStudentId
+    : studentRoster[0].id;
 
   return {
     activePuzzleId,
-    activeStudentId: saved?.activeStudentId && students.some((student) => student.id === saved.activeStudentId)
-      ? saved.activeStudentId
-      : students[0].id,
+    activeAccountId: savedAccount?.id,
+    activeStudentId,
     assignments: saved?.assignments ?? [
       {
         id: "seed-student-maya-puzzle-001",
-        studentId: students[0].id,
+        studentId: seedStudents[0].id,
         puzzleId: puzzles[0].id,
         assignedAt: Date.now()
       }
     ],
+    studentRoster,
     customPuzzles: saved?.customPuzzles ?? [],
-    activeRole: saved?.activeRole,
+    activeRole: savedAccount?.role,
     coachCollectionPuzzleIds: saved?.coachCollectionPuzzleIds ?? [puzzles[0].id],
     puzzleStates: saved?.puzzleStates ?? {}
   };
@@ -93,6 +131,8 @@ function getInitialState() {
 export default function App() {
   const initialState = useMemo(getInitialState, []);
   const [activePuzzleId, setActivePuzzleId] = useState(initialState.activePuzzleId);
+  const [activeAccountId, setActiveAccountId] = useState<string | undefined>(initialState.activeAccountId);
+  const [studentRoster, setStudentRoster] = useState(initialState.studentRoster);
   const [activeStudentId, setActiveStudentId] = useState(initialState.activeStudentId);
   const [assignments, setAssignments] = useState<PuzzleAssignment[]>(initialState.assignments);
   const [customPuzzles, setCustomPuzzles] = useState<Puzzle[]>(initialState.customPuzzles);
@@ -106,9 +146,10 @@ export default function App() {
   const [lastMessage, setLastMessage] = useState("");
   const [replayAttemptId, setReplayAttemptId] = useState<string | undefined>();
   const [activeRole, setActiveRole] = useState<"coach" | "student" | undefined>(initialState.activeRole);
-  const [page, setPage] = useState<"login" | "coach" | "student" | "puzzles" | "collection" | "solve" | "replay">(
+  const [page, setPage] = useState<"login" | "coach" | "studentDetail" | "student" | "puzzles" | "collection" | "solve" | "replay">(
     initialState.activeRole === "coach" ? "coach" : initialState.activeRole === "student" ? "student" : "login"
   );
+  const [selectedCoachStudentId, setSelectedCoachStudentId] = useState(initialState.activeStudentId);
   const [feedback, setFeedback] = useState<"neutral" | "pending" | "correct" | "incorrect">("neutral");
   const [feedbackSquare, setFeedbackSquare] = useState<string | undefined>();
   const [hintSquare, setHintSquare] = useState<string | undefined>();
@@ -129,7 +170,17 @@ export default function App() {
   const [libraryMinRating, setLibraryMinRating] = useState("");
   const [libraryMaxRating, setLibraryMaxRating] = useState("");
   const [libraryPage, setLibraryPage] = useState(1);
+  const [loginRole, setLoginRole] = useState<AccountRole>("coach");
+  const [selectedCoachAccountId, setSelectedCoachAccountId] = useState("coach-elena");
+  const [selectedStudentAccountId, setSelectedStudentAccountId] = useState("account-maya");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [newStudentName, setNewStudentName] = useState("");
+  const [newStudentLevel, setNewStudentLevel] = useState("1200");
 
+  const coachAccounts = useMemo(() => accounts.filter((account) => account.role === "coach"), []);
+  const studentAccounts = useMemo(() => accounts.filter((account) => account.role === "student"), []);
+  const activeAccount = accounts.find((account) => account.id === activeAccountId);
   const publicPuzzles = useMemo(() => [...puzzles, ...lichessPuzzles], []);
   const allPuzzles = useMemo(() => [...publicPuzzles, ...customPuzzles], [customPuzzles, publicPuzzles]);
   const coachCollectionPuzzles = useMemo(
@@ -177,7 +228,7 @@ export default function App() {
     : (currentLibraryPage - 1) * LIBRARY_PAGE_SIZE + 1;
   const libraryRangeEnd = Math.min(currentLibraryPage * LIBRARY_PAGE_SIZE, filteredLibraryPuzzles.length);
   const puzzle = allPuzzles.find((item) => item.id === activePuzzleId) ?? allPuzzles[0];
-  const activeStudent = students.find((student) => student.id === activeStudentId) ?? students[0];
+  const activeStudent = studentRoster.find((student) => student.id === activeStudentId) ?? studentRoster[0];
   const puzzleInCoachCollection = coachCollectionPuzzleIds.includes(puzzle.id);
   const activePuzzleStateKey = makePuzzleStateKey(activeStudent.id, puzzle.id);
   const puzzleState = puzzleStates[activePuzzleStateKey] ?? emptyPuzzleState;
@@ -185,8 +236,8 @@ export default function App() {
   const locked = !canSubmitAttempt(puzzleState) || puzzleState.solved || awaitingNextAttempt;
 
   useEffect(() => {
-    saveAppState({ activePuzzleId, activeStudentId, activeRole, coachCollectionPuzzleIds, assignments, customPuzzles, puzzleStates });
-  }, [activePuzzleId, activeStudentId, activeRole, coachCollectionPuzzleIds, assignments, customPuzzles, puzzleStates]);
+    saveAppState({ activePuzzleId, activeAccountId, activeStudentId, activeRole, coachCollectionPuzzleIds, studentRoster, assignments, customPuzzles, puzzleStates });
+  }, [activePuzzleId, activeAccountId, activeStudentId, activeRole, coachCollectionPuzzleIds, studentRoster, assignments, customPuzzles, puzzleStates]);
 
   useEffect(() => {
     resetCurrentAttempt(puzzle.fen);
@@ -220,19 +271,39 @@ export default function App() {
     }
   }
 
-  function loginAsCoach() {
-    setActiveRole("coach");
-    setPage("coach");
-  }
-
-  function loginAsStudent() {
-    setActiveRole("student");
-    setPage("student");
-  }
-
   function logOut() {
+    setActiveAccountId(undefined);
     setActiveRole(undefined);
+    setLoginPassword("");
+    setLoginError("");
     setPage("login");
+  }
+
+  function handleLogin() {
+    const accountId = loginRole === "coach" ? selectedCoachAccountId : selectedStudentAccountId;
+    const account = accounts.find((item) => item.id === accountId);
+
+    if (!account || account.role !== loginRole) {
+      setLoginError("Account not found.");
+      return;
+    }
+
+    if (account.password !== loginPassword) {
+      setLoginError("Password is incorrect.");
+      return;
+    }
+
+    setActiveAccountId(account.id);
+    setActiveRole(account.role);
+    setLoginPassword("");
+    setLoginError("");
+
+    if (account.role === "student" && account.studentId) {
+      setActiveStudentId(account.studentId);
+      setPage("student");
+    } else {
+      setPage("coach");
+    }
   }
 
   function updatePuzzleState(updater: (state: StoredPuzzleState) => StoredPuzzleState) {
@@ -510,8 +581,26 @@ export default function App() {
 
   function toggleAllCoachStudents() {
     setCoachSelectedStudentIds((current) =>
-      current.length === students.length ? [] : students.map((student) => student.id)
+      current.length === studentRoster.length ? [] : studentRoster.map((student) => student.id)
     );
+  }
+
+  function addStudent() {
+    const name = newStudentName.trim();
+    if (!name) return;
+
+    const id = `student-${Date.now()}`;
+    setStudentRoster((current) => [
+      ...current,
+      {
+        id,
+        name,
+        level: newStudentLevel.trim() || "1200"
+      }
+    ]);
+    setCoachSelectedStudentIds((current) => [...current, id]);
+    setNewStudentName("");
+    setNewStudentLevel("1200");
   }
 
   function openStudentPuzzle(studentId: string, puzzleId: string) {
@@ -539,29 +628,89 @@ export default function App() {
     setPage("replay");
   }
 
+  function openCoachStudentDetail(studentId: string) {
+    setSelectedCoachStudentId(studentId);
+    setPage("studentDetail");
+  }
+
   const currentMoveText = currentMoves.length
     ? formatMoveList(currentMoves)
     : "No moves in the current attempt.";
 
   if (page === "login") {
+    const selectedAccounts = loginRole === "coach" ? coachAccounts : studentAccounts;
+    const selectedAccountId = loginRole === "coach" ? selectedCoachAccountId : selectedStudentAccountId;
+    const selectedAccount = selectedAccounts.find((account) => account.id === selectedAccountId);
+
     return (
       <main className="appShell loginShell">
         <header className="loginHeader">
           <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
-          <h1>Choose your workspace</h1>
-          <p className="headerPrompt">Continue as a coach or as a student.</p>
+          <h1>Log in</h1>
+          <p className="headerPrompt">Use a coach account or a student account.</p>
         </header>
 
-        <section className="loginPanel" aria-label="Login options">
-          <button type="button" className="loginCard" onClick={loginAsCoach}>
-            <span>Log in as coach</span>
-            <strong>Assign puzzles and review class progress.</strong>
+        <section className="loginPanel authPanel" aria-label="Login form">
+          <div className="loginRoleSwitch" role="tablist" aria-label="Account type">
+            <button
+              type="button"
+              className={loginRole === "coach" ? "selectedAttempt" : ""}
+              onClick={() => { setLoginRole("coach"); setLoginError(""); setLoginPassword(""); }}
+            >
+              Coach
+            </button>
+            <button
+              type="button"
+              className={loginRole === "student" ? "selectedAttempt" : ""}
+              onClick={() => { setLoginRole("student"); setLoginError(""); setLoginPassword(""); }}
+            >
+              Student
+            </button>
+          </div>
+
+          <label className="formField">
+            <span>Account</span>
+            <select
+              value={selectedAccountId}
+              onChange={(event) => {
+                if (loginRole === "coach") {
+                  setSelectedCoachAccountId(event.target.value);
+                } else {
+                  setSelectedStudentAccountId(event.target.value);
+                }
+                setLoginError("");
+              }}
+            >
+              {selectedAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name} · {account.email}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="formField">
+            <span>Password</span>
+            <input
+              type="password"
+              value={loginPassword}
+              onChange={(event) => { setLoginPassword(event.target.value); setLoginError(""); }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleLogin();
+              }}
+              placeholder={loginRole === "coach" ? "coach123" : "student123"}
+            />
+          </label>
+
+          <button type="button" className="primaryButton authSubmitButton" onClick={handleLogin}>
+            Log in as {loginRole}
           </button>
-          <button type="button" className="loginCard primaryLoginCard" onClick={loginAsStudent}>
-            <span>Log in as student</span>
-            <strong>Open your assigned puzzles and solving history.</strong>
-          </button>
+          {loginError ? <p className="status statusBanner status-incorrect">{loginError}</p> : null}
+          <p className="studentSummary">
+            Demo credential: {selectedAccount?.email} / {selectedAccount?.password}
+          </p>
         </section>
+        <CookieStorageNotice />
       </main>
     );
   }
@@ -577,12 +726,12 @@ export default function App() {
           </div>
           <nav className="modeNav" aria-label="Workspace">
             <button type="button" onClick={() => setPage(activeRole === "coach" ? "coach" : "student")}>
-              {activeRole === "coach" ? "Coach workspace" : "My puzzles"}
+              {activeRole === "coach" ? "My students" : "My puzzles"}
             </button>
-            <button type="button" className="selectedAttempt">Puzzle library</button>
             {activeRole === "coach" ? (
               <button type="button" onClick={() => setPage("collection")}>My puzzle collection</button>
             ) : null}
+            <button type="button" className="selectedAttempt">Puzzle library</button>
             <button type="button" onClick={logOut}>Log out</button>
           </nav>
         </header>
@@ -767,6 +916,7 @@ export default function App() {
             {newPuzzleMessage ? <p className="studentSummary">{newPuzzleMessage}</p> : null}
           </section>
         </div>
+        <CookieStorageNotice />
       </main>
     );
   }
@@ -778,39 +928,80 @@ export default function App() {
           <div>
             <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
             <h1>Coach workspace</h1>
-            <p className="headerPrompt">Build a collection, then assign puzzles to students.</p>
+          <p className="headerPrompt">Review student progress and manage assignments.</p>
           </div>
           <nav className="modeNav" aria-label="Workspace">
-            <button type="button" className="selectedAttempt">Coach workspace</button>
-            <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
+            <button type="button" className="selectedAttempt">My students</button>
             <button type="button" onClick={() => setPage("collection")}>My puzzle collection</button>
+            <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
             <button type="button" onClick={logOut}>Log out</button>
           </nav>
         </header>
 
         <div className="coachLayout">
-          <section className="panel">
+          <section className="panel assignmentBoard">
             <div className="sectionHeader">
-              <h2>Puzzle library</h2>
-              <span>{allPuzzles.length} puzzles</span>
+              <h2>My students</h2>
+              <span>{studentRoster.length} students</span>
             </div>
-            <p className="studentSummary">Browse public puzzles and add useful ones to your collection.</p>
-            <button type="button" className="primaryButton assignButton" onClick={() => setPage("puzzles")}>
-              Open puzzle library
-            </button>
-          </section>
+            <div className="addStudentForm">
+              <label className="formField">
+                <span>Name</span>
+                <input
+                  value={newStudentName}
+                  onChange={(event) => setNewStudentName(event.target.value)}
+                  placeholder="Student name"
+                />
+              </label>
+              <label className="formField">
+                <span>Level</span>
+                <input
+                  value={newStudentLevel}
+                  onChange={(event) => setNewStudentLevel(event.target.value)}
+                  inputMode="numeric"
+                  placeholder="1200"
+                />
+              </label>
+              <button type="button" className="primaryButton assignButton" onClick={addStudent} disabled={!newStudentName.trim()}>
+                <Plus aria-hidden="true" size={16} strokeWidth={2.4} />
+                Add student
+              </button>
+            </div>
+            <div className="studentAssignmentGrid">
+              {studentRoster.map((student) => {
+                const studentAssignments = assignments.filter((assignment) => assignment.studentId === student.id);
+                const solvedCount = studentAssignments.filter((assignment) => {
+                  const state = puzzleStates[makePuzzleStateKey(student.id, assignment.puzzleId)];
+                  return state?.solved;
+                }).length;
+                const attemptCount = studentAssignments.reduce((total, assignment) => {
+                  const state = puzzleStates[makePuzzleStateKey(student.id, assignment.puzzleId)];
+                  return total + (state?.attempts.length ?? 0);
+                }, 0);
 
-          <section className="panel">
-            <div className="sectionHeader">
-              <h2>My puzzle collection</h2>
-              <span>{coachCollectionPuzzles.length} puzzles</span>
+                return (
+                  <button
+                    type="button"
+                    key={student.id}
+                    className="studentAssignmentCard studentCardButton"
+                    onClick={() => openCoachStudentDetail(student.id)}
+                  >
+                    <div className="attemptTopline">
+                      <strong>{student.name}</strong>
+                      <span className="badge">{student.level}</span>
+                    </div>
+                    <div className="studentStats">
+                      <span>{studentAssignments.length} assigned</span>
+                      <span>{solvedCount} solved</span>
+                      <span>{attemptCount} attempts</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-            <p className="studentSummary">Select from your saved puzzles and assign them to students.</p>
-            <button type="button" className="primaryButton assignButton" onClick={() => setPage("collection")}>
-              Open my puzzle collection
-            </button>
           </section>
         </div>
+        <CookieStorageNotice />
       </main>
     );
   }
@@ -829,9 +1020,9 @@ export default function App() {
             <p className="headerPrompt">Choose from your saved puzzles and assign them to students.</p>
           </div>
           <nav className="modeNav" aria-label="Workspace">
-            <button type="button" onClick={() => setPage("coach")}>Coach workspace</button>
-            <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
+            <button type="button" onClick={() => setPage("coach")}>My students</button>
             <button type="button" className="selectedAttempt">My puzzle collection</button>
+            <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
             <button type="button" onClick={logOut}>Log out</button>
           </nav>
         </header>
@@ -892,10 +1083,10 @@ export default function App() {
               <span>{coachSelectedStudentIds.length} selected</span>
             </div>
             <button type="button" className="selectAllButton" onClick={toggleAllCoachStudents}>
-              {coachSelectedStudentIds.length === students.length ? "Clear selection" : "Select all"}
+              {coachSelectedStudentIds.length === studentRoster.length ? "Clear selection" : "Select all"}
             </button>
             <div className="studentChecklist">
-              {students.map((student) => (
+              {studentRoster.map((student) => (
                 <label key={student.id} className="studentCheck">
                   <input
                     type="checkbox"
@@ -925,7 +1116,7 @@ export default function App() {
               <span>{assignments.length} total</span>
             </div>
             <div className="studentAssignmentGrid">
-              {students.map((student) => {
+              {studentRoster.map((student) => {
                 const studentAssignments = assignments.filter((assignment) => assignment.studentId === student.id);
                 return (
                   <article key={student.id} className="studentAssignmentCard">
@@ -978,6 +1169,107 @@ export default function App() {
             </div>
           </section>
         </div>
+        <CookieStorageNotice />
+      </main>
+    );
+  }
+
+  if (page === "studentDetail") {
+    const selectedStudent = studentRoster.find((student) => student.id === selectedCoachStudentId) ?? studentRoster[0];
+    const studentAssignments = assignments.filter((assignment) => assignment.studentId === selectedStudent.id);
+    const solvedCount = studentAssignments.filter((assignment) => {
+      const state = puzzleStates[makePuzzleStateKey(selectedStudent.id, assignment.puzzleId)];
+      return state?.solved;
+    }).length;
+    const attemptCount = studentAssignments.reduce((total, assignment) => {
+      const state = puzzleStates[makePuzzleStateKey(selectedStudent.id, assignment.puzzleId)];
+      return total + (state?.attempts.length ?? 0);
+    }, 0);
+
+    return (
+      <main className="appShell">
+        <header className="appHeader">
+          <div>
+            <p className="eyebrow">ChessCoach Puzzle Trace MVP</p>
+            <h1>{selectedStudent.name}</h1>
+            <p className="headerPrompt">Assigned puzzle progress and solving history.</p>
+          </div>
+          <nav className="modeNav" aria-label="Workspace">
+            <button type="button" onClick={() => setPage("coach")}>My students</button>
+            <button type="button" onClick={() => setPage("collection")}>My puzzle collection</button>
+            <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
+            <button type="button" onClick={logOut}>Log out</button>
+          </nav>
+        </header>
+
+        <div className="studentPageLayout">
+          <section className="panel">
+            <div className="sectionHeader">
+              <h2>Student summary</h2>
+              <span className="badge">{selectedStudent.level}</span>
+            </div>
+            <div className="studentStats">
+              <span>{studentAssignments.length} assigned</span>
+              <span>{solvedCount} solved</span>
+              <span>{attemptCount} attempts</span>
+            </div>
+          </section>
+
+          <section className="panel assignmentBoard">
+            <div className="sectionHeader">
+              <h2>Assigned puzzles</h2>
+              <span>{studentAssignments.length} puzzles</span>
+            </div>
+            <div className="studentPuzzleGrid">
+              {studentAssignments.length ? (
+                studentAssignments.map((assignment) => {
+                  const assignedPuzzle = allPuzzles.find((item) => item.id === assignment.puzzleId);
+                  if (!assignedPuzzle) return null;
+
+                  const state = puzzleStates[makePuzzleStateKey(selectedStudent.id, assignment.puzzleId)] ?? emptyPuzzleState;
+
+                  return (
+                    <article key={assignment.id} className="studentPuzzleCard">
+                      <div className="attemptTopline">
+                        <strong>{assignedPuzzle.title}</strong>
+                        <span className={state.solved ? "badge success" : "badge"}>
+                          {state.solved ? "Solved" : `${state.attempts.length}/${MAX_ATTEMPTS}`}
+                        </span>
+                      </div>
+                      <p>{formatSide(assignedPuzzle.sideToMove)} to move</p>
+                      <p>{assignedPuzzle.themes.join(", ")}</p>
+                      <p className="studentSummary">{describePuzzleProgress(state, assignedPuzzle.solutionUci)}</p>
+                      <div className="studentHistoryMini">
+                        <strong>Attempts</strong>
+                        {state.attempts.length ? (
+                          state.attempts.map((attempt) => (
+                            <button
+                              type="button"
+                              key={attempt.id}
+                              className="historyMiniRow"
+                              onClick={() => openReplayForPuzzle(selectedStudent.id, assignedPuzzle.id, attempt.id)}
+                            >
+                              <span>Attempt {attempt.attemptNumber}: {attempt.correct ? "Correct" : "Incorrect"}</span>
+                              <em>{describeAttemptOutcome(attempt.moves, attempt.correct, assignedPuzzle.solutionUci)}</em>
+                            </button>
+                          ))
+                        ) : (
+                          <span className="muted">No attempts yet.</span>
+                        )}
+                      </div>
+                      <button type="button" className="primaryButton" onClick={() => openStudentPuzzle(selectedStudent.id, assignedPuzzle.id)}>
+                        Open puzzle
+                      </button>
+                    </article>
+                  );
+                })
+              ) : (
+                <p className="muted">No puzzles assigned yet.</p>
+              )}
+            </div>
+          </section>
+        </div>
+        <CookieStorageNotice />
       </main>
     );
   }
@@ -995,7 +1287,6 @@ export default function App() {
           </div>
           <nav className="modeNav" aria-label="Prototype navigation">
             <button type="button" className="selectedAttempt">Student portal</button>
-            <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
             <button type="button" onClick={logOut}>Log out</button>
           </nav>
         </header>
@@ -1004,19 +1295,10 @@ export default function App() {
           <section className="panel identityPanel">
             <div className="sectionHeader">
               <h2>Signed in as</h2>
-              <span>Demo mode</span>
+              <span>Student account</span>
             </div>
-            <label className="formField demoStudentField">
-              <span>Student</span>
-              <select value={activeStudent.id} onChange={(event) => setActiveStudentId(event.target.value)}>
-                {students.map((student) => (
-                  <option key={student.id} value={student.id}>
-                    {student.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className="studentSummary">Local MVP switcher for testing each student's own puzzle page.</p>
+            <p className="accountName">{activeAccount?.name ?? activeStudent.name}</p>
+            <p className="studentSummary">{activeAccount?.email}</p>
           </section>
 
           <section className="panel assignmentBoard">
@@ -1069,6 +1351,7 @@ export default function App() {
             </div>
           </section>
         </div>
+        <CookieStorageNotice />
       </main>
     );
   }
@@ -1082,6 +1365,7 @@ export default function App() {
           selectedAttemptId={replayAttemptId}
           onBack={() => setPage("solve")}
         />
+        <CookieStorageNotice />
       </main>
     );
   }
@@ -1096,11 +1380,13 @@ export default function App() {
         </div>
         <nav className="modeNav" aria-label="Workspace">
           <button type="button" onClick={() => setPage(activeRole === "coach" ? "coach" : "student")}>
-            {activeRole === "coach" ? "Coach workspace" : "My puzzles"}
+            {activeRole === "coach" ? "My students" : "My puzzles"}
           </button>
-          <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
           {activeRole === "coach" ? (
             <button type="button" onClick={() => setPage("collection")}>My puzzle collection</button>
+          ) : null}
+          {activeRole === "coach" ? (
+            <button type="button" onClick={() => setPage("puzzles")}>Puzzle library</button>
           ) : null}
           <button type="button" onClick={logOut}>Log out</button>
         </nav>
@@ -1219,6 +1505,7 @@ export default function App() {
           <AttemptHistory attempts={puzzleState.attempts} solutionUci={puzzle.solutionUci} onReplay={openReplay} />
         </aside>
       </div>
+      <CookieStorageNotice />
     </main>
   );
 }

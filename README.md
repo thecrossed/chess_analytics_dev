@@ -26,6 +26,11 @@ Vite will print a local URL, usually `http://localhost:5173`.
 npm test
 ```
 
+## Demo Accounts
+
+- Coach: `coach@chesscoach.local` / `coach123`
+- Students: `maya@chesscoach.local`, `lucas@chesscoach.local`, or `ava@chesscoach.local` / `student123`
+
 ## Lichess Puzzle Import
 
 The full local SQLite import lives outside git:
@@ -46,8 +51,10 @@ python3 scripts/export_lichess_puzzles_for_app.py --limit 500
 - 500 generated Lichess puzzles in `src/data/lichessPuzzles.ts`
 - Legal move validation with `chess.js`
 - Drag-and-drop board UI with `react-chessboard`
-- Local role selection for logging in as coach or student
+- Local coach and student login with demo accounts
 - Public puzzle library for adding puzzles to a coach collection
+- My students page for reviewing roster progress
+- Local add-student flow for expanding the coach roster
 - My puzzle collection page for assigning saved puzzles to fake students
 - Student portal showing a student's assigned puzzles and personal attempt history
 - Puzzle library for browsing public puzzles and creating local custom puzzles
@@ -56,12 +63,14 @@ python3 scripts/export_lichess_puzzles_for_app.py --limit 500
 - Up to three automatically submitted attempts per puzzle
 - Exact UCI sequence matching against the puzzle solution
 - LocalStorage persistence for active puzzle, solved state, and submitted attempts
+- Cookie/local storage notice for the MVP's necessary browser storage
 - Dedicated replay page with first, previous, next, play, pause, and reset controls
 
 ## Current MVP Limitations
 
-- No coach account yet
-- No student accounts yet
+- Demo-only accounts stored in frontend code
+- No secure password storage yet
+- No analytics or marketing cookies yet
 - No backend
 - No cloud AI analysis
 - No Lichess integration
